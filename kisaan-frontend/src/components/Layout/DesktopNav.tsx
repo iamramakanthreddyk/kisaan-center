@@ -16,7 +16,7 @@ import {
 } from '../ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Settings, LogOut, ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils.ts';
 
 // interface NavItem {
 //   label: string;

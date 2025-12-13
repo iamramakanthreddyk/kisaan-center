@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from './input';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils.ts';
 
 /**
  * MoneyInput
