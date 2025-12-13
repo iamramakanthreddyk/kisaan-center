@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 155 20% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 155 20% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 155 20% 15%;
+
+    --primary: 158 64% 52%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 142 76% 96%;
+    --secondary-foreground: 155 20% 15%;
+
+    --muted: 142 76% 96%;
+    --muted-foreground: 155 10% 45%;
+
+    --accent: 35 91% 65%;
+    --accent-foreground: 155 20% 15%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 142 40% 88%;
+    --input: 142 40% 88%;
+    --ring: 158 64% 52%;
+
+    --radius: 0.75rem;
+
+    /* Enhanced KisaanCenter Brand System */
+    --brand-emerald: 158 65% 48%;
+    --brand-emerald-light: 158 60% 55%;
+    --brand-emerald-dark: 158 70% 40%;
+    
+    --brand-forest: 155 45% 30%;
+    --brand-sage: 142 35% 70%;
+    --brand-sage-light: 142 40% 85%;
+    
+    --accent-gold: 42 88% 55%;
+    --accent-amber: 35 91% 65%;
+    --accent-orange: 25 95% 53%;
+    
+    --neutral-stone: 155 8% 48%;
+    --neutral-slate: 155 6% 25%;
+    --neutral-warm: 30 5% 50%;
+    
+    --status-success: 142 70% 45%;
+    --status-warning: 35 91% 65%;
+    --status-error: 0 84% 60%;
+    --status-info: 210 85% 55%;
+    
+    /* Enhanced Brand Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--brand-emerald)) 0%, hsl(var(--brand-emerald-dark)) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(var(--brand-emerald-light)) 0%, hsl(var(--brand-emerald)) 35%, hsl(var(--brand-forest)) 70%, hsl(var(--accent-gold)) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(var(--brand-sage-light)) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(0 0% 99%) 0%, hsl(var(--brand-sage-light)) 100%);
+    --gradient-button: linear-gradient(135deg, hsl(var(--brand-emerald)) 0%, hsl(var(--brand-emerald-dark)) 100%);
+    
+    /* Shadows */
+    --shadow-soft: 0 2px 8px -2px hsl(var(--primary-forest) / 0.1);
+    --shadow-medium: 0 8px 25px -5px hsl(var(--primary-forest) / 0.15);
+    --shadow-strong: 0 20px 40px -12px hsl(var(--primary-forest) / 0.25);
+    
+    /* Transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.15s ease-out;
+    --transition-slow: all 0.5s ease-in-out;
+    
+    /* Mobile-specific variables */
+    --mobile-header-height: 64px;
+    --mobile-nav-width: 280px;
+    --touch-target-size: 44px;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+/* Mobile-first responsive utilities */
+@layer utilities {
+  /* Extra small screens */
+  .xs\:block {
+    @media (min-width: 475px) {
+      display: block;
+    }
+  }
+  
+  .xs\:hidden {
+    @media (min-width: 475px) {
+      display: none;
+    }
+  }
+  
+  .xs\:inline {
+    @media (min-width: 475px) {
+      display: inline;
+    }
+  }
+  
+  /* Mobile navigation improvements */
+  .mobile-nav-overlay {
+    @apply fixed inset-0 bg-black/50 z-40 md:hidden;
+  }
+  
+  /* Touch-friendly buttons */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Mobile-optimized spacing */
+  .mobile-padding {
+    @apply px-4 py-3 md:px-6 md:py-4;
+  }
+  
+  /* Responsive text sizing */
+  .responsive-text-lg {
+    @apply text-base md:text-lg;
+  }
+  
+  .responsive-text-xl {
+    @apply text-lg md:text-xl;
+  }
+  
+  .responsive-text-2xl {
+    @apply text-xl md:text-2xl;
+  }
+  
+  .responsive-text-3xl {
+    @apply text-2xl md:text-3xl;
+  }
+  
+  /* Mobile-friendly cards */
+  .mobile-card {
+    @apply rounded-lg md:rounded-xl;
+  }
+  
+  /* Responsive grid gaps */
+  .responsive-gap {
+    @apply gap-3 md:gap-4 lg:gap-6;
+  }
+  
+  /* Mobile-optimized form elements */
+  .mobile-input {
+    @apply text-base; /* Prevents zoom on iOS */
+  }
+  
+  /* Safe area for mobile devices */
+  .safe-area-padding {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Mobile-friendly scrollable areas */
+  .mobile-scroll {
+    @apply overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

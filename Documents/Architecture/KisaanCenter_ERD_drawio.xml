@@ -1,0 +1,106 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="KisaanCenter ERD" id="kisaanCenterERD">
+    <mxGraphModel dx="1000" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <!-- SUPERADMIN -->
+        <mxCell id="2" value="SUPERADMIN&#xa;id: int&#xa;username: string&#xa;password_hash: string&#xa;contact: string&#xa;created_at: datetime&#xa;updated_at: datetime&#xa;status: bool" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="180" height="120" as="geometry"/>
+        </mxCell>
+        <!-- USER -->
+        <mxCell id="3" value="USER&#xa;id: int&#xa;username: string&#xa;password_hash: string&#xa;role: string&#xa;shop_id: int&#xa;created_by_superadmin_id: int&#xa;contact: string&#xa;created_at: datetime&#xa;updated_at: datetime&#xa;status: bool" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="40" width="200" height="140" as="geometry"/>
+        </mxCell>
+        <!-- SHOP -->
+        <mxCell id="4" value="SHOP&#xa;id: int&#xa;owner_user_id: int&#xa;created_by_superadmin_id: int&#xa;plan_id: int&#xa;name: string&#xa;address: string&#xa;created_at: datetime&#xa;updated_at: datetime&#xa;status: bool" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="40" width="200" height="140" as="geometry"/>
+        </mxCell>
+        <!-- PLAN -->
+        <mxCell id="5" value="PLAN&#xa;id: int&#xa;name: string&#xa;features: string&#xa;price: decimal&#xa;max_users: int&#xa;max_products: int&#xa;max_transactions: int&#xa;max_shops: int&#xa;advanced_analytics: bool&#xa;bulk_sms: bool&#xa;multi_region: bool&#xa;active: bool&#xa;created_at: datetime&#xa;updated_at: datetime" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="740" y="40" width="220" height="180" as="geometry"/>
+        </mxCell>
+        <!-- CATEGORY -->
+        <mxCell id="6" value="CATEGORY&#xa;id: int&#xa;name: string" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <!-- PRODUCT -->
+        <mxCell id="7" value="PRODUCT&#xa;id: int&#xa;shop_id: int&#xa;category_id: int&#xa;name: string&#xa;unit: string&#xa;description: string&#xa;price: decimal&#xa;created_at: datetime&#xa;updated_at: datetime&#xa;status: bool" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="220" width="200" height="140" as="geometry"/>
+        </mxCell>
+        <!-- FARMER -->
+        <mxCell id="8" value="FARMER&#xa;id: int&#xa;user_id: int&#xa;shop_id: int&#xa;name: string&#xa;contact: string&#xa;created_at: datetime&#xa;updated_at: datetime&#xa;status: bool" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="220" width="180" height="120" as="geometry"/>
+        </mxCell>
+        <!-- BUYER -->
+        <mxCell id="9" value="BUYER&#xa;id: int&#xa;user_id: int&#xa;shop_id: int&#xa;name: string&#xa;contact: string&#xa;created_at: datetime&#xa;updated_at: datetime&#xa;status: bool" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="220" width="180" height="120" as="geometry"/>
+        </mxCell>
+        <!-- EMPLOYEE -->
+        <mxCell id="10" value="EMPLOYEE&#xa;id: int&#xa;user_id: int&#xa;shop_id: int&#xa;name: string&#xa;contact: string&#xa;created_at: datetime&#xa;updated_at: datetime&#xa;status: bool" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="220" width="180" height="120" as="geometry"/>
+        </mxCell>
+        <!-- FARMER_STOCK -->
+        <mxCell id="11" value="FARMER_STOCK&#xa;id: int&#xa;shop_id: int&#xa;farmer_id: int&#xa;product_id: int&#xa;gross_qty: decimal&#xa;sold_qty: decimal&#xa;unsold_qty: decimal&#xa;discarded_qty: decimal&#xa;net_qty: decimal&#xa;arrival_date: datetime&#xa;status: string&#xa;created_by: int&#xa;created_at: datetime&#xa;updated_at: datetime" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="400" width="220" height="180" as="geometry"/>
+        </mxCell>
+        <!-- FARMER_STOCK_COMMENT -->
+        <mxCell id="12" value="FARMER_STOCK_COMMENT&#xa;id: int&#xa;farmer_stock_id: int&#xa;comment: string&#xa;created_at: datetime&#xa;created_by: int" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="400" width="180" height="100" as="geometry"/>
+        </mxCell>
+        <!-- TRANSACTION -->
+        <mxCell id="13" value="TRANSACTION&#xa;id: int&#xa;shop_id: int&#xa;farmer_id: int&#xa;buyer_id: int&#xa;commission_rate: decimal&#xa;commission_amount: decimal&#xa;payment_status: string&#xa;date: datetime&#xa;paid_to_farmer: bool&#xa;created_at: datetime&#xa;updated_at: datetime" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="400" width="220" height="140" as="geometry"/>
+        </mxCell>
+        <!-- TRANSACTION_ITEM -->
+        <mxCell id="14" value="TRANSACTION_ITEM&#xa;id: int&#xa;transaction_id: int&#xa;product_id: int&#xa;quantity: decimal&#xa;price: decimal" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="720" y="400" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <!-- PAYMENT -->
+        <mxCell id="15" value="PAYMENT&#xa;id: int&#xa;transaction_id: int&#xa;farmer_id: int&#xa;buyer_id: int&#xa;amount: decimal&#xa;outstanding_amount: decimal&#xa;payment_type: string&#xa;method: string&#xa;remarks: string&#xa;date: datetime&#xa;created_at: datetime&#xa;updated_at: datetime" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="400" width="220" height="140" as="geometry"/>
+        </mxCell>
+        <!-- EXPENSE -->
+        <mxCell id="16" value="EXPENSE&#xa;id: int&#xa;shop_id: int&#xa;type: string&#xa;amount: decimal&#xa;date: datetime&#xa;remarks: string&#xa;created_by: int&#xa;created_at: datetime&#xa;updated_at: datetime" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="620" width="200" height="120" as="geometry"/>
+        </mxCell>
+        <!-- AUDIT_LOG -->
+        <mxCell id="17" value="AUDIT_LOG&#xa;id: int&#xa;entity_type: string&#xa;entity_id: int&#xa;old_value: string&#xa;new_value: string&#xa;performed_by: int&#xa;timestamp: datetime" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="620" width="200" height="120" as="geometry"/>
+        </mxCell>
+        <!-- Example relationships (add more as needed) -->
+        <mxCell id="18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="2" target="3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="3" target="4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="4" target="7">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="7" target="6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Add more edges for all relationships as needed -->
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+
+  <!-- Additional ERD relationships -->
+  <mxCell id="22" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="4" target="8"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- SHOP has FARMER -->
+  <mxCell id="23" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="4" target="9"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- SHOP has BUYER -->
+  <mxCell id="24" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="4" target="10"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- SHOP has EMPLOYEE -->
+  <mxCell id="25" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="4" target="11"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- SHOP has FARMER_STOCK -->
+  <mxCell id="26" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="4" target="13"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- SHOP has TRANSACTION -->
+  <mxCell id="27" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="4" target="16"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- SHOP has EXPENSE -->
+  <mxCell id="28" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="4" target="17"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- SHOP has AUDIT_LOG -->
+  <mxCell id="29" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="8" target="13"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- FARMER makes TRANSACTION -->
+  <mxCell id="30" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="9" target="13"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- BUYER buys TRANSACTION -->
+  <mxCell id="31" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="7" target="13"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- PRODUCT included_in TRANSACTION -->
+  <mxCell id="32" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="7" target="11"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- PRODUCT delivered FARMER_STOCK -->
+  <mxCell id="33" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="13" target="15"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- TRANSACTION has PAYMENT -->
+  <mxCell id="34" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="13" target="17"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- TRANSACTION logs AUDIT_LOG -->
+  <mxCell id="35" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="15" target="17"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- PAYMENT logs AUDIT_LOG -->
+  <mxCell id="36" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="11" target="12"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- FARMER_STOCK has FARMER_STOCK_COMMENT -->
+  <mxCell id="37" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;" edge="1" parent="1" source="13" target="14"><mxGeometry relative="1" as="geometry"/></mxCell> <!-- TRANSACTION has TRANSACTION_ITEM -->

@@ -1,0 +1,46 @@
+# Market Management System - Backend Dependencies
+
+# Core FastAPI and web framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Database and ORM
+sqlalchemy==2.0.23
+psycopg2-binary
+alembic==1.12.1
+
+# Authentication and security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Data validation and serialization
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Date and time handling
+python-dateutil==2.8.2
+
+# Environment and configuration
+python-dotenv==1.0.0
+
+# Testing (development)
+# Python test tools removed — project uses Node/Jest for tests now.
+# If you still need to run any legacy Python scripts, install the specific tools as needed.
+
+# Code quality (development)
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.4.8
+
+# Performance and monitoring
+prometheus-client==0.19.0
+structlog==23.2.0
+
+# Testing (Node)
+# Use the backend's package.json scripts (Jest + Supertest):
+# See kisaan-backend-node/package.json -> scripts.test:integration

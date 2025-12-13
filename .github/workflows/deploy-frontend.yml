@@ -1,0 +1,138 @@
+name: Deploy Frontend to GitHub Pages
+
+on:
+  workflow_dispatch:
+  push: 
+    branches: [ main ]
+    paths:
+      - 'kisaan-frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate Code Quality
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: kisaan-frontend/package-lock.json
+
+    - name: 📥 Install dependencies
+      working-directory: kisaan-frontend
+      run: npm ci --legacy-peer-deps
+
+    - name: TypeScript type checking
+      working-directory: kisaan-frontend
+      run: npm run build
+
+    - name: Lint code
+      working-directory: kisaan-frontend
+      run: npm run lint
+      continue-on-error: true
+
+    - name: Audit dependencies
+      working-directory: kisaan-frontend
+      run: npm audit --audit-level=high
+      continue-on-error: true
+
+  build:
+    needs: validate
+    runs-on: ubuntu-latest
+    name: Build Frontend
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: kisaan-frontend/package-lock.json
+
+    - name: 🔧 Create production environment file
+      working-directory: kisaan-frontend
+      run: |
+        echo "Creating .env.production with values from GitHub secrets..."
+        
+        # Set backend URL with fallback to Azure Container Apps endpoint
+        BACKEND_URL="${{ secrets.VITE_API_BASE_URL }}"
+        if [ -z "$BACKEND_URL" ] || [ "$BACKEND_URL" = "null" ] || [ "$BACKEND_URL" = "undefined" ]; then
+          BACKEND_URL="https://kisaancenter-backend.whiteisland-e1233153.northeurope.azurecontainerapps.io/api"
+          echo "⚠️  Using fallback backend URL: $BACKEND_URL"
+        else
+          echo "✅ Using backend URL from secret: $BACKEND_URL"
+        fi
+        
+        cat > .env.production << EOF
+        # Production environment configuration (auto-generated)
+        VITE_API_BASE_URL=$BACKEND_URL
+        VITE_APP_TITLE=KisaanCenter
+        VITE_APP_DESCRIPTION=Market Management System
+        VITE_APP_VERSION=1.0.0
+        VITE_ENVIRONMENT=production
+        VITE_BACKEND_URL=$BACKEND_URL
+        VITE_API_TIMEOUT=30000
+        VITE_ENABLE_LOGGING=false
+        EOF
+
+        echo "✅ Environment file created successfully"
+        echo "Backend URL will be: $BACKEND_URL"
+
+    - name: 📥 Install dependencies
+      working-directory: kisaan-frontend
+      run: npm ci --legacy-peer-deps
+
+    - name: Build
+      working-directory: kisaan-frontend
+      run: npm run build
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: kisaan-frontend/dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+    - name: Deployment Summary
+      env:
+        SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        BACKEND: ${{ secrets.VITE_API_BASE_URL }}
+        COMMIT: ${{ github.sha }}
+      run: |
+        echo "🎉 Frontend Deployment Summary"
+        echo "=============================="
+        echo "✅ Site URL: $SITE_URL"
+        echo "✅ Custom Domain: https://kisaancenter.com"
+        echo "✅ Backend API: ${{ secrets.VITE_API_BASE_URL }}"
+        echo "✅ Commit SHA: ${{ github.sha }}"

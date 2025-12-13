@@ -1,0 +1,1890 @@
+openapi: 3.0.3
+info:
+  title: KisaanCenter API
+  version: 1.0.0
+  description: Full API documentation for KisaanCenter backend
+servers:
+  - url: http://localhost:3000/api
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        username: { type: string, minLength: 3, maxLength: 50, description: "Unique username for the user" }
+        role: { type: string, enum: [superadmin, owner, farmer, buyer], description: "User role in the system" }
+        shop_id: { type: integer, nullable: true, description: "Associated shop ID for owners" }
+        contact: { type: string, nullable: true, pattern: "^[+]?[0-9]{10,15}$", description: "Contact phone number" }
+        email: { type: string, nullable: true, format: email, description: "User email address" }
+        status: { type: string, enum: [active, inactive], default: active, description: "User account status" }
+        balance: { type: number, default: 0, description: "Current account balance" }
+        cumulative_value: { type: number, default: 0, description: "Total cumulative transaction value" }
+        created_by: { type: integer, nullable: true, description: "ID of user who created this account" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+      required: [username, role]
+
+    ShopReport:
+      type: object
+      properties:
+        shop:
+          type: object
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            owner_id: { type: integer }
+            status: { type: string }
+            created_at: { type: string, format: date-time }
+        totalUsers:
+          type: integer
+          description: Total users in shop
+        activeUsers:
+          type: integer
+          description: Active users in shop
+        totalTransactions:
+          type: integer
+          description: Total transactions for shop in date range
+        totalRevenue:
+          type: number
+          description: Total revenue (sum of total_sale_value) for shop in date range
+        recentTransactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+          description: Recent transactions for shop (last 10)
+        topUsers:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              username: { type: string }
+              role: { type: string }
+              status: { type: string }
+              created_at: { type: string, format: date-time }
+              txnCount: { type: integer }
+          description: Top users by transaction count in shop
+
+    PlatformReport:
+      type: object
+      properties:
+        totalShops:
+          type: integer
+          description: Total number of shops
+        totalUsers:
+          type: integer
+          description: Total number of users
+        totalTransactions:
+          type: integer
+          description: Total number of transactions in date range
+        totalRevenue:
+          type: number
+          description: Total revenue (sum of total_sale_value) in date range
+        activeShops:
+          type: integer
+          description: Number of active shops
+        activeUsers:
+          type: integer
+          description: Number of active users
+        recentTransactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+          description: Recent transactions (last 10)
+        topShops:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              name: { type: string }
+              owner_id: { type: integer }
+              status: { type: string }
+              created_at: { type: string, format: date-time }
+              txnCount: { type: integer }
+          description: Top shops by transaction count
+
+    UserCreate:
+      type: object
+      properties:
+        username: { type: string, minLength: 3, maxLength: 50, description: "Unique username for the user" }
+        role: { type: string, enum: [superadmin, owner, farmer, buyer], description: "User role in the system" }
+        shop_id: { type: integer, nullable: true, description: "Associated shop ID for owners" }
+        contact: { type: string, nullable: true, pattern: "^[+]?[0-9]{10,15}$", description: "Contact phone number" }
+        email: { type: string, nullable: true, format: email, description: "User email address" }
+        password: { type: string, minLength: 6, description: "User password" }
+        status: { type: string, enum: [active, inactive], default: active, description: "User account status" }
+        balance: { type: number, default: 0, description: "Initial account balance" }
+        cumulative_value: { type: number, default: 0, description: "Initial cumulative value" }
+      required: [username, role, password]
+
+    UserUpdate:
+      type: object
+      properties:
+        username: { type: string }
+        contact: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        status: { type: string, enum: [active, inactive] }
+        balance: { type: number }
+        cumulative_value: { type: number }
+
+    Category:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string, minLength: 1, maxLength: 100, description: "Category name" }
+        status: { type: string, enum: [active, inactive], default: active, description: "Category status" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+      required: [name]
+
+    CategoryCreate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100, description: "Category name" }
+        status: { type: string, enum: [active, inactive], default: active, description: "Category status" }
+      required: [name]
+
+    Shop:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        owner_id: { type: integer }
+        plan_id: { type: integer, nullable: true }
+        address: { type: string, nullable: true }
+        contact: { type: string, nullable: true }
+        status: { type: string, enum: [active, inactive], default: active }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+      required: [name, owner_id, address, contact]
+
+    ShopCreate:
+      type: object
+      properties:
+        name: { type: string }
+        owner_id: { type: integer }
+        plan_id: { type: integer, nullable: true }
+        address: { type: string }
+        contact: { type: string }
+        status: { type: string, enum: [active, inactive], default: active }
+      required: [name, owner_id, address, contact]
+
+    Product:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        category_id: { type: integer }
+        status: { type: string, enum: [active, inactive], default: active }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+      required: [name, category_id]
+
+    ProductCreate:
+      type: object
+      properties:
+        name: { type: string }
+        category_id: { type: integer }
+        status: { type: string, enum: [active, inactive], default: active }
+      required: [name, category_id]
+
+    Transaction:
+      type: object
+      properties:
+        id: { type: integer }
+        shop_id: { type: integer }
+        farmer_id: { type: integer }
+        buyer_id: { type: integer }
+        category_id: { type: integer }
+        product_name: { type: string }
+        quantity: { type: number, minimum: 0 }
+        unit_price: { type: number, minimum: 0 }
+        total_sale_value: { type: number, minimum: 0 }
+        shop_commission: { type: number, minimum: 0 }
+        farmer_earning: { type: number, minimum: 0 }
+        status: { type: string, enum: [pending, completed, cancelled], default: pending }
+        transaction_date: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+      required: [shop_id, farmer_id, buyer_id, category_id, product_name, quantity, unit_price]
+
+    TransactionCreate:
+      type: object
+      properties:
+        shop_id: { type: integer }
+        farmer_id: { type: integer }
+        buyer_id: { type: integer }
+        category_id: { type: integer }
+        product_name: { type: string }
+        quantity: { type: number, minimum: 0 }
+        unit_price: { type: number, minimum: 0 }
+        transaction_date: { type: string, format: date-time }
+      required: [shop_id, farmer_id, buyer_id, category_id, product_name, quantity, unit_price]
+
+    Payment:
+      type: object
+      properties:
+        id: { type: integer }
+        transaction_id: { type: integer }
+        payer_type: { type: string, enum: [BUYER, SHOP] }
+        payee_type: { type: string, enum: [SHOP, FARMER] }
+        amount: { type: number, minimum: 0 }
+        status: { type: string, enum: [PENDING, PAID, FAILED], default: PENDING }
+        payment_date: { type: string, format: date-time, nullable: true }
+        method: { type: string, enum: [CASH, BANK, UPI, OTHER], default: CASH }
+        notes: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+      required: [transaction_id, payer_type, payee_type, amount]
+
+    PaymentCreate:
+      type: object
+      properties:
+        transaction_id: { type: integer }
+        payer_type: { type: string, enum: [BUYER, SHOP] }
+        payee_type: { type: string, enum: [SHOP, FARMER] }
+        amount: { type: number, minimum: 0 }
+        method: { type: string, enum: [CASH, BANK, UPI, OTHER], default: CASH }
+        notes: { type: string, nullable: true }
+        payment_date: { type: string, format: date-time, nullable: true }
+      required: [transaction_id, payer_type, payee_type, amount]
+
+    Settlement:
+      type: object
+      properties:
+        id: { type: integer }
+        shop_id: { type: integer }
+        user_id: { type: integer }
+        amount: { type: number }
+        reason: { type: string, enum: [overpayment, underpayment, adjustment] }
+        status: { type: string, enum: [pending, settled], default: pending }
+        settlement_date: { type: string, format: date-time, nullable: true }
+        notes: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+      required: [shop_id, user_id, amount, reason]
+
+    SettlementCreate:
+      type: object
+      properties:
+        shop_id: { type: integer }
+        user_id: { type: integer }
+        amount: { type: number }
+        reason: { type: string, enum: [overpayment, underpayment, adjustment] }
+        notes: { type: string, nullable: true }
+      required: [shop_id, user_id, amount, reason]
+
+    ShopCategory:
+      type: object
+      properties:
+        id: { type: integer }
+        shop_id: { type: integer }
+        category_id: { type: integer }
+        is_active: { type: boolean, default: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+      required: [shop_id, category_id]
+
+    # Response schemas
+    PaginatedResponse:
+      type: object
+      properties:
+        data: { type: array }
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+        totalPages: { type: integer }
+
+    ApiResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        data: { }
+
+    ErrorResponse:
+      type: object
+      properties:
+        success: { type: boolean, default: false }
+        message: { type: string }
+        error: { type: string }
+
+    LoginRequest:
+      type: object
+      properties:
+        username: { type: string }
+        password: { type: string }
+      required: [username, password]
+
+    LoginResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        token: { type: string }
+        user: { $ref: '#/components/schemas/User' }
+
+    BusinessSummary:
+      type: object
+      properties:
+        totalUsers: { type: integer }
+        totalTransactions: { type: integer }
+        totalPayments: { type: integer }
+        totalSettlements: { type: integer }
+        totalRevenue: { type: number }
+        activeShops: { type: integer }
+        pendingPayments: { type: integer }
+
+    TransactionSummary:
+      type: object
+      properties:
+        total_transactions: { type: integer }
+        total_value: { type: number }
+        total_commission: { type: number }
+        pending_count: { type: integer }
+        completed_count: { type: integer }
+        average_transaction_value: { type: number }
+
+    BalanceUpdate:
+      type: object
+      properties:
+        amount: { type: number }
+        operation: { type: string, enum: [add, subtract, set] }
+        reason: { type: string }
+      required: [amount, operation]
+
+    ShopStats:
+      type: object
+      properties:
+        total_users: { type: integer }
+        active_farmers: { type: integer }
+        active_buyers: { type: integer }
+        total_transactions: { type: integer }
+        monthly_revenue: { type: number }
+
+paths:
+  /users:
+    post:
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserCreate' }
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema: 
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/User' }
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    get:
+      summary: Get all users
+      parameters:
+        - in: query
+          name: role
+          schema: { type: string, enum: [superadmin, owner, farmer, buyer] }
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, inactive] }
+        - in: query
+          name: shop_id
+          schema: { type: integer }
+        - in: query
+          name: include_balance
+          schema: { type: boolean, default: false }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/User' }
+
+  /users/{id}:
+    get:
+      summary: Get user by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  user: { $ref: '#/components/schemas/User' }
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    put:
+      summary: Update user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserUpdate' }
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/User' }
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    delete:
+      summary: Delete user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: User deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /users/me:
+    get:
+      summary: Get current user
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/User' }
+
+  /users/{id}/reset-password:
+    post:
+      summary: Reset user password
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string, minLength: 6 }
+              required: [currentPassword, newPassword]
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /categories:
+    post:
+      summary: Create category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryCreate' }
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Category' }
+    get:
+      summary: Get all categories
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Category' }
+
+  /categories/active:
+    get:
+      summary: Get active categories
+      responses:
+        '200':
+          description: List of active categories
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Category' }
+
+  /categories/search:
+    get:
+      summary: Search categories
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Category' }
+
+  /categories/{id}:
+    get:
+      summary: Get category by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Category found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Category' }
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    put:
+      summary: Update category
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryCreate' }
+      responses:
+        '200':
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Category' }
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    delete:
+      summary: Delete category
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Category deleted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /categories/{id}/deactivate:
+    patch:
+      summary: Deactivate category
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Category deactivated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+
+  /categories/reorder:
+    patch:
+      summary: Reorder categories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                categoryIds: 
+                  type: array
+                  items: { type: integer }
+              required: [categoryIds]
+      responses:
+        '200':
+          description: Categories reordered
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+
+  /shops:
+    post:
+      summary: Create shop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShopCreate' }
+      responses:
+        '201':
+          description: Shop created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Shop' }
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    get:
+      summary: Get all shops
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, inactive] }
+        - in: query
+          name: owner_id
+          schema: { type: integer }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        '200':
+          description: List of shops
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Shop' }
+
+  /shops/{id}:
+    get:
+      summary: Get shop by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Shop found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Shop' }
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    put:
+      summary: Update shop
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShopCreate' }
+      responses:
+        '200':
+          description: Shop updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Shop' }
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    delete:
+      summary: Delete shop
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Shop deleted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+        '404':
+          description: Shop not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /products:
+    post:
+      summary: Create product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductCreate' }
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Product' }
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    get:
+      summary: Get all products
+      parameters:
+        - in: query
+          name: category_id
+          schema: { type: integer }
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, inactive] }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Product' }
+
+  /products/{id}:
+    get:
+      summary: Get product by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Product found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Product' }
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    put:
+      summary: Update product
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductCreate' }
+      responses:
+        '200':
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Product' }
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    delete:
+      summary: Delete product
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Product deleted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /products/test:
+    get:
+      summary: Test products endpoint
+      responses:
+        '200':
+          description: Test response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+
+  /transactions:
+    post:
+      summary: Create transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransactionCreate' }
+      responses:
+        '201':
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Transaction' }
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    get:
+      summary: Get all transactions
+      parameters:
+        - in: query
+          name: shop_id
+          schema: { type: integer }
+        - in: query
+          name: farmer_id
+          schema: { type: integer }
+        - in: query
+          name: buyer_id
+          schema: { type: integer }
+        - in: query
+          name: status
+          schema: { type: string, enum: [pending, completed, cancelled] }
+        - in: query
+          name: from_date
+          schema: { type: string, format: date }
+        - in: query
+          name: to_date
+          schema: { type: string, format: date }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Transaction' }
+
+  /transactions/{id}:
+    get:
+      summary: Get transaction by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Transaction found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Transaction' }
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /transactions/shop/{shopId}:
+    get:
+      summary: Get transactions by shop
+      parameters:
+        - in: path
+          name: shopId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Shop transactions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Transaction' }
+
+  /transactions/shop/{shopId}/earnings:
+    get:
+      summary: Get shop earnings
+      parameters:
+        - in: path
+          name: shopId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Shop earnings
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/TransactionSummary' }
+
+  /transactions/farmer/{farmerId}/earnings:
+    get:
+      summary: Get farmer earnings
+      parameters:
+        - in: path
+          name: farmerId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Farmer earnings
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/TransactionSummary' }
+
+  /transactions/buyers/{buyerId}/purchases:
+    get:
+      summary: Get purchases by buyer
+      parameters:
+        - in: path
+          name: buyerId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Buyer purchases
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Transaction' }
+
+  /payments:
+    post:
+      summary: Create payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PaymentCreate' }
+      responses:
+        '201':
+          description: Payment created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Payment' }
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    get:
+      summary: Get all payments
+      parameters:
+        - in: query
+          name: transaction_id
+          schema: { type: integer }
+        - in: query
+          name: status
+          schema: { type: string, enum: [PENDING, PAID, FAILED] }
+        - in: query
+          name: payer_type
+          schema: { type: string, enum: [BUYER, SHOP] }
+        - in: query
+          name: payee_type
+          schema: { type: string, enum: [SHOP, FARMER] }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        '200':
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Payment' }
+
+  /payments/{id}:
+    get:
+      summary: Get payment by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Payment found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Payment' }
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /payments/{id}/status:
+    put:
+      summary: Update payment status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [PENDING, PAID, FAILED] }
+                payment_date: { type: string, format: date-time }
+                notes: { type: string }
+      responses:
+        '200':
+          description: Payment status updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Payment' }
+
+  /payments/transaction/{transactionId}:
+    get:
+      summary: Get payments by transaction
+      parameters:
+        - in: path
+          name: transactionId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Transaction payments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Payment' }
+
+  /payments/outstanding:
+    get:
+      summary: Get outstanding payments
+      responses:
+        '200':
+          description: Outstanding payments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Payment' }
+
+  /payments/farmers/{farmerId}:
+    get:
+      summary: Get payments to farmer
+      parameters:
+        - in: path
+          name: farmerId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Farmer payments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Payment' }
+
+  /payments/buyers/{buyerId}:
+    get:
+      summary: Get payments by buyer
+      parameters:
+        - in: path
+          name: buyerId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Buyer payments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Payment' }
+
+  /settlements:
+    post:
+      summary: Create settlement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SettlementCreate' }
+      responses:
+        '201':
+          description: Settlement created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Settlement' }
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    get:
+      summary: Get all settlements
+      parameters:
+        - in: query
+          name: shop_id
+          schema: { type: integer }
+        - in: query
+          name: user_id
+          schema: { type: integer }
+        - in: query
+          name: status
+          schema: { type: string, enum: [pending, settled] }
+        - in: query
+          name: reason
+          schema: { type: string, enum: [overpayment, underpayment, adjustment] }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        '200':
+          description: List of settlements
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Settlement' }
+
+  /settlements/{id}:
+    get:
+      summary: Get settlement by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Settlement found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Settlement' }
+        '404':
+          description: Settlement not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    put:
+      summary: Update settlement
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [pending, settled] }
+                settlement_date: { type: string, format: date-time }
+                notes: { type: string }
+      responses:
+        '200':
+          description: Settlement updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Settlement' }
+        '404':
+          description: Settlement not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /settlements/summary:
+    get:
+      summary: Get settlement summary
+      responses:
+        '200':
+          description: Settlement summary
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          total_pending: { type: number }
+                          total_settled: { type: number }
+                          count_pending: { type: integer }
+                          count_settled: { type: integer }
+
+  /settlements/settle/{settlement_id}:
+    post:
+      summary: Settle amount
+      parameters:
+        - in: path
+          name: settlement_id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Amount settled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+
+  /settlements/expense:
+    post:
+      summary: Create expense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                shop_id: { type: integer }
+                amount: { type: number, minimum: 0 }
+                description: { type: string }
+              required: [shop_id, amount, description]
+      responses:
+        '201':
+          description: Expense created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+
+  /auth/login:
+    post:
+      summary: User login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /auth/logout:
+    post:
+      summary: User logout
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+
+  /dashboard/business-summary:
+    get:
+      summary: Get business summary for dashboard
+      responses:
+        '200':
+          description: Business summary data
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/BusinessSummary' }
+
+  /dashboard/recent-transactions:
+    get:
+      summary: Get recent transactions for dashboard
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+      responses:
+        '200':
+          description: Recent transactions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Transaction' }
+
+  /balance/user/{id}:
+    get:
+      summary: Get user balance
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: User balance
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          balance: { type: number }
+                          cumulative_value: { type: number }
+
+  /balance/shop/{id}:
+    get:
+      summary: Get shop balance
+      parameters:
+        - in: path
+          name: id
+          required: true
+  /reports/generate:
+    get:
+      summary: Generate report
+      parameters:
+        - in: query
+          name: report_type
+          schema: { type: string, enum: [platform, shop, shops, users, transactions, sales] }
+          description: Type of report to generate. 'platform' for superadmin dashboard, 'shop' for owner dashboard.
+        - in: query
+          name: shop_id
+          schema: { type: integer }
+          description: Shop ID (required for shop report)
+        - in: query
+          name: format
+          schema: { type: string, enum: [json, html, pdf] }
+        - in: query
+          name: date_from
+          schema: { type: string, format: date }
+        - in: query
+          name: date_to
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Generated report
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        oneOf:
+                          - $ref: '#/components/schemas/PlatformReport'
+                          - $ref: '#/components/schemas/ShopReport'
+                          - type: object
+                            description: Other report types
+                          - $ref: '#/components/schemas/PlatformReport'
+                          - $ref: '#/components/schemas/ShopReport'
+                          - type: object
+                            description: Other report types
+  /reports/download:
+    get:
+      summary: Download report
+      parameters:
+        - in: query
+          name: type
+          schema: { type: string, enum: [sales, transactions, users] }
+        - in: query
+          name: format
+          schema: { type: string, enum: [csv, excel, pdf] }
+        - in: query
+          name: from_date
+          schema: { type: string, format: date }
+        - in: query
+          name: to_date
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Report file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /commissions:
+    get:
+      summary: Get commissions
+      parameters:
+        - in: query
+          name: shop_id
+          schema: { type: integer }
+        - in: query
+          name: from_date
+          schema: { type: string, format: date }
+        - in: query
+          name: to_date
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: List of commissions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: integer }
+                            shop_id: { type: integer }
+                            amount: { type: number }
+                            transaction_id: { type: integer }
+                            created_at: { type: string, format: date-time }
+    post:
+      summary: Create commission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                shop_id: { type: integer }
+                rate: { type: number, minimum: 0 }
+                type: { type: string, enum: [percentage, fixed] }
+              required: [shop_id, rate, type]
+      responses:
+        '201':
+          description: Commission created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+
+  /shops/{id}/products:
+    get:
+      summary: Get products for shop
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Shop products
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Product' }
+
+  /shops/{shopId}/products/{productId}:
+    post:
+      summary: Assign product to shop
+      parameters:
+        - in: path
+          name: shopId
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: productId
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Product assigned to shop
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+    delete:
+      summary: Remove product from shop
+      parameters:
+        - in: path
+          name: shopId
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: productId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Product removed from shop
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+    patch:
+      summary: Toggle product active status for shop
+      parameters:
+        - in: path
+          name: shopId
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: productId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Product status toggled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+
+  /shop-categories/assign:
+    post:
+      summary: Assign categories to shop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                shop_id: { type: integer }
+                category_ids: 
+                  type: array
+                  items: { type: integer }
+              required: [shop_id, category_ids]
+      responses:
+        '201':
+          description: Categories assigned to shop
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+
+  /shop-categories/remove:
+    post:
+      summary: Remove categories from shop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                shop_id: { type: integer }
+                category_ids: 
+                  type: array
+                  items: { type: integer }
+              required: [shop_id, category_ids]
+      responses:
+        '200':
+          description: Categories removed from shop
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+
+  /shop-categories/shop/{shopId}:
+    get:
+      summary: Get categories for shop
+      parameters:
+        - in: path
+          name: shopId
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: is_active
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Shop categories
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/ShopCategory' }

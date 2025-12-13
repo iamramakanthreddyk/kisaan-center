@@ -1,0 +1,91 @@
+---
+
+KisaanCenter: User Features & Pain Points Solved
+
+Who Uses the System?
+- Shop Owners: Manage stalls, track sales, payments, and expenses.
+- Farmers: Deliver flowers, track stock, view sales, and request payments.
+- Buyers: Purchase flowers, pay immediately or on credit, receive receipts.
+- Employees: Assist with operations, record transactions, manage inventory.
+
+Key Features for Each User
+
+Shop Owner Features
+- Dashboard Overview: See all flower stocks, sales, payments, and expenses in one place.
+- Automated Record-Keeping: No more paper ledgers—every delivery, sale, and payment is digitally tracked.
+- Commission Management: System calculates commissions automatically for each transaction.
+- Payment Tracking: Instantly see which buyers have paid, which are on credit, and which farmers are owed money.
+- Expense Management: Record and categorize shop expenses (wages, rent, utilities, etc.).
+- Audit Logs: Every change (stock, payment, transaction) is logged for transparency and dispute resolution.
+- Reporting: Generate sales, payment, and expense reports for any period.
+- Multi-User Access: Owners can add employees to help manage operations securely.
+
+Farmer Features
+- Stock Tracking: View all flower deliveries and current stock at each shop.
+- Sales Overview: See how much of each flower type was sold, and for what price.
+- Payment Requests: Request payment for delivered flowers, track pending and completed payments.
+- Commission Transparency: See exactly how much commission was deducted per sale.
+- Credit Management: Know if buyers have paid or if payment is pending.
+
+Buyer Features
+- Product Browsing: View available flowers and prices at each shop.
+- Flexible Payments: Pay immediately or request credit (if allowed by shop).
+- Receipts: Receive digital receipts for every purchase.
+- Credit Tracking: See outstanding payments and due dates.
+
+Employee Features
+- Transaction Entry: Record sales, deliveries, and payments.
+- Inventory Management: Update stock levels as flowers are delivered or sold.
+- Expense Entry: Log shop expenses as they occur.
+
+Pain Points Solved
+- Manual Errors & Time Waste: Automated records eliminate calculation mistakes and save hours of manual work.
+- Payment Disputes: Transparent logs and reports make it easy to resolve disagreements over payments or commissions.
+- Credit Risks: Track buyer credits and automate reminders, reducing defaults and missed payments.
+- Fragmented Information: All data (stock, sales, payments, expenses) is centralized and accessible anytime.
+- Seasonal Overload: System scales to handle high transaction volumes during festivals or peak seasons.
+- Regulatory Compliance: Detailed audit logs and reports help with tax filing and regulatory checks.
+- Multi-Shop Confusion: Farmers and owners can see all activity across multiple shops in one dashboard.
+
+Example User Journey (Owner)
+1. Morning: Owner logs in, sees dashboard with all flower stocks and pending payments.
+2. During the Day: Employees record deliveries from farmers and sales to buyers.
+3. End of Week/Month: Owner reviews sales, checks which farmers are owed money, and processes payments with one click.
+4. Anytime: Owner generates reports for sales, payments, and expenses; reviews audit logs if a dispute arises.
+
+This system transforms the flower market from manual, error-prone processes to a modern, transparent, and efficient business—making life easier for owners, farmers, buyers, and employees.
+
+KisaanCenter Owner Workflow Diagram (Flowers Only)
+
+[Farmer delivers flowers] --> [Shop records flower stock]
+[Shop records flower stock] --> [Flowers available for sale]
+[Flowers available for sale] --> [Buyer purchases flowers]
+[Buyer purchases flowers] --> [Transaction recorded]
+[Transaction recorded] --> [Shop receives payment]
+[Shop receives payment] --> [Commission calculated]
+[Commission calculated] --> [Farmer requests payment]
+[Farmer requests payment] --> [Shop pays farmer]
+[Shop pays farmer] --> [Audit log]
+
+KisaanCenter Dashboard Wireframe (Flowers Only)
+
++------------------------------------------+
+| KisaanCenter Dashboard                   |
++------------------------------------------+
+| [Flowers] [Inventory] [Sales] [Reports]  |
++------------------------------------------+
+| Flower Status | Inventory | Sales | Credit|
+|------------------------------------------|
+| Roses: 500 bunches | Marigold: 300 bunches | ₹50,000 |
+| Jasmine: 200 bunches | Lily: 100 bunches   | ₹20,000 |
++------------------------------------------+
+
+KisaanCenter Transaction Flow (Flowers Only)
+
+Farmer → Shop → Buyer
+- Farmer brings flowers to shop
+- Shop records and sells flowers
+- Buyer pays shop (immediate or credit)
+- Shop pays farmer (weekly/monthly)
+- Commission deducted
+- Audit log tracks all changes

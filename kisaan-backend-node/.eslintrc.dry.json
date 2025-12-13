@@ -1,0 +1,45 @@
+{
+  "extends": [
+    "@typescript-eslint/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint"],
+  "rules": {
+    "no-duplicate-imports": "error",
+    "no-unused-vars": "error",
+    "@typescript-eslint/no-unused-vars": "error",
+    "prefer-const": "error",
+    "no-var": "error",
+    "camelcase": ["error", { "properties": "never" }],
+    "complexity": ["warn", 10],
+    "max-lines-per-function": ["warn", 50],
+    "no-throw-literal": "error",
+    "prefer-promise-reject-errors": "error",
+    "sort-imports": ["error", {
+      "ignoreCase": true,
+      "ignoreDeclarationSort": true,
+      "ignoreMemberSort": false
+    }],
+    "no-console": ["warn", { "allow": ["warn", "error"] }]
+  },
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "overrides": [
+    {
+      "files": ["src/controllers/*.ts"],
+      "rules": {
+        "max-lines-per-function": ["error", 30],
+        "complexity": ["error", 5]
+      }
+    },
+    {
+      "files": ["src/services/*.ts"],
+      "rules": {
+        "max-lines-per-function": ["warn", 100],
+        "complexity": ["warn", 15]
+      }
+    }
+  ]
+}

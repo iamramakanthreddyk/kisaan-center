@@ -1,0 +1,274 @@
+[
+ {
+  "table_schema": "public",
+  "table_name": "farmer_product_assignments",
+  "column_name": "farmer_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_users",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "farmer_product_assignments",
+  "column_name": "product_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_products",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_audit_logs",
+  "column_name": "user_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_users",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_audit_logs",
+  "column_name": "shop_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_shops",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_commissions",
+  "column_name": "shop_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_shops",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_credits",
+  "column_name": "shop_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_shops",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_credits",
+  "column_name": "user_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_users",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_payment_allocations",
+  "column_name": "payment_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_payments",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_payment_allocations",
+  "column_name": "transaction_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_transactions",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_payments",
+  "column_name": "transaction_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_transactions",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_plan_features",
+  "column_name": "feature_code",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_features",
+  "foreign_column_name": "code"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_plan_features",
+  "column_name": "plan_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_plans",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_plan_usage",
+  "column_name": "plan_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_plans",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_plan_usage",
+  "column_name": "shop_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_shops",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_products",
+  "column_name": "category_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_categories",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_settlements",
+  "column_name": "shop_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_shops",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_settlements",
+  "column_name": "transaction_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_transactions",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_settlements",
+  "column_name": "user_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_users",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_shop_categories",
+  "column_name": "category_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_categories",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_shop_categories",
+  "column_name": "shop_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_shops",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_shop_products",
+  "column_name": "product_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_products",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_shop_products",
+  "column_name": "shop_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_shops",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_shops",
+  "column_name": "plan_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_plans",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_shops",
+  "column_name": "owner_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_users",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_transaction_ledger",
+  "column_name": "user_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_users",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_transaction_ledger",
+  "column_name": "transaction_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_transactions",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_transactions",
+  "column_name": "shop_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_shops",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_transactions",
+  "column_name": "farmer_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_users",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_transactions",
+  "column_name": "buyer_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_users",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_transactions",
+  "column_name": "category_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_categories",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_user_feature_overrides",
+  "column_name": "user_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_users",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_user_feature_overrides",
+  "column_name": "feature_code",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_features",
+  "foreign_column_name": "code"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_users",
+  "column_name": "created_by",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_users",
+  "foreign_column_name": "id"
+ },
+ {
+  "table_schema": "public",
+  "table_name": "kisaan_users",
+  "column_name": "shop_id",
+  "foreign_table_schema": "public",
+  "foreign_table_name": "kisaan_shops",
+  "foreign_column_name": "id"
+ }
+]

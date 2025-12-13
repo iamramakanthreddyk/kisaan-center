@@ -1,0 +1,116 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "KisaanCenter API",
+    "version": "1.0.0",
+    "description": "Auto-generated Swagger spec from code routes."
+  },
+  "servers": [
+    { "url": "/api" }
+  ],
+  "paths": {
+    "/users": {
+      "get": {
+        "summary": "List users",
+        "responses": { "200": { "description": "Array of users" } }
+      },
+      "post": {
+        "summary": "Create user",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } },
+        "responses": { "201": { "description": "Created user" } }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "summary": "Get user by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "User object" } }
+      },
+      "put": {
+        "summary": "Update user",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } },
+        "responses": { "200": { "description": "Updated user" } }
+      },
+      "delete": {
+        "summary": "Delete user",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "No Content" } }
+      }
+    },
+    "/products": {
+      "get": { "summary": "List products", "responses": { "200": { "description": "Array of products" } } },
+      "post": { "summary": "Create product", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Product" } } } }, "responses": { "201": { "description": "Created product" } } }
+    },
+    "/products/{id}": {
+      "get": { "summary": "Get product by ID", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "Product object" } } },
+      "put": { "summary": "Update product", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Product" } } } }, "responses": { "200": { "description": "Updated product" } } },
+      "delete": { "summary": "Delete product", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "204": { "description": "No Content" } } }
+    },
+    "/transactions": {
+      "get": { "summary": "List transactions", "responses": { "200": { "description": "Array of transactions" } } },
+      "post": { "summary": "Create transaction", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Transaction" } } } }, "responses": { "201": { "description": "Created transaction" } } }
+    },
+    "/transactions/{id}": {
+      "get": { "summary": "Get transaction by ID", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }], "responses": { "200": { "description": "Transaction object" } } }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "username": { "type": "string" },
+          "password": { "type": "string" },
+          "role": { "type": "string", "enum": ["superadmin", "owner", "farmer", "buyer"] },
+          "owner_id": { "type": "string", "nullable": true },
+          "shop_id": { "type": "integer", "nullable": true },
+          "contact": { "type": "string", "nullable": true },
+          "email": { "type": "string", "nullable": true },
+          "status": { "type": "string", "enum": ["active", "inactive"] },
+          "created_by": { "type": "integer", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "category_id": { "type": "integer" },
+          "description": { "type": "string", "nullable": true },
+          "price": { "type": "number", "format": "float" },
+          "shop_id": { "type": "integer", "nullable": true },
+          "record_status": { "type": "string", "nullable": true },
+          "unit": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "shop_id": { "type": "integer" },
+          "farmer_id": { "type": "string" },
+          "buyer_id": { "type": "string" },
+          "product_id": { "type": "integer" },
+          "quantity": { "type": "integer" },
+          "price": { "type": "number", "format": "float" },
+          "total": { "type": "number", "format": "float" },
+          "commission_rate": { "type": "number", "format": "float" },
+          "commission_amount": { "type": "number", "format": "float" },
+          "farmer_paid": { "type": "number", "format": "float" },
+          "buyer_paid": { "type": "number", "format": "float" },
+          "deficit": { "type": "number", "format": "float" },
+          "status": { "type": "string", "enum": ["pending", "paid", "partial", "credit", "farmer_due"] },
+          "transaction_date": { "type": "string", "format": "date-time" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+// Create a buyer payment, then inspect DB allocations and bookkeeping sums directly via models
+const { Payment, PaymentAllocation, sequelize } = require('../src/models');
+const http = require('http');
+const https = require('https');
+const base = process.env.BACKEND_URL || 'http://localhost:8000/api';
+const OWNER = process.env.TEST_USER || 'ramakanthreddy_0_107';
+const PASS = process.env.TEST_PASS || 'reddy@123';
+
+function requestJson(path, method='GET', body=undefined, token=undefined){
+  const urlObj = new URL(path, base);
+  const lib = urlObj.protocol === 'https:' ? https : http;
+  const data = body ? JSON.stringify(body) : undefined;
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return new Promise((resolve,reject)=>{
+    const req = lib.request(urlObj, { method, headers }, (res)=>{
+      let raw=''; res.setEncoding('utf8'); res.on('data', c=>raw+=c); res.on('end', ()=>{
+        try{ resolve({ status: res.statusCode, body: raw ? JSON.parse(raw) : null }); }
+        catch(e){ resolve({ status: res.statusCode, body: raw }); }
+      });
+    }); req.on('error', reject); if (data) req.write(data); req.end();
+  });
+}
+
+async function login(){
+  const r = await requestJson('/api/auth/login','POST',{ username: OWNER, password: PASS });
+  if (!r.body || !r.body.success) throw new Error('Login failed: '+JSON.stringify(r.body));
+  return r.body.data.token;
+}
+
+(async ()=>{
+  try{
+    const token = await login();
+    console.log('Logged in');
+    // Create buyer payment
+    const buyerId = 4;
+    const amt = 321.00;
+    const create = await requestJson('/api/payments','POST',{ payer_type:'BUYER', payee_type:'SHOP', amount: amt, method:'CASH', payment_date: new Date().toISOString(), counterparty_id: buyerId, shop_id:1, status:'PAID' }, token);
+    console.log('Create response:', create.body);
+    const pid = create.body?.data?.id;
+    if (!pid) return console.log('No payment id returned');
+
+    // Inspect allocations via models
+    const allocs = await PaymentAllocation.findAll({ where: { payment_id: pid } });
+    console.log('Allocations for payment', pid, allocs.map(a=>a.toJSON()));
+
+    // Sum bookkeeping payments for buyer
+    const bkPayments = await Payment.findAll({ where: { transaction_id: null, payer_type: 'BUYER', payee_type: 'SHOP', counterparty_id: buyerId, status: 'PAID' } });
+    console.log('Bookkeeping payments for buyerId', buyerId, 'count', bkPayments.length, 'sum', bkPayments.reduce((s,p)=>s+Number(p.amount||0),0));
+
+    // Sum allocations on transactions for buyer across shopIds (all shops)
+    const allocationSum = await PaymentAllocation.sum('allocated_amount', { where: {} });
+    console.log('Total allocations sum across DB:', allocationSum);
+
+  } catch (err) { console.error('Err', err); }
+})();

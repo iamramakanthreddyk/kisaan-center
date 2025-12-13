@@ -1,0 +1,182 @@
+name: Deploy Backend to Azure Container Apps (FREE Tier)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'kisaan-backend-node/**'
+      - '.github/workflows/deploy-backend.yml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: manojry/kisaancenter/backend
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: 🔍 Validate Code Quality
+    
+    steps:
+    - name: 🛎️ Checkout code
+      uses: actions/checkout@v4
+
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: kisaan-backend-node/package-lock.json
+
+    - name: 📥 Install dependencies
+      working-directory: kisaan-backend-node
+      run: npm ci
+
+    - name: 🔍 TypeScript type checking
+      working-directory: kisaan-backend-node
+      run: npm run build
+
+    - name: 🧹 Lint code
+      working-directory: kisaan-backend-node
+      run: npm run lint
+
+    - name: 🧪 Run tests
+      working-directory: kisaan-backend-node
+      run: npm test
+      continue-on-error: true
+
+    - name: 🔒 Audit dependencies
+      working-directory: kisaan-backend-node
+      run: npm audit --audit-level=high
+      continue-on-error: true
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    name: 🚀 Deploy to Azure
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+    - name: 🛎️ Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔑 Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: |
+          {
+            "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+            "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+            "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+            "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+          }
+
+    - name: 🐳 Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 🔧 Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: 📋 Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: 🏗️ Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./kisaan-backend-node
+        file: ./kisaan-backend-node/Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64
+
+    #- name: 🚀 AZ ghcr login
+      # run: |
+      #   az containerapp registry set \
+      #     --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
+      #     --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+      #     --server ghcr.io \
+      #     --username manojRY \
+      #     --password ${{ secrets.GHCR_PAT }}
+
+
+    - name: 🚀 Deploy to Container Apps
+      run: |
+        # Update container with new image and environment variables
+        az containerapp update \
+          --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+          --set-env-vars \
+            NODE_ENV=production \
+            PORT=8000 \
+            DB_DIALECT=postgres \
+            DB_HOST=${{ secrets.DB_HOST }} \
+            DB_PORT=${{ secrets.DB_PORT }} \
+            DB_NAME=${{ secrets.DB_NAME }} \
+            DB_USER=${{ secrets.DB_USER }} \
+            DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            CORS_ORIGIN="https://www.kisaancenter.com,https://kisaancenter.com"
+        
+        # Configure ingress to route traffic to port 8000
+        az containerapp ingress update \
+          --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --type external \
+          --target-port 8000
+
+    - name: ✅ Verify deployment
+      run: |
+        # Wait for deployment to complete
+        sleep 30
+        
+        # Get the container app URL
+        FQDN=$(az containerapp show \
+          --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --query properties.configuration.ingress.fqdn -o tsv)
+        
+        echo "Backend API URL: https://$FQDN"
+        
+        # Check if the app is responding
+        if curl -f "https://$FQDN/health" > /dev/null 2>&1; then
+          echo "✅ Health check passed"
+        else
+          echo "⚠️ Health check failed (app might still be starting)"
+        fi
+        
+        # Get latest revision info
+        REVISION_NAME=$(az containerapp revision list \
+          --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --query "[0].name" -o tsv)
+        
+        echo "Latest revision: $REVISION_NAME"
+
+    - name: 📋 Deployment Summary
+      run: |
+        echo "🎉 Deployment Summary"
+        echo "===================="
+        echo "✅ Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+        echo "✅ Container App: ${{ secrets.AZURE_CONTAINER_APP_NAME }}"
+        echo "✅ Resource Group: ${{ secrets.AZURE_RESOURCE_GROUP }}"
+        echo "✅ Commit SHA: ${{ github.sha }}"
+        echo ""
+        echo "🔗 View in Azure Portal:"
+        echo "https://portal.azure.com/#@/resource/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.AZURE_RESOURCE_GROUP }}/providers/Microsoft.App/containerApps/${{ secrets.AZURE_CONTAINER_APP_NAME }}"
