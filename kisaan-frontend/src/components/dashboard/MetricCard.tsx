@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils.ts';
 import type { LucideIcon } from 'lucide-react';
 import { SkeletonText } from '@/components/ui/SkeletonText';
 

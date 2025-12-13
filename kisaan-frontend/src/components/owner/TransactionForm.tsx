@@ -8,7 +8,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Loader2, Calculator, CalendarIcon, Clock } from 'lucide-react';
 import { format, isAfter, startOfDay } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils.ts';
 import { useAuth } from '../../context/AuthContext';
 import { TransactionPartySelectors, TransactionQuantityPricing, TransactionSummary, TransactionPayments } from '@/features/transactions/components';
 import { useTransactionFormLogic } from '../../hooks/useTransactionFormLogic';
