@@ -8,6 +8,15 @@ import fs from 'fs';
 import path from 'path';
 // Optional programmatic migration runner (safe to require)
 import { runAllMigrations } from '../scripts/run-migration';
+import { QueryTypes } from 'sequelize';
+
+interface ColumnInfo {
+  name: string;
+  type: string;
+  notnull: number;
+  dflt_value: string | null;
+  pk: number;
+}
 
 dotenv.config();
 
@@ -48,20 +57,20 @@ async function startServer() {
     if (process.env.DB_DIALECT === 'sqlite') {
       try {
         // Add commission_rate to transactions if it doesn't exist
-        const res: any = await sequelize.query("PRAGMA table_info('kisaan_transactions')", { type: (sequelize as any).QueryTypes.SELECT });
-        const hasCommissionRate = Array.isArray(res) && res.some((col: any) => col.name === 'commission_rate');
+        const res: ColumnInfo[] = await sequelize.query("PRAGMA table_info('kisaan_transactions')", { type: QueryTypes.SELECT });
+        const hasCommissionRate = Array.isArray(res) && res.some((col) => col.name === 'commission_rate');
         if (!hasCommissionRate) {
           console.log('🔧 Adding missing column `commission_rate` to kisaan_transactions');
           await sequelize.query('ALTER TABLE kisaan_transactions ADD COLUMN commission_rate REAL');
         }
             // Add total_amount to transactions if it doesn't exist (some older local DBs)
-            const hasTotalAmount = Array.isArray(res) && res.some((col: any) => col.name === 'total_amount');
+            const hasTotalAmount = Array.isArray(res) && res.some((col) => col.name === 'total_amount');
             if (!hasTotalAmount) {
               console.log('🔧 Adding missing column `total_amount` to kisaan_transactions');
               await sequelize.query('ALTER TABLE kisaan_transactions ADD COLUMN total_amount REAL DEFAULT 0');
             }
         // Ensure kisaan_expenses table exists (some local DBs may be missing it)
-        const expensesInfo: any = await sequelize.query("PRAGMA table_info('kisaan_expenses')", { type: (sequelize as any).QueryTypes.SELECT });
+        const expensesInfo: ColumnInfo[] = await sequelize.query("PRAGMA table_info('kisaan_expenses')", { type: QueryTypes.SELECT });
         const hasExpenses = Array.isArray(expensesInfo) && expensesInfo.length > 0;
         if (!hasExpenses) {
           console.log('🔧 Creating missing table `kisaan_expenses` (sqlite local dev)');
@@ -90,8 +99,8 @@ async function startServer() {
           `);
         }
           // Ensure ledger has commission and net columns
-          const ledgerInfo: any = await sequelize.query("PRAGMA table_info('kisaan_ledger')", { type: (sequelize as any).QueryTypes.SELECT });
-          const ledgerCols = Array.isArray(ledgerInfo) ? ledgerInfo.map((c: any) => c.name) : [];
+          const ledgerInfo: ColumnInfo[] = await sequelize.query("PRAGMA table_info('kisaan_ledger')", { type: QueryTypes.SELECT });
+          const ledgerCols = Array.isArray(ledgerInfo) ? ledgerInfo.map((c) => c.name) : [];
           if (!ledgerCols.includes('commission_rate')) {
             console.log('🔧 Adding missing column `commission_rate` to kisaan_ledger');
             await sequelize.query('ALTER TABLE kisaan_ledger ADD COLUMN commission_rate REAL');
