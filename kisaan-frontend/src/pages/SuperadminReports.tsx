@@ -118,7 +118,7 @@ const SuperadminReports: React.FC = () => {
 
   const clearDateRange = () => setDateRange({ from: '', to: '' });
 
-  const formatCurrency = (amount: number) => `₹${amount.toLocaleString()}`;
+  // Use shared `formatCurrency` imported from `../lib/formatters`
 
   // Remove exportReport and dateRange logic for now
 
