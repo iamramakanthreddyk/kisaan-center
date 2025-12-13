@@ -13,16 +13,30 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 
-// Prefer .env.local for local development, fallback to .env
+// Prefer .env.local for local development only, fallback to .env
 let envPath = path.resolve(__dirname, '../../.env');
 const envLocalPath = path.resolve(__dirname, '../../.env.local');
-if (fs.existsSync(envLocalPath)) {
+
+// Only use .env.local in local development environments
+const isLocalDev = process.env.NODE_ENV !== 'production' &&
+                   process.env.NODE_ENV !== 'test' &&
+                   process.env.CI !== 'true' &&
+                   fs.existsSync(envLocalPath);
+
+if (isLocalDev) {
   envPath = envLocalPath;
 }
 dotenv.config({ path: envPath });
 console.log('[ENV] Loading from:', envPath);
 
 const dbDialect = process.env.DB_DIALECT || 'postgres';
+
+// Force PostgreSQL in production, test, and CI environments
+const isProductionOrCI = process.env.NODE_ENV === 'production' ||
+                        process.env.NODE_ENV === 'test' ||
+                        process.env.CI === 'true';
+
+const finalDbDialect = isProductionOrCI ? 'postgres' : dbDialect;
 const dbName = process.env.NODE_ENV === 'test' 
   ? (process.env.DB_NAME_TEST || 'kisaan_test')
   : (process.env.DB_NAME || 'kisaan_dev');
@@ -42,14 +56,15 @@ console.log('[DB CONFIG] Environment variables loaded:', {
   DB_USER: dbUser,
   DB_PASSWORD: dbPassword ? '***masked***' : 'empty',
   DB_PORT: dbPort,
-  DB_DIALECT: dbDialect,
+  DB_DIALECT: finalDbDialect,
   DB_SSL_MODE: sslMode,
-  ENV_PATH: envPath
+  ENV_PATH: envPath,
+  IS_PRODUCTION_OR_CI: isProductionOrCI
 });
 
 let sequelize: Sequelize;
 
-if (dbDialect === 'sqlite') {
+if (finalDbDialect === 'sqlite') {
   const sqliteStorage = process.env.DB_STORAGE
     ? path.resolve(process.cwd(), process.env.DB_STORAGE)
     : path.resolve(__dirname, '../../data/kisaan-local.sqlite');
@@ -65,7 +80,7 @@ if (dbDialect === 'sqlite') {
   sequelize = new Sequelize(dbName, dbUser, dbPassword, {
     host: dbHost,
     port: dbPort,
-    dialect: dbDialect as 'postgres' | 'mysql' | 'mariadb' | 'sqlite' | 'mssql',
+    dialect: finalDbDialect as 'postgres' | 'mysql' | 'mariadb' | 'sqlite' | 'mssql',
     logging: false,
     ...(sslMode === 'require'
       ? {

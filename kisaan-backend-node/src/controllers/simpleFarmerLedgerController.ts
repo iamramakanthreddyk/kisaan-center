@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { SimpleFarmerLedger } from '../models/simpleFarmerLedger';
 import { simpleFarmerLedgerSchema } from '../schema/simpleFarmerLedgerSchema';
 import { QueryTypes } from 'sequelize';
+import { LedgerType } from '../constants/ledgerTypes';
+import { LedgerCategory } from '../constants/ledgerCategories';
 
 interface FarmerRow {
   custom_commission_rate: number | null;
@@ -20,10 +22,12 @@ interface LedgerPayload {
   farmer_id: number;
   shop_id: number;
   amount: number;
-  category: string;
+  category: LedgerCategory;
+  type: LedgerType;
   description?: string;
   commission_amount?: number;
   net_amount?: number;
+  created_by: number;
   [key: string]: unknown;
 }
 
@@ -70,6 +74,11 @@ export async function createEntry(req: Request, res: Response) {
 
     payload.commission_amount = +(Number(payload.amount || 0) * (Number(rateUsed) / 100)).toFixed(2);
     payload.net_amount = +(Number(payload.amount || 0) - payload.commission_amount).toFixed(2);
+    
+    // Add required fields
+    payload.type = payload.type || 'income'; // Default type
+    payload.created_by = payload.created_by || 1; // Default created_by
+    
     const entry = await SimpleFarmerLedger.create(payload);
     res.status(201).json(entry);
   } catch (err) {
