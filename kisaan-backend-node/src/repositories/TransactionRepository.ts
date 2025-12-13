@@ -2,7 +2,7 @@ import { BaseRepository } from './BaseRepository';
 // Import models index to ensure all models and associations are initialized
 import '../models';
 import { Transaction } from '../models/transaction';
-import { ModelStatic } from 'sequelize';
+import { ModelStatic, FindAndCountAllOptions } from 'sequelize';
 import type { Payment } from '../models/payment';
 import { Op } from 'sequelize';
 import { PAYMENT_STATUS } from '../shared/constants/index';
@@ -166,22 +166,25 @@ export class TransactionRepository extends BaseRepository<Transaction, Transacti
 
   // Wrap the findAndCountAll call to handle older SQLite schemas missing `total_amount`
   // (This mirrors the defensive pattern used in findByShop).
-  private async safeFindAndCountAll(options: Record<string, unknown>) {
+  private async safeFindAndCountAll(options: FindAndCountAllOptions) {
     try {
-      return await this.model.findAndCountAll(options as any);
+      return await this.model.findAndCountAll(options);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('no such column') && msg.includes('total_amount')) {
         // Retry without selecting total_amount (explicit attribute list)
-        const safeOptions = { ...options } as any;
+        const safeOptions: FindAndCountAllOptions = { ...options };
+        safeOptions.attributes = [
+          'id','shop_id','farmer_id','buyer_id','category_id','product_name','quantity','unit_price','total_sale_value','shop_commission','farmer_earning','product_id','commission_type','status','transaction_date','settlement_date','notes','created_at','updated_at'
+        ];
         safeOptions.attributes = [
           'id','shop_id','farmer_id','buyer_id','category_id','product_name','quantity','unit_price','total_sale_value','shop_commission','farmer_earning','product_id','commission_type','status','transaction_date','settlement_date','notes','created_at','updated_at'
         ];
         // Remove order by total_amount if present
         if (Array.isArray(safeOptions.order)) {
-          safeOptions.order = (safeOptions.order as any[]).filter((o: any) => !(Array.isArray(o) && o[0] === 'total_amount'));
+          safeOptions.order = safeOptions.order.filter((o) => !(Array.isArray(o) && o[0] === 'total_amount'));
         }
-        return await this.model.findAndCountAll(safeOptions as any);
+        return await this.model.findAndCountAll(safeOptions);
       }
       throw err;
     }
