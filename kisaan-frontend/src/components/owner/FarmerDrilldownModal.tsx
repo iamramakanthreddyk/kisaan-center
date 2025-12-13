@@ -3,7 +3,7 @@ import type { Transaction, Payment } from '@/types/api';
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatDate } from '@/lib/formatters.ts';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 import { transactionsApi, paymentsApi } from '@/services/api';
 
 interface FarmerDrilldownModalProps {

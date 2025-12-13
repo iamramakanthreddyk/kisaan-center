@@ -1,7 +1,7 @@
 
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
-import { cn } from '@/lib/utils.ts';
+import { cn } from '@/lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import { normalizeRole, getVisibleNavItems, isActive } from '@/config/navigationConfig';
 import { useSidebar } from '../../context/SidebarContext';

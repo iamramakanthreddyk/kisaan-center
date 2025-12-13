@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils.ts';
+import { cn } from '@/lib/utils';
 
 interface BrandIconProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
