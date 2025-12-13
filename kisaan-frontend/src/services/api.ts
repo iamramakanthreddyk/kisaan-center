@@ -24,6 +24,7 @@ import type {
   TransactionSettlement,
   ExpenseAllocation,
   TransactionSettlementDetail,
+  ExpenseAllocationDetail,
   ExpenseAllocationDetail
 } from '../types/api';
 
@@ -508,16 +509,16 @@ export const paymentsApi = {
     total: number;
     totalPages: number;
   }> => {
-    const raw = await apiClient.get<ApiResponse<Payment[] | { payments: Payment[]; expenses: unknown }>>(PAYMENT_ENDPOINTS.FARMER(farmerId));
+    const raw = await apiClient.get<ApiResponse<Payment[] | { payments: Payment[]; expenses: FarmerPaymentsExpenses }>>(PAYMENT_ENDPOINTS.FARMER(farmerId));
     // If backend returned the enhanced shape with expenses, return it directly
     if (raw && raw.success && raw.data && typeof raw.data === 'object' && 'expenses' in raw.data) {
       // Convert enhanced backend shape to the declared return shape
-      const paymentsArr = Array.isArray((raw.data as any).payments) ? (raw.data as any).payments : [];
+      const paymentsArr = Array.isArray((raw.data as { payments: Payment[]; expenses: FarmerPaymentsExpenses }).payments) ? (raw.data as { payments: Payment[]; expenses: FarmerPaymentsExpenses }).payments : [];
       return {
-        data: raw.data as { payments: Payment[]; expenses: unknown },
+        data: raw.data as { payments: Payment[]; expenses: FarmerPaymentsExpenses },
         page: 1,
         limit: paymentsArr.length,
-        total: (raw.data as any).totalPayments || paymentsArr.length,
+        total: (raw.data as { payments: Payment[]; expenses: FarmerPaymentsExpenses; totalPayments?: number }).totalPayments || paymentsArr.length,
         totalPages: 1
       };
     }

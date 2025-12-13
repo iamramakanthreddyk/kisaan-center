@@ -27,7 +27,7 @@ const LedgerSummary: React.FC = () => {
       try {
         const data = await fetchLedgerSummary(1, period);
         // Expecting an array of rows: [{ period, type, total }, ...]
-        const rows = Array.isArray(data) ? data : (data && Array.isArray((data as any).data) ? (data as any).data : []);
+        const rows = Array.isArray(data) ? data : (data && Array.isArray((data as { data?: unknown[] }).data) ? (data as { data?: unknown[] }).data : []);
         let totalCredit = 0;
         let totalDebit = 0;
         // Build a map per period

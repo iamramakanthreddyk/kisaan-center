@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useOwnerDashboard } from '../hooks/useOwnerDashboard';
 import { DashboardStats } from '../components/owner/DashboardStats';
 import { QuickActions } from '../components/owner/QuickActions';
@@ -18,8 +17,6 @@ const OwnerDashboardNew: React.FC = () => {
       refreshData();
     }
   });
-
-  const navigate = useNavigate();
 
   if (error) {
     return (

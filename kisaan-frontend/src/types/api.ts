@@ -361,6 +361,22 @@ export interface TransactionSummary {
   average_transaction_value: number;
 }
 
+// Farmer Payments Expenses type
+export interface FarmerPaymentsExpenses {
+  totalExpenses: number;
+  totalSettled: number;
+  totalUnsettled: number;
+  expenses: Array<{
+    id: number;
+    amount: number;
+    settled: number;
+    unsettled: number;
+    description: string;
+    created_at: string;
+    status: string;
+  }>;
+}
+
 // Login Types
 export interface LoginRequest {
   username: string;

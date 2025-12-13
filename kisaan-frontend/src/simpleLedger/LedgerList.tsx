@@ -5,6 +5,7 @@ import { usersApi } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '../components/ui/table';
 import { AlertCircle, Inbox } from 'lucide-react';
+import { User } from '../types/api';
 
 interface LedgerEntry {
   id: number;
@@ -45,8 +46,8 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
         try {
           const res = await usersApi.getAll({ shop_id: shopId });
           const users = res.data || [];
-          setUsersForShop(shopKey, users as any);
-        } catch (err) {
+          setUsersForShop(shopKey, users as User[]);
+        } catch {
           // ignore - names will fallback to id
         }
       })();
@@ -121,7 +122,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                       <TableCell className="text-sm">
                         {(() => {
                           const users = getUsersForShop(String(entry.shop_id)) || [];
-                          const u = users.find((us: any) => us.id === entry.farmer_id);
+                          const u = users.find((us: User) => us.id === entry.farmer_id);
                           return u ? (u.username || u.firstname || `#${u.id}`) : `#${entry.farmer_id}`;
                         })()}
                       </TableCell>
@@ -160,7 +161,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                       <div className="text-sm font-semibold">
                         {(() => {
                           const users = getUsersForShop(String(entry.shop_id)) || [];
-                          const u = users.find((us: any) => us.id === entry.farmer_id);
+                          const u = users.find((us: User) => us.id === entry.farmer_id);
                           return u ? (u.username || u.firstname || `#${u.id}`) : `#${entry.farmer_id}`;
                         })()}
                       </div>

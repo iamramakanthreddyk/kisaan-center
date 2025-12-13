@@ -105,7 +105,7 @@ const BalanceManagement: React.FC<BalanceManagementProps> = () => {
     paymentsApi.getAll({})
       .then((res) => {
         // Filter payments for this user (either as payer or payee)
-        const userPayments = (res.data || []).filter((p: any) =>
+        const userPayments = (res.data || []).filter((p: Payment) =>
           p.counterparty_id !== null && p.counterparty_id !== undefined &&
           Number(p.counterparty_id) === Number(selectedUser.id)
         );

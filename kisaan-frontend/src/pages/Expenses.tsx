@@ -5,7 +5,6 @@ import ExpenseForm from './components/ExpenseForm';
 import ExpensesTable from './components/ExpensesTable';
 import ExpenseSummaryDashboard from './components/ExpenseSummaryDashboard';
 import { useTransactionStore } from '../store/transactionStore';
-import { useUsers } from '../context/useUsers';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../context/AuthContext';
 import { expenseApi, usersApi } from '../services/api';
@@ -148,7 +147,7 @@ export default function Expenses() {
               // Prefer the dedicated users endpoint to fetch users for the shop
               const usersRes = await usersApi.getAll({ shop_id: storeShop.id });
               users = usersRes.data || [];
-            } catch (e) {
+            } catch {
               // Fallback to empty array on error
               users = [];
             }

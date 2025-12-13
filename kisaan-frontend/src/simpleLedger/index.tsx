@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { BookOpen, Plus } from 'lucide-react';
 // note: no additional imports
 import { UserSearchDropdown } from '../components/ui/UserSearchDropdown';
+import { User } from '../types/api';
 import { exportLedgerCsv } from './api';
 // no extra imports
 
@@ -36,7 +37,7 @@ const SimpleLedger: React.FC = () => {
 
       <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4 mb-3">
         <div className="flex-1">
-          <UserSearchDropdown onSelect={(u:any)=> setSelectedFarmer(u?.id ?? null)} roleFilter="farmer" placeholder="Filter by farmer" />
+          <UserSearchDropdown onSelect={(u: User | null)=> setSelectedFarmer(u?.id ?? null)} roleFilter="farmer" placeholder="Filter by farmer" />
         </div>
         <div className="flex gap-2">
           <input type="date" value={fromDate ?? ''} onChange={e=> setFromDate(e.target.value || undefined)} className="border px-2 py-1 rounded" />

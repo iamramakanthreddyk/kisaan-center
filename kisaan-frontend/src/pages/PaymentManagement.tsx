@@ -1,5 +1,5 @@
 import { getUserDisplayWithRoleAndId } from '../utils/userDisplayName';
-import type { BalanceSnapshot, User } from '../types/api';
+import type { BalanceSnapshot, User, FarmerPaymentsExpenses, Payment } from '../types/api';
 import React, { useState, useEffect } from 'react';
 import { formatDate } from '../utils/formatDate';
 import { paymentsApi, balanceSnapshotsApi, balanceApi } from '../services/api';
@@ -33,7 +33,7 @@ const PaymentManagement: React.FC = () => {
   if (!isAuthenticated || !hasRole('owner')) {
     return <div className="p-8 text-center text-red-600 font-bold">Unauthorized: Only owners can access this page.</div>;
   }
-  const { users } = useUsers();
+  const { users, refreshUsers } = useUsers();
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   // Remove top-level role filter; direction is chosen inline based on selected user
@@ -46,21 +46,8 @@ const PaymentManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [snapshots, setSnapshots] = useState<BalanceSnapshot[]>([]);
-  const [payments, setPayments] = useState<import('../types/api').Payment[]>([]);
-  const [expensesData, setExpensesData] = useState<null | {
-    totalExpenses: number;
-    totalSettled: number;
-    totalUnsettled: number;
-    expenses: Array<{
-      id: number;
-      amount: number;
-      settled: number;
-      unsettled: number;
-      description: string;
-      created_at: string;
-      status: string;
-    }>;
-  }>(null);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [expensesData, setExpensesData] = useState<FarmerPaymentsExpenses | null>(null);
   const [settlementBreakdown, setSettlementBreakdown] = useState<{
     applied_to_expenses: number;
     applied_to_balance: number;
@@ -75,7 +62,6 @@ const PaymentManagement: React.FC = () => {
     };
   } | null>(null);
   const [currentBalance, setCurrentBalance] = useState<number>(0);
-  const [loadingBalance, setLoadingBalance] = useState<boolean>(false);
   // modal removed; inline override checkbox used instead
   const [forceOverride, setForceOverride] = useState(false);
   // Inline direction selector: controls whether this is shop->farmer (pay) or receive (from buyer/farmer)
@@ -102,12 +88,10 @@ const PaymentManagement: React.FC = () => {
       setSnapshotsPage(1);
       setExpensesPage(1);
       setCurrentBalance(0);
-      setLoadingBalance(false);
       return;
     }
     
     const fetchData = async () => {
-      setLoadingBalance(true);
       try {
         // Fetch current balance directly from balance API
         const balanceRes = await balanceApi.getUserBalance(selectedUser.id);
@@ -120,8 +104,6 @@ const PaymentManagement: React.FC = () => {
       } catch (error) {
         console.error('Error fetching balance:', error);
         setCurrentBalance(0);
-      } finally {
-        setLoadingBalance(false);
       }
 
       // Fetch balance snapshots for history display (don't fail if this errors)
@@ -138,13 +120,13 @@ const PaymentManagement: React.FC = () => {
         let res;
         if (selectedUser.role === 'farmer') {
           res = await paymentsApi.getFarmerPayments(selectedUser.id);
-          const data = res.data || {};
-          if (Array.isArray(data)) {
-            setPayments(data);
+          const data = res.data;
+          if (!data || Array.isArray(data)) {
+            setPayments(Array.isArray(data) ? data : []);
             setExpensesData(null);
           } else {
-            setPayments(((data as any).payments) || []);
-            setExpensesData(((data as any).expenses) || null);
+            setPayments(data.payments || []);
+            setExpensesData((data as { expenses: FarmerPaymentsExpenses }).expenses || null);
           }
         } else if (selectedUser.role === 'buyer') {
           res = await paymentsApi.getBuyerPayments(selectedUser.id);
@@ -274,14 +256,13 @@ const PaymentManagement: React.FC = () => {
           let payRes;
           if (selectedUser.role === 'farmer') {
             payRes = await paymentsApi.getFarmerPayments(selectedUser.id);
-            // Handle API shapes like { payments, expenses } or legacy array
-            const refreshed = payRes.data || {};
+            const refreshed: Payment[] | { payments: Payment[]; expenses: unknown } = payRes.data || {};
             if (Array.isArray(refreshed)) {
               setPayments(refreshed);
               setExpensesData(null);
             } else {
-              setPayments(((refreshed as any).payments) || []);
-              setExpensesData(((refreshed as any).expenses) || null);
+              setPayments(refreshed.payments || []);
+              setExpensesData((refreshed as { expenses: FarmerPaymentsExpenses }).expenses || null);
             }
             } else if (selectedUser.role === 'buyer') {
               payRes = await paymentsApi.getBuyerPayments(selectedUser.id);
@@ -749,7 +730,7 @@ const PaymentManagement: React.FC = () => {
                         <select
                           className="border rounded px-2 py-2 text-sm w-full font-medium"
                           value={paymentDirection}
-                          onChange={e => setPaymentDirection(e.target.value as any)}
+                          onChange={e => setPaymentDirection(e.target.value as 'pay_to_farmer' | 'receive_from_buyer' | 'receive_from_farmer')}
                           required
                         >
                           {/* For FARMERS: Show both pay and receive options */}
