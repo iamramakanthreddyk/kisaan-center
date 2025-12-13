@@ -1,11 +1,38 @@
-﻿// API Registry - Simple Implementation
-import express, { Application, Request, Response } from 'express';
+﻿import express, { Application, Request, Response } from 'express';
 import { authenticateToken } from '../middlewares/auth';
 import { loadFeatures, requireFeature } from '../middlewares/features';
 import { success } from '../shared/http/respond';
 import { Transaction } from '../models/transaction';
 import { logger } from '../shared/logging/logger';
 import * as allRoutes from '../routes';
+
+interface Routes {
+  authRoutes?: express.Router;
+  userRoutes?: express.Router;
+  superadminRoutes?: express.Router;
+  shopRoutes?: express.Router;
+  categoryRoutes?: express.Router;
+  shopCategoryRoutes?: express.Router;
+  planRoutes?: express.Router;
+  productRoutes?: express.Router;
+  farmerProductRoutes?: express.Router;
+  shopProductRoutes?: express.Router;
+  transactionRoutes?: express.Router;
+  creditAdvanceRoutes?: express.Router;
+  balanceRoutes?: express.Router;
+  balanceSnapshotRoutes?: express.Router;
+  balanceReconciliationRoutes?: express.Router;
+  commissionRoutes?: express.Router;
+  settlementRoutes?: express.Router;
+  expenseRoutes?: express.Router;
+  debugRoutes?: express.Router;
+  reportRoutes?: express.Router;
+  auditLogRoutes?: express.Router;
+  featureAdminRoutes?: express.Router;
+  ownerDashboardRoute?: express.Router;
+  simplifiedRoutes?: express.Router;
+  simpleFarmerLedgerRoutes?: express.Router;
+}
 
 export interface ApiModule {
   name: string;
@@ -86,55 +113,55 @@ export class ApiRegistry {
       };
 
       // Authentication routes
-      register('/api/auth', (routes as any).authRoutes);
+      register('/api/auth', (routes as Routes).authRoutes);
       // User management routes
-      register('/api/users', (routes as any).userRoutes);
-      register('/api/superadmin', (routes as any).superadminRoutes);
+      register('/api/users', (routes as Routes).userRoutes);
+      register('/api/superadmin', (routes as Routes).superadminRoutes);
       // Shop and category management
-      register('/api/shops', (routes as any).shopRoutes);
-      register('/api/categories', (routes as any).categoryRoutes);
-      register('/api/shop-categories', (routes as any).shopCategoryRoutes);
-      register('/api/plans', (routes as any).planRoutes);
+      register('/api/shops', (routes as Routes).shopRoutes);
+      register('/api/categories', (routes as Routes).categoryRoutes);
+      register('/api/shop-categories', (routes as Routes).shopCategoryRoutes);
+      register('/api/plans', (routes as Routes).planRoutes);
       // Product management
-      register('/api/products', (routes as any).productRoutes);
+      register('/api/products', (routes as Routes).productRoutes);
       // Farmer & shop product assignment
-      if ((routes as any).farmerProductRoutes) {
-        register('/api/farmer-products', (routes as any).farmerProductRoutes);
+      if ((routes as Routes).farmerProductRoutes) {
+        register('/api/farmer-products', (routes as Routes).farmerProductRoutes);
       }
-      if ((routes as any).shopProductRoutes) {
-        register('/api/shop-products', (routes as any).shopProductRoutes);
+      if ((routes as Routes).shopProductRoutes) {
+        register('/api/shop-products', (routes as Routes).shopProductRoutes);
       }
       // Transaction and payment processing (enhanced with backdated support)
-      register('/api/transactions', (routes as any).transactionRoutes);
-      register('/api/credit-advances', (routes as any).creditAdvanceRoutes);
+      register('/api/transactions', (routes as Routes).transactionRoutes);
+      register('/api/credit-advances', (routes as Routes).creditAdvanceRoutes);
       // Financial management
-      register('/api/balances', (routes as any).balanceRoutes);
-      register('/api/balance-snapshots', (routes as any).balanceSnapshotRoutes);
-      register('/api/balance', (routes as any).balanceReconciliationRoutes);
-      register('/api/commissions', (routes as any).commissionRoutes);
-      register('/api/settlements', (routes as any).settlementRoutes);
+      register('/api/balances', (routes as Routes).balanceRoutes);
+      register('/api/balance-snapshots', (routes as Routes).balanceSnapshotRoutes);
+      register('/api/balance', (routes as Routes).balanceReconciliationRoutes);
+      register('/api/commissions', (routes as Routes).commissionRoutes);
+      register('/api/settlements', (routes as Routes).settlementRoutes);
       // Expense routes
-      if ((routes as any).expenseRoutes) {
-        register('/api/expenses', (routes as any).expenseRoutes);
+      if ((routes as Routes).expenseRoutes) {
+        register('/api/expenses', (routes as Routes).expenseRoutes);
       }
       // Development/diagnostic routes
-      if ((routes as any).debugRoutes) {
-        register('/api/debug', (routes as any).debugRoutes);
+      if ((routes as Routes).debugRoutes) {
+        register('/api/debug', (routes as Routes).debugRoutes);
       }
       // Reporting and auditing
-      register('/api/reports', (routes as any).reportRoutes);
-      register('/api/audit-logs', (routes as any).auditLogRoutes);
-      register('/api/features-admin', (routes as any).featureAdminRoutes);
+      register('/api/reports', (routes as Routes).reportRoutes);
+      register('/api/audit-logs', (routes as Routes).auditLogRoutes);
+      register('/api/features-admin', (routes as Routes).featureAdminRoutes);
       // Dashboard routes
-      register('/api/owner-dashboard', (routes as any).ownerDashboardRoute);
+      register('/api/owner-dashboard', (routes as Routes).ownerDashboardRoute);
       // Simplified transaction system - clear user experience
-      if ((routes as any).simplifiedRoutes) {
-        register('/api/simple', (routes as any).simplifiedRoutes);
+      if ((routes as Routes).simplifiedRoutes) {
+        register('/api/simple', (routes as Routes).simplifiedRoutes);
         console.log('✅ Simplified transaction routes registered at /api/simple');
       }
       // Simple Farmer Ledger Book-Keeping
-      if ((routes as any).simpleFarmerLedgerRoutes) {
-        register('/api/simple-ledger', (routes as any).simpleFarmerLedgerRoutes);
+      if ((routes as Routes).simpleFarmerLedgerRoutes) {
+        register('/api/simple-ledger', (routes as Routes).simpleFarmerLedgerRoutes);
         console.log('✅ Simple Farmer Ledger routes registered at /api/simple-ledger');
       }
       

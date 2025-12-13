@@ -1,31 +1,56 @@
 import { Request, Response } from 'express';
 import { SimpleFarmerLedger } from '../models/simpleFarmerLedger';
 import { simpleFarmerLedgerSchema } from '../schema/simpleFarmerLedgerSchema';
+import { QueryTypes } from 'sequelize';
+
+interface FarmerRow {
+  custom_commission_rate: number | null;
+}
+
+interface ShopRow {
+  commission_rate: number | null;
+  owner_id: number | null;
+}
+
+interface OwnerRow {
+  commission_rate: number | null;
+}
+
+interface LedgerPayload {
+  farmer_id: number;
+  shop_id: number;
+  amount: number;
+  category: string;
+  description?: string;
+  commission_amount?: number;
+  net_amount?: number;
+  [key: string]: unknown;
+}
 
 // Create a new ledger entry
 export async function createEntry(req: Request, res: Response) {
   try {
     await simpleFarmerLedgerSchema.validate(req.body);
     // Compute commission_amount and net_amount using farmer custom rate or shop commission
-    const payload: any = { ...req.body };
+    const payload: LedgerPayload = { ...req.body };
     const farmerId = Number(payload.farmer_id);
     const shopId = Number(payload.shop_id);
     // Resolve commission rate precedence: farmer -> shop owner -> shop -> 0
     let rateUsed = 0;
     let source = 'none';
     try {
-      const farmerRow: any = (await SimpleFarmerLedger.sequelize!.query('SELECT custom_commission_rate FROM kisaan_users WHERE id = ?', { replacements: [farmerId], type: (SimpleFarmerLedger.sequelize as any).QueryTypes.SELECT })) as any;
+      const farmerRow: FarmerRow[] = (await SimpleFarmerLedger.sequelize!.query('SELECT custom_commission_rate FROM kisaan_users WHERE id = ?', { replacements: [farmerId], type: QueryTypes.SELECT })) as FarmerRow[];
       const farmerRate = farmerRow && farmerRow[0] ? Number(farmerRow[0].custom_commission_rate) : null;
       if (farmerRate != null) {
         rateUsed = farmerRate;
         source = 'farmer';
       } else {
         // Try to fetch shop commission rate and owner commission rate
-        const shopRow: any = (await SimpleFarmerLedger.sequelize!.query('SELECT commission_rate, owner_id FROM kisaan_shops WHERE id = ?', { replacements: [shopId], type: (SimpleFarmerLedger.sequelize as any).QueryTypes.SELECT })) as any;
+        const shopRow: ShopRow[] = (await SimpleFarmerLedger.sequelize!.query('SELECT commission_rate, owner_id FROM kisaan_shops WHERE id = ?', { replacements: [shopId], type: QueryTypes.SELECT })) as ShopRow[];
         const shopRate = shopRow && shopRow[0] ? Number(shopRow[0].commission_rate) : null;
         const ownerId = shopRow && shopRow[0] ? shopRow[0].owner_id : null;
         if (ownerId) {
-          const ownerRow: any = (await SimpleFarmerLedger.sequelize!.query('SELECT commission_rate FROM kisaan_users WHERE id = ?', { replacements: [ownerId], type: (SimpleFarmerLedger.sequelize as any).QueryTypes.SELECT })) as any;
+          const ownerRow: OwnerRow[] = (await SimpleFarmerLedger.sequelize!.query('SELECT commission_rate FROM kisaan_users WHERE id = ?', { replacements: [ownerId], type: QueryTypes.SELECT })) as OwnerRow[];
           const ownerRate = ownerRow && ownerRow[0] ? Number(ownerRow[0].commission_rate) : null;
           if (ownerRate != null) {
             rateUsed = ownerRate;
@@ -57,14 +82,14 @@ export async function createEntry(req: Request, res: Response) {
 export async function listEntries(req: Request, res: Response) {
   try {
     const { shop_id, farmer_id, from, to, category } = req.query;
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (shop_id) where.shop_id = Number(shop_id);
     if (farmer_id) where.farmer_id = Number(farmer_id);
     if (category) where.category = category;
     if (from || to) {
       where.created_at = {};
-      if (from) where.created_at['$gte'] = from;
-      if (to) where.created_at['$lte'] = to;
+      if (from) (where.created_at as Record<string, string>)['$gte'] = from as string;
+      if (to) (where.created_at as Record<string, string>)['$lte'] = to as string;
     }
     const entries = await SimpleFarmerLedger.findAll({ where, order: [['created_at', 'DESC']] });
     res.json(entries);

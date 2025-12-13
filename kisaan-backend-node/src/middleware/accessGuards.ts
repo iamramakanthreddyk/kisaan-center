@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../middlewares/auth';
+import { Shop } from '../models/shop';
 
 // Type guard for req.user
 function getUser(req: Request) {
@@ -27,9 +28,8 @@ export function shopAccessGuard(req: Request, res: Response, next: NextFunction)
       return;
     }
     // If not direct match, check if user is owner of the shop
-    const { Shop } = require('../models/shop');
     Shop.findOne({ where: { id: Number(shopId), owner_id: user.id } })
-      .then((shop: any) => {
+      .then((shop: Shop | null) => {
         if (shop) {
           next();
         } else {
