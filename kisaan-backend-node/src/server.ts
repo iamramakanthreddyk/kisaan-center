@@ -238,6 +238,29 @@ async function startServer() {
       })();
     }
 
+    // Ensure `commission_rate` and `settings` exist on kisaan_shops for Postgres/other dialects
+    if (process.env.DB_DIALECT !== 'sqlite') {
+      (async () => {
+        try {
+          const check = await sequelize.query(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'kisaan_shops' AND column_name IN ('commission_rate','settings')",
+            { type: QueryTypes.SELECT }
+          );
+          const cols = Array.isArray(check) ? (check as any[]).map((r) => r.column_name) : [];
+          if (!cols.includes('commission_rate')) {
+            console.log('🔧 Adding missing column `commission_rate` to kisaan_shops');
+            await sequelize.query("ALTER TABLE kisaan_shops ADD COLUMN IF NOT EXISTS commission_rate DECIMAL(10,2) DEFAULT 0");
+          }
+          if (!cols.includes('settings')) {
+            console.log('🔧 Adding missing column `settings` to kisaan_shops');
+            await sequelize.query("ALTER TABLE kisaan_shops ADD COLUMN IF NOT EXISTS settings JSONB");
+          }
+        } catch (e) {
+          console.warn('⚠️ Could not ensure commission_rate/settings on kisaan_shops:', e instanceof Error ? e.message : e);
+        }
+      })();
+    }
+
     // Start the server
     const server = app.listen(PORT, () => {
       console.log(`🚀 KisaanCenter Backend Server running on port ${PORT}`);
