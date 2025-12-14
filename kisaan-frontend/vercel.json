@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "public": true,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "env": {
+    "VITE_API_BASE_URL": "@vite_api_base_url"
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://kisaan-center-production.up.railway.app/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
+}

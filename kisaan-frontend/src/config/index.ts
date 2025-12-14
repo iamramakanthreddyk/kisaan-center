@@ -10,9 +10,9 @@ const getApiBaseUrl = () => {
       envUrl === 'undefined' ||
       /^\s*$/.test(envUrl)) {
     
-    // In production, use the known Azure backend URL
+    // In production, use the Railway backend URL
     if (import.meta.env.PROD) {
-      return 'https://kisaancenter-backend.whiteisland-e1233153.northeurope.azurecontainerapps.io/api';
+      return 'https://kisaan-center-production.up.railway.app/api';
     }
     
     // In development, use localhost
