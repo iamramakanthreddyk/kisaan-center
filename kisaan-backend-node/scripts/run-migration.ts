@@ -58,8 +58,9 @@ async function discoverMigrations(): Promise<string[]> {
     return [];
   }
   return fs
-    .readdirSync(MIGRATIONS_DIR)
-    .filter(f => /\.(sql|ts)$/i.test(f))
+     .readdirSync(MIGRATIONS_DIR)
+     // Accept .sql and .ts but ignore declaration files (.d.ts) and sourcemaps
+     .filter(f => /(\.sql|\.ts)$/i.test(f) && !/\.d\.ts$/i.test(f) && !/\.map$/i.test(f))
     .sort();
 }
 
