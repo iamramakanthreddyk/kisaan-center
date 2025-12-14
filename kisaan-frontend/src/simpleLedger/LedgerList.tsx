@@ -172,7 +172,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                     </div>
                     <div className="text-right">
                       <div className={`text-sm font-semibold ${entry.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
-                        {entry.type === 'credit' ? '+' : '−'}₹{entry.amount.toFixed(2)}
+                        {entry.type === 'credit' ? '+' : '−'}{formatAmount(entry.amount)}
                       </div>
                       <div className="text-xs text-gray-500">{entry.category}</div>
                     </div>
