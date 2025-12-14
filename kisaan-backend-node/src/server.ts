@@ -42,16 +42,27 @@ async function startServer() {
       }
     }
     
-    // Create schema from schema.sqlite.sql for SQLite
-    let schemaPath;
-    if (process.env.DB_DIALECT === 'sqlite') {
-      schemaPath = path.join(__dirname, '..', '..', 'local-sqlite-setup', 'schema.sqlite.sql');
+    // Create schema from SQL file unless explicitly skipped
+    const skipSchemaInit = String(process.env.SKIP_SCHEMA_INIT || '').toLowerCase() === 'true';
+    if (skipSchemaInit) {
+      console.log('⏭️  SKIP_SCHEMA_INIT=true set, skipping unified-schema apply');
     } else {
-      schemaPath = path.join(__dirname, '..', 'schema', 'unified-schema.sql');
+      let schemaPath;
+      if (process.env.DB_DIALECT === 'sqlite') {
+        schemaPath = path.join(__dirname, '..', '..', 'local-sqlite-setup', 'schema.sqlite.sql');
+      } else {
+        schemaPath = path.join(__dirname, '..', 'schema', 'unified-schema.sql');
+      }
+      const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
+      console.log('🔄 Creating database schema from', schemaPath);
+      try {
+        await sequelize.query(schemaSQL);
+        console.log('✅ Database schema created.');
+      } catch (err) {
+        console.error('✖ Schema creation failed:', err);
+        throw err;
+      }
     }
-    const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
-    console.log('🔄 Creating database schema from', schemaPath);
-    await sequelize.query(schemaSQL);
 
     // For SQLite local setups, ensure legacy columns exist (non-destructive)
     if (process.env.DB_DIALECT === 'sqlite') {
@@ -117,7 +128,6 @@ async function startServer() {
         console.warn('⚠️  Could not ensure legacy columns for SQLite:', e instanceof Error ? e.message : e);
       }
     }
-    console.log('✅ Database schema created.');
     
     // Start the server
     const server = app.listen(PORT, () => {
