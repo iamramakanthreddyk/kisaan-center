@@ -2,6 +2,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
+import { getSanitizedApiBase, isUsingFallbackApiBase } from './services/apiClient';
 // import Auth from './pages/Auth';
 import Index from './pages/Index';
 import Dashboard from './pages/Dashboard';
@@ -199,6 +200,8 @@ const AppRoutes = () => {
 };
 
 const App = () => (
+  // Log API base at runtime so deployed builds can be verified in browser console
+  console.info('[frontend] API Base:', getSanitizedApiBase(), 'usingFallback:', isUsingFallbackApiBase()),
   <AuthProvider>
     <SidebarProvider>
       <UsersProvider>
