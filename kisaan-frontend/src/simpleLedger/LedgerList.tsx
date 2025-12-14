@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '../components/ui/table';
 import { AlertCircle, Inbox } from 'lucide-react';
 import type { User } from '../types';
+import { formatAmount } from '../utils/format';
 
 interface LedgerEntry {
   id: number;
@@ -140,11 +141,11 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                         </span>
                       </TableCell>
                       <TableCell className="text-sm">{entry.category}</TableCell>
-                      <TableCell className="text-right font-medium text-gray-700">{entry.commission_amount != null ? `₹${Number(entry.commission_amount).toFixed(2)}` : '—'}</TableCell>
-                      <TableCell className="text-right font-medium text-gray-700">{entry.net_amount != null ? `₹${Number(entry.net_amount).toFixed(2)}` : '—'}</TableCell>
+                      <TableCell className="text-right font-medium text-gray-700">{formatAmount(entry.commission_amount)}</TableCell>
+                      <TableCell className="text-right font-medium text-gray-700">{formatAmount(entry.net_amount)}</TableCell>
                       <TableCell className="text-right font-semibold">
                         <span className={entry.type === 'credit' ? 'text-green-600' : 'text-red-600'}>
-                          {entry.type === 'credit' ? '+' : '−'}₹{Number(entry.amount).toFixed(2)}
+                          {entry.type === 'credit' ? '+' : '−'}{formatAmount(entry.amount)}
                         </span>
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">{entry.notes || '—'}</TableCell>

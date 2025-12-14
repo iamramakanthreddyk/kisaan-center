@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { TrendingUp, TrendingDown, BarChart3, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { fetchLedgerSummary } from './api';
+import { formatAmount } from '../utils/format';
 
 interface SummaryData {
   totalCredit: number;
@@ -103,7 +104,7 @@ const LedgerSummary: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-green-600">₹{Number(summary.totalCredit).toFixed(2)}</div>
+          <div className="text-3xl font-bold text-green-600">{formatAmount(summary.totalCredit)}</div>
           <p className="text-xs text-gray-500 mt-1">Amount received</p>
         </CardContent>
       </Card>
@@ -117,7 +118,7 @@ const LedgerSummary: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-red-600">₹{Number(summary.totalDebit).toFixed(2)}</div>
+          <div className="text-3xl font-bold text-red-600">{formatAmount(summary.totalDebit)}</div>
           <p className="text-xs text-gray-500 mt-1">Amount paid</p>
         </CardContent>
       </Card>
@@ -134,7 +135,7 @@ const LedgerSummary: React.FC = () => {
           <div className={`text-3xl font-bold ${
             summary.netBalance >= 0 ? 'text-green-600' : 'text-red-600'
           }`}>
-            ₹{Number(summary.netBalance).toFixed(2)}
+            {formatAmount(summary.netBalance)}
           </div>
           <p className="text-xs text-gray-500 mt-1">
             {summary.netBalance >= 0 ? 'Amount due to farmer' : 'Amount due from farmer'}
@@ -168,9 +169,9 @@ const LedgerSummary: React.FC = () => {
                     {breakdown.map(b => (
                       <tr key={b.period} className="border-t">
                         <td className="px-2 py-2">{b.period}</td>
-                        <td className="px-2 py-2 text-right text-green-600">₹{Number(b.credit).toFixed(2)}</td>
-                        <td className="px-2 py-2 text-right text-red-600">₹{Number(b.debit).toFixed(2)}</td>
-                        <td className="px-2 py-2 text-right">₹{Number(b.credit - b.debit).toFixed(2)}</td>
+                        <td className="px-2 py-2 text-right text-green-600">{formatAmount(b.credit)}</td>
+                        <td className="px-2 py-2 text-right text-red-600">{formatAmount(b.debit)}</td>
+                        <td className="px-2 py-2 text-right">{formatAmount(b.credit - b.debit)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -183,11 +184,11 @@ const LedgerSummary: React.FC = () => {
                   <div key={b.period} className="p-3 border rounded-lg bg-white">
                     <div className="flex items-center justify-between">
                       <div className="text-sm font-medium">{b.period}</div>
-                      <div className="text-sm font-semibold">₹{Number(b.credit - b.debit).toFixed(2)}</div>
+                      <div className="text-sm font-semibold">{formatAmount(b.credit - b.debit)}</div>
                     </div>
                     <div className="mt-1 text-xs text-gray-500 flex items-center justify-between">
-                      <div className="text-green-600">Credit: ₹{Number(b.credit).toFixed(2)}</div>
-                      <div className="text-red-600">Debit: ₹{Number(b.debit).toFixed(2)}</div>
+                      <div className="text-green-600">Credit: {formatAmount(b.credit)}</div>
+                      <div className="text-red-600">Debit: {formatAmount(b.debit)}</div>
                     </div>
                   </div>
                 ))}

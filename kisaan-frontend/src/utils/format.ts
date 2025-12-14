@@ -32,3 +32,19 @@ export function formatPercent(value: number | null | undefined, fractionDigits =
   if (value === null || value === undefined || isNaN(value)) return '0%';
   return `${value.toFixed(fractionDigits)}%`;
 }
+
+/**
+ * Safely formats a value as currency, handling string inputs from database
+ * @param value The value to format (can be number, string, null, undefined)
+ * @param decimals Number of decimal places (default: 2)
+ * @returns Formatted currency string like "₹123.45"
+ */
+export function formatAmount(value: number | string | null | undefined, decimals: number = 2): string {
+  if (value === null || value === undefined || value === '') return '—';
+
+  const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+
+  if (isNaN(num)) return '—';
+
+  return `₹${num.toFixed(decimals)}`;
+}
