@@ -13,7 +13,20 @@ import sequelize from '../src/config/database';
  *  - Idempotent via _migrations ledger table recording executed file names
  *  - Safe to re-run: already applied migrations are skipped
  */
-const MIGRATIONS_DIR = path.resolve(__dirname, '..', 'src', 'migrations');
+const MIGRATION_DIR_CANDIDATES = [
+  path.resolve(__dirname, '..', 'src', 'migrations'),         // dist/src/migrations
+  path.resolve(__dirname, '..', '..', 'src', 'migrations'),    // build/src/migrations
+  path.resolve(__dirname, '..', 'migrations'),                 // dist/migrations (fallback)
+];
+
+function resolveMigrationsDir(): string | null {
+  for (const dir of MIGRATION_DIR_CANDIDATES) {
+    if (fs.existsSync(dir)) {
+      return dir;
+    }
+  }
+  return null;
+}
 
 async function ensureLedger() {
   await sequelize.query(`CREATE TABLE IF NOT EXISTS _migrations (
@@ -52,22 +65,33 @@ async function runTsMigration(filePath: string, fileName: string) {
   console.log(`  ✔ TS migration applied: ${fileName}`);
 }
 
-async function discoverMigrations(): Promise<string[]> {
-  if (!fs.existsSync(MIGRATIONS_DIR)) {
-    console.log('No migrations directory found at', MIGRATIONS_DIR);
-    return [];
+async function discoverMigrations(): Promise<{ dir: string; files: string[] }> {
+  const dir = resolveMigrationsDir();
+  if (!dir) {
+    console.log('No migrations directory found in candidates:', MIGRATION_DIR_CANDIDATES.join(', '));
+    return { dir: '', files: [] };
   }
+  console.log('Using migrations directory:', dir);
   return fs
-     .readdirSync(MIGRATIONS_DIR)
-     // Accept .sql and .ts but ignore declaration files (.d.ts) and sourcemaps
-     .filter(f => /(\.sql|\.ts)$/i.test(f) && !/\.d\.ts$/i.test(f) && !/\.map$/i.test(f))
-    .sort();
+    .readdirSync(dir)
+    // Accept .sql and .ts but ignore declaration files (.d.ts) and sourcemaps
+    .filter(f => /(\.sql|\.ts)$/i.test(f) && !/\.d\.ts$/i.test(f) && !/\.map$/i.test(f))
+    .sort()
+    .reduce<{ dir: string; files: string[] }>((acc, f) => {
+      acc.files.push(f);
+      acc.dir = dir;
+      return acc;
+    }, { dir, files: [] });
 }
 
 async function runAllMigrations() {
-  console.log('🔄 Running migrations from', MIGRATIONS_DIR);
   await ensureLedger();
-  const files = await discoverMigrations();
+  const { dir, files } = await discoverMigrations();
+  console.log('🔄 Running migrations from', dir || 'N/A');
+  if (!dir) {
+    console.log('Found 0 migration file(s).');
+    return;
+  }
   console.log(`Found ${files.length} migration file(s).`);
   for (const file of files) {
     try {
@@ -75,7 +99,7 @@ async function runAllMigrations() {
         console.log(`  ↷ Skipping already applied: ${file}`);
         continue;
       }
-      const full = path.join(MIGRATIONS_DIR, file);
+      const full = path.join(dir, file);
       if (file.endsWith('.sql')) {
         await runSqlMigration(full, file);
       } else if (file.endsWith('.ts')) {

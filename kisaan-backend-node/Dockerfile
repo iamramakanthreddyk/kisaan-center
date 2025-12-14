@@ -41,6 +41,9 @@ COPY --from=build /app/dist ./dist
 # Copy schema files so unified-schema.sql is available at runtime
 COPY --from=build /app/schema ./dist/schema
 
+# Copy migrations so runtime can discover SQL/TS migrations
+COPY --from=build /app/src/migrations ./dist/src/migrations
+
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S appuser -u 1001 -G nodejs && \
