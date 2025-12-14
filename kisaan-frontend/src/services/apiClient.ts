@@ -134,15 +134,20 @@ class ApiClient {
 
       // Show error toast if enabled (default: true for errors)
       if (config?.showErrorToast !== false) {
-        if (response.status === 401 || response.status === 403) {
-          // Always show the backend error message in a toast for debug
+        if (response.status === 401) {
+          // 401: Invalid or missing token - redirect to login
           toastService.authError(`[${response.status}] ${errorMessage}`);
-          // Delay redirect to login so user can see the error
           setTimeout(() => {
             window.location.href = '/login';
           }, 3000);
+        } else if (response.status === 403) {
+          // 403: Authenticated but not authorized - show error, don't redirect
+          toastService.apiError(`Access Denied: ${errorMessage}`, config?.errorMessage || 'You do not have permission to access this resource');
         } else if (response.status >= 500) {
           toastService.networkError(config?.errorMessage || 'Server error occurred');
+        } else if (response.status === 404) {
+          // 404: Resource not found
+          toastService.apiError(`Not Found: ${errorMessage}`, config?.errorMessage || 'The requested resource does not exist');
         } else {
           toastService.apiError(errorMessage, config?.errorMessage);
         }
