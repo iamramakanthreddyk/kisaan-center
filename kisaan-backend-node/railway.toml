@@ -1,8 +1,8 @@
 [build]
-builder = "NIXPACKS"
+builder = "dockerfile"
 
 [deploy]
-startCommand = "npm run build && npm run db:bootstrap && npm start"
+startCommand = "npm run db:bootstrap && npm start"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
