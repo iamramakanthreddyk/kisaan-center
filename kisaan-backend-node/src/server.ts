@@ -32,115 +32,109 @@ function getUnifiedSchemaPath() {
 async function startServer() {
   try {
     console.log('🔄 Connecting to database...');
-    
+
     // Test database connection
     await sequelize.authenticate();
     console.log('✅ Database connection established successfully.');
 
-    // Optionally run migrations programmatically on startup
+    // Schedule migrations in background if requested
     if (String(process.env.RUN_MIGRATIONS_ON_STARTUP).toLowerCase() === 'true') {
-      console.log('🔄 RUN_MIGRATIONS_ON_STARTUP is enabled — running migrations');
-      try {
-        await runAllMigrations();
-        console.log('✅ Programmatic migrations completed');
-      } catch (e) {
-        console.error('✖ Migration run failed on startup:', e instanceof Error ? e.message : e);
-        throw e; // let outer catch handle process exit
-      }
+      console.log('🔄 RUN_MIGRATIONS_ON_STARTUP is enabled — scheduling migrations (background)');
+      (async () => {
+        try {
+          await runAllMigrations();
+          console.log('✅ Programmatic migrations completed (background)');
+        } catch (e) {
+          console.error('✖ Migration run failed in background:', e instanceof Error ? e.message : e);
+        }
+      })();
     }
-    
-            // Optionally run migrations programmatically on startup (non-blocking)
-            if (String(process.env.RUN_MIGRATIONS_ON_STARTUP).toLowerCase() === 'true') {
-              console.log('🔄 RUN_MIGRATIONS_ON_STARTUP is enabled — scheduling migrations (background)');
-              // run migrations in background, don't block server start
-              (async () => {
-                try {
-                  await runAllMigrations();
-                  console.log('✅ Programmatic migrations completed');
-                } catch (e) {
-                  console.error('✖ Migration run failed in background:', e instanceof Error ? e.message : e);
-                }
-              })();
-            }
 
-      const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
-      const schemaHash = createHash('sha256').update(schemaSQL).digest('hex');
-      console.log('🔄 Creating database schema from', schemaPath);
-      console.log('📄 Schema SHA256 (first 12):', schemaHash.slice(0, 12));
-      try {
-              (async () => {
-                try {
-                  let schemaPath;
-                  if (process.env.DB_DIALECT === 'sqlite') {
-                    schemaPath = path.join(__dirname, '..', '..', 'local-sqlite-setup', 'schema.sqlite.sql');
-                  } else {
-                    schemaPath = getUnifiedSchemaPath();
-                  }
-                  const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
-                  const schemaHash = createHash('sha256').update(schemaSQL).digest('hex');
-                  console.log('🔄 (background) Creating database schema from', schemaPath);
-                  console.log('📄 (background) Schema SHA256 (first 12):', schemaHash.slice(0, 12));
+    // Apply unified schema in background unless explicitly skipped
+    const skipSchemaInit = String(process.env.SKIP_SCHEMA_INIT || '').toLowerCase() === 'true';
+    if (skipSchemaInit) {
+      console.log('⏭️  SKIP_SCHEMA_INIT=true set, skipping unified-schema apply');
+    } else {
+      (async () => {
+        try {
+          let schemaPath: string;
+          if (process.env.DB_DIALECT === 'sqlite') {
+            schemaPath = path.join(__dirname, '..', '..', 'local-sqlite-setup', 'schema.sqlite.sql');
+          } else {
+            schemaPath = getUnifiedSchemaPath();
+          }
+          const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
+          const schemaHash = createHash('sha256').update(schemaSQL).digest('hex');
+          console.log('🔄 (background) Creating database schema from', schemaPath);
+          console.log('📄 (background) Schema SHA256 (first 12):', schemaHash.slice(0, 12));
 
-                  // run with a simple retry loop to handle transient issues
-                  const maxAttempts = 3;
-                  let attempt = 0;
-                  while (attempt < maxAttempts) {
-                    attempt += 1;
-                    try {
-                      await sequelize.query(schemaSQL);
-                      console.log('✅ (background) Database schema applied.');
-                      break;
-                    } catch (err) {
-                      console.warn(`⚠️ (background) Schema apply attempt ${attempt} failed:`, err instanceof Error ? err.message : err);
-                      if (attempt >= maxAttempts) {
-                        console.error('✖ (background) Schema creation failed after retries:', err);
-                        break;
-                      }
-                      // backoff
-                      await new Promise((res) => setTimeout(res, attempt * 2000));
-                    }
-                  }
-                } catch (err) {
-                  console.error('✖ (background) Schema creation failed:', err instanceof Error ? err.message : err);
-                }
-              })();
-        }
-            // Add total_amount to transactions if it doesn't exist (some older local DBs)
-            const hasTotalAmount = Array.isArray(res) && res.some((col) => col.name === 'total_amount');
-            if (!hasTotalAmount) {
-              console.log('🔧 Adding missing column `total_amount` to kisaan_transactions');
-              await sequelize.query('ALTER TABLE kisaan_transactions ADD COLUMN total_amount REAL DEFAULT 0');
+          const maxAttempts = 3;
+          for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+            try {
+              await sequelize.query(schemaSQL);
+              console.log('✅ (background) Database schema applied.');
+              break;
+            } catch (err) {
+              console.warn(`⚠️ (background) Schema apply attempt ${attempt} failed:`, err instanceof Error ? err.message : err);
+              if (attempt === maxAttempts) {
+                console.error('✖ (background) Schema creation failed after retries:', err);
+              } else {
+                await new Promise((res) => setTimeout(res, attempt * 2000));
+              }
             }
-        // Ensure kisaan_expenses table exists (some local DBs may be missing it)
-        const expensesInfo: ColumnInfo[] = await sequelize.query("PRAGMA table_info('kisaan_expenses')", { type: QueryTypes.SELECT });
-        const hasExpenses = Array.isArray(expensesInfo) && expensesInfo.length > 0;
-        if (!hasExpenses) {
-          console.log('🔧 Creating missing table `kisaan_expenses` (sqlite local dev)');
-          await sequelize.query(`
-            CREATE TABLE IF NOT EXISTS kisaan_expenses (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              shop_id INTEGER NOT NULL,
-              user_id INTEGER NOT NULL,
-              amount REAL NOT NULL,
-              type TEXT NOT NULL DEFAULT 'expense',
-              description TEXT,
-              transaction_id INTEGER,
-              status TEXT NOT NULL DEFAULT 'pending',
-              expense_date TEXT,
-              category TEXT,
-              ledger_entry_id INTEGER,
-              created_by INTEGER,
-              deleted_at TEXT,
-              total_amount REAL,
-              allocated_amount REAL DEFAULT 0,
-              remaining_amount REAL,
-              allocation_status TEXT DEFAULT 'UNALLOCATED',
-              created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-              updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-          `);
+          }
+        } catch (err) {
+          console.error('✖ (background) Schema creation failed:', err instanceof Error ? err.message : err);
         }
-          // Ensure ledger has commission and net columns
+      })();
+    }
+
+    // If using sqlite, schedule legacy column/table fixes in background
+    if (process.env.DB_DIALECT === 'sqlite') {
+      (async () => {
+        try {
+          const res: ColumnInfo[] = await sequelize.query("PRAGMA table_info('kisaan_transactions')", { type: QueryTypes.SELECT });
+          const hasCommissionRate = Array.isArray(res) && res.some((col) => col.name === 'commission_rate');
+          if (!hasCommissionRate) {
+            console.log('🔧 Adding missing column `commission_rate` to kisaan_transactions');
+            await sequelize.query('ALTER TABLE kisaan_transactions ADD COLUMN commission_rate REAL');
+          }
+
+          const hasTotalAmount = Array.isArray(res) && res.some((col) => col.name === 'total_amount');
+          if (!hasTotalAmount) {
+            console.log('🔧 Adding missing column `total_amount` to kisaan_transactions');
+            await sequelize.query('ALTER TABLE kisaan_transactions ADD COLUMN total_amount REAL DEFAULT 0');
+          }
+
+          const expensesInfo: ColumnInfo[] = await sequelize.query("PRAGMA table_info('kisaan_expenses')", { type: QueryTypes.SELECT });
+          const hasExpenses = Array.isArray(expensesInfo) && expensesInfo.length > 0;
+          if (!hasExpenses) {
+            console.log('🔧 Creating missing table `kisaan_expenses` (sqlite local dev)');
+            await sequelize.query(`
+              CREATE TABLE IF NOT EXISTS kisaan_expenses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                shop_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                type TEXT NOT NULL DEFAULT 'expense',
+                description TEXT,
+                transaction_id INTEGER,
+                status TEXT NOT NULL DEFAULT 'pending',
+                expense_date TEXT,
+                category TEXT,
+                ledger_entry_id INTEGER,
+                created_by INTEGER,
+                deleted_at TEXT,
+                total_amount REAL,
+                allocated_amount REAL DEFAULT 0,
+                remaining_amount REAL,
+                allocation_status TEXT DEFAULT 'UNALLOCATED',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+              )
+            `);
+          }
+
           const ledgerInfo: ColumnInfo[] = await sequelize.query("PRAGMA table_info('kisaan_ledger')", { type: QueryTypes.SELECT });
           const ledgerCols = Array.isArray(ledgerInfo) ? ledgerInfo.map((c) => c.name) : [];
           if (!ledgerCols.includes('commission_rate')) {
@@ -155,11 +149,12 @@ async function startServer() {
             console.log('🔧 Adding missing column `net_amount` to kisaan_ledger');
             await sequelize.query('ALTER TABLE kisaan_ledger ADD COLUMN net_amount REAL');
           }
-      } catch (e) {
-        console.warn('⚠️  Could not ensure legacy columns for SQLite:', e instanceof Error ? e.message : e);
-      }
+        } catch (e) {
+          console.warn('⚠️  Could not ensure legacy columns for SQLite:', e instanceof Error ? e.message : e);
+        }
+      })();
     }
-    
+
     // Start the server
     const server = app.listen(PORT, () => {
       console.log(`🚀 KisaanCenter Backend Server running on port ${PORT}`);
