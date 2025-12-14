@@ -24,6 +24,7 @@
     "db:bootstrap": "ts-node scripts/db-bootstrap.ts --minimal-seed",
     "db:bootstrap:local": "dotenv -e .env.local ts-node scripts/db-bootstrap.ts --minimal-seed",
     "db:bootstrap:full": "ts-node scripts/db-bootstrap.ts --full-seed",
+    "db:bootstrap:prod": "node dist/scripts/db-bootstrap.js --minimal-seed",
     "db:check": "ts-node scripts/db-connection-check.ts",
     "db:check:local": "dotenv -e .env.local ts-node scripts/db-connection-check.ts",
     "db:ledger:ensure": "ts-node scripts/create-missing-ledger-tables.ts",

@@ -59,9 +59,10 @@ USER appuser
 # Expose port
 EXPOSE 8000
 
-# Health check endpoint
+# Health check endpoint - use the runtime PORT environment variable with a default
+# so the container healthcheck matches whatever port the process listens on
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD sh -c 'curl -f http://localhost:${PORT:-8000}/health || exit 1'
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
