@@ -18,3 +18,6 @@ This is the clean, modular Node.js backend for Kisaan Center.
 2. Run in dev mode: `npm run dev`
 3. Build: `npm run build`
 4. Start: `npm start`
+
+## Docker / CI note
+The Docker build creates a small placeholder SQL file at `src/migrations/.placeholder.sql` during the build stage so the image build succeeds even when there are no SQL migration files checked into the repo. If you add real SQL migrations, place them under `src/migrations/` and they will be copied into the image and used by the runtime.

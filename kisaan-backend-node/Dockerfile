@@ -13,6 +13,11 @@ RUN npm ci
 # Copy backend source code only
 COPY kisaan-backend-node/. ./
 
+# Ensure migrations folder exists so downstream COPY doesn't fail when empty
+# This creates a tiny placeholder SQL file only if none exist.
+RUN mkdir -p src/migrations && \
+    sh -c 'if [ ! -f src/migrations/.placeholder.sql ]; then echo "-- placeholder migration" > src/migrations/.placeholder.sql; fi'
+
 # Build TypeScript to JavaScript
 RUN npm run build
 
