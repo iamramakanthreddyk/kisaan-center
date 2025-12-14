@@ -62,6 +62,16 @@ async function startServer() {
         await sequelize.query(schemaSQL);
         console.log('✅ Database schema created.');
       } catch (err) {
+        if (err && typeof err === 'object' && 'parent' in (err as Record<string, unknown>)) {
+          const parent = (err as { parent?: { position?: string } }).parent;
+          const pos = parent?.position ? Number(parent.position) : undefined;
+          if (pos && Number.isFinite(pos)) {
+            const start = Math.max(0, pos - 120);
+            const end = Math.min(schemaSQL.length, pos + 120);
+            const snippet = schemaSQL.slice(start, end);
+            console.error('✖ Schema creation failed near position', pos, 'snippet:\n', snippet);
+          }
+        }
         console.error('✖ Schema creation failed:', err);
         throw err;
       }
