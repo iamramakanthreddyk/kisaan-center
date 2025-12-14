@@ -2,7 +2,14 @@
 const { Payment, PaymentAllocation, sequelize } = require('../src/models');
 const http = require('http');
 const https = require('https');
-const base = process.env.BACKEND_URL || 'http://localhost:8000/api';
+const base = (
+  process.env.VITE_API_BASE_URL ||
+  process.env.VITE_API_URL ||
+  process.env.API_BASE_URL ||
+  process.env.API_BASE ||
+  process.env.BACKEND_URL ||
+  'http://localhost:8000/api'
+);
 const OWNER = process.env.TEST_USER || 'ramakanthreddy_0_107';
 const PASS = process.env.TEST_PASS || 'reddy@123';
 

@@ -1,6 +1,13 @@
 const axios = require('axios');
 require('dotenv').config();
-const BASE = process.env.BACKEND_URL || 'http://localhost:8000/api';
+const BASE = (
+  process.env.VITE_API_BASE_URL ||
+  process.env.VITE_API_URL ||
+  process.env.API_BASE_URL ||
+  process.env.API_BASE ||
+  process.env.BACKEND_URL ||
+  'http://localhost:8000/api'
+);
 
 async function login(){
   const l = await axios.post(`${BASE}/auth/login`, { username: 'ramakanthreddy_0_107', password: 'reddy@123' });

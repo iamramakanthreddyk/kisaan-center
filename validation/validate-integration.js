@@ -6,7 +6,14 @@
  */
 
 const config = {
-  apiBaseUrl: process.env.VITE_API_BASE_URL || 'https://kisaancenter-backend.whiteisland-e1233153.northeurope.azurecontainerapps.io/api'
+  // Priority: VITE_API_BASE_URL (recommended) -> VITE_API_URL (legacy) -> API_BASE_URL -> API_BASE -> default
+  apiBaseUrl: (
+    process.env.VITE_API_BASE_URL ||
+    process.env.VITE_API_URL ||
+    process.env.API_BASE_URL ||
+    process.env.API_BASE ||
+    'https://kisaancenter-backend.whiteisland-e1233153.northeurope.azurecontainerapps.io/api'
+  )
 };
 
 async function validateEndpoint(endpoint, method = 'GET', expectedStatus = 200) {

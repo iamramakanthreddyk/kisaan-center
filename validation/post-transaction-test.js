@@ -1,7 +1,14 @@
 require('dotenv').config();
 const axios = require('axios');
 
-const API_BASE = process.env.API_BASE_URL || 'http://localhost:8000/api';
+const API_BASE = (
+  process.env.VITE_API_BASE_URL ||
+  process.env.VITE_API_URL ||
+  process.env.API_BASE_URL ||
+  process.env.API_BASE ||
+  process.env.BACKEND_URL ||
+  'http://localhost:8000/api'
+);
 const USERNAME = 'ramakanthreddy_0_107';
 const PASSWORD = 'reddy@123';
 

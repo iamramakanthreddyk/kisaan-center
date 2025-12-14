@@ -1,6 +1,13 @@
 const axios = require('axios');
 
-const BASE = process.env.BACKEND_URL || 'http://localhost:8000/api';
+const BASE = (
+  process.env.VITE_API_BASE_URL ||
+  process.env.VITE_API_URL ||
+  process.env.API_BASE_URL ||
+  process.env.API_BASE ||
+  process.env.BACKEND_URL ||
+  'http://localhost:8000/api'
+);
 const OWNER = process.argv[2] || 'ramakanthreddy_0_107';
 const PASS = process.argv[3] || 'reddy@123';
 

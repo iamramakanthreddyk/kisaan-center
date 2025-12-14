@@ -22,6 +22,7 @@ type Transaction = BaseTransaction & {
   rate?: number;
 };
 import { useAuth } from '../context/AuthContext';
+import { apiClient } from '../services/apiClient';
 import { TransactionForm } from '../components/owner/TransactionForm';
 
 // NEW: Import centralized data hooks
@@ -421,8 +422,12 @@ const TransactionManagement = (): React.ReactElement => {
                                         size="sm"
                                         variant="outline"
                                         onClick={async () => {
-                                          await fetch(`/api/transactions/${transaction.id}/confirm-commission`, { method: 'POST' });
-                                          if (typeof refetchTransactions === 'function') refetchTransactions();
+                                          try {
+                                            await apiClient.post(`/transactions/${transaction.id}/confirm-commission`);
+                                            if (typeof refetchTransactions === 'function') refetchTransactions();
+                                          } catch (err) {
+                                            console.error('Failed to confirm commission', err);
+                                          }
                                         }}
                                         className="mt-2"
                                       >
