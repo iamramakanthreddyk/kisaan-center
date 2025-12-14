@@ -1291,8 +1291,8 @@ BEGIN
         ALTER TABLE kisaan_users
         ADD CONSTRAINT shop_id_required_for_roles
         CHECK (
-            (role IN ('owner', 'farmer', 'buyer') AND shop_id IS NOT NULL)
-            OR (role = 'superadmin')
+            (role IN ('farmer', 'buyer') AND shop_id IS NOT NULL)
+            OR role IN ('superadmin', 'owner', 'admin')
         );
     END IF;
 EXCEPTION
