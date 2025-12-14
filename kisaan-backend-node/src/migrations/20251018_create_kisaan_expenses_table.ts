@@ -15,7 +15,17 @@ export = {
       updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     });
 
-    await queryInterface.addIndex('kisaan_expenses', ['shop_id', 'user_id', 'status'], { name: 'idx_kisaan_expenses_shop_user_status' });
+    // Only create the index if it does not exist
+    await queryInterface.sequelize.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_class c WHERE c.relname = 'idx_kisaan_expenses_shop_user_status'
+        ) THEN
+          CREATE INDEX idx_kisaan_expenses_shop_user_status ON kisaan_expenses (shop_id, user_id, status);
+        END IF;
+      END$$;
+    `);
   },
 
   down: async (queryInterface: QueryInterface) => {
