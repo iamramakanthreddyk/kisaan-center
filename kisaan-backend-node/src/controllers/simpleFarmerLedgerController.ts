@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { SimpleFarmerLedger } from '../models/simpleFarmerLedger';
 import { simpleFarmerLedgerSchema } from '../schema/simpleFarmerLedgerSchema';
-import { QueryTypes } from 'sequelize';
+import { QueryTypes, Sequelize } from 'sequelize';
 import { LedgerType } from '../constants/ledgerTypes';
 import { LedgerCategory } from '../constants/ledgerCategories';
 
@@ -140,20 +140,20 @@ export async function getSummary(req: Request, res: Response) {
     const where: any = { shop_id: shopIdNum };
     if (farmerIdNum) where.farmer_id = farmerIdNum;
 
-    // Use Sequelize.literal for database-specific functions
+    // Use Sequelize's built-in functions for date formatting
     const dateFormat = period === 'monthly'
-      ? SimpleFarmerLedger.sequelize!.fn('to_char', SimpleFarmerLedger.sequelize!.col('created_at'), 'YYYY-MM')
-      : SimpleFarmerLedger.sequelize!.fn('to_char', SimpleFarmerLedger.sequelize!.col('created_at'), 'YYYY-"W"IW');
+      ? Sequelize.fn('to_char', Sequelize.col('created_at'), 'YYYY-MM')
+      : Sequelize.fn('to_char', Sequelize.col('created_at'), 'YYYY-"W"IW');
 
     const results = await SimpleFarmerLedger.findAll({
       where,
       attributes: [
         [dateFormat, 'period'],
         'type',
-        [SimpleFarmerLedger.sequelize!.fn('SUM', SimpleFarmerLedger.sequelize!.col('amount')), 'total']
+        [Sequelize.fn('SUM', Sequelize.col('amount')), 'total']
       ],
       group: ['period', 'type'],
-      order: [[SimpleFarmerLedger.sequelize!.literal('period'), 'DESC']],
+      order: [[Sequelize.literal('period'), 'DESC']],
       raw: true
     });
 
@@ -177,19 +177,19 @@ export async function getEarnings(req: Request, res: Response) {
 
     // Use Sequelize's built-in functions for date formatting
     const dateFormat = period === 'monthly'
-      ? SimpleFarmerLedger.sequelize!.fn('to_char', SimpleFarmerLedger.sequelize!.col('created_at'), 'YYYY-MM')
-      : SimpleFarmerLedger.sequelize!.fn('to_char', SimpleFarmerLedger.sequelize!.col('created_at'), 'YYYY-"W"IW');
+      ? Sequelize.fn('to_char', Sequelize.col('created_at'), 'YYYY-MM')
+      : Sequelize.fn('to_char', Sequelize.col('created_at'), 'YYYY-"W"IW');
 
     const results = await SimpleFarmerLedger.findAll({
       where,
       attributes: [
         [dateFormat, 'period'],
-        [SimpleFarmerLedger.sequelize!.fn('SUM', SimpleFarmerLedger.sequelize!.fn('COALESCE', SimpleFarmerLedger.sequelize!.col('commission_amount'), 0)), 'total_commission'],
-        [SimpleFarmerLedger.sequelize!.fn('SUM', SimpleFarmerLedger.sequelize!.fn('COALESCE', SimpleFarmerLedger.sequelize!.col('net_amount'), 0)), 'total_net'],
-        [SimpleFarmerLedger.sequelize!.fn('SUM', SimpleFarmerLedger.sequelize!.fn('COALESCE', SimpleFarmerLedger.sequelize!.col('amount'), 0)), 'total_amount']
+        [Sequelize.fn('SUM', Sequelize.fn('COALESCE', Sequelize.col('commission_amount'), 0)), 'total_commission'],
+        [Sequelize.fn('SUM', Sequelize.fn('COALESCE', Sequelize.col('net_amount'), 0)), 'total_net'],
+        [Sequelize.fn('SUM', Sequelize.fn('COALESCE', Sequelize.col('amount'), 0)), 'total_amount']
       ],
       group: ['period'],
-      order: [[SimpleFarmerLedger.sequelize!.literal('period'), 'DESC']],
+      order: [[Sequelize.literal('period'), 'DESC']],
       raw: true
     });
 
