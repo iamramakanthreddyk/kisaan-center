@@ -23,11 +23,12 @@ export function shopAccessGuard(req: Request, res: Response, next: NextFunction)
 
   // Owner can access any shop they own, even if user.shop_id is null or does not match
   if (user && user.role === 'owner') {
+    // First check direct shop ownership via user.shop_id
     if (user.shop_id === Number(shopId)) {
       next();
       return;
     }
-    // If not direct match, check if user is owner of the shop
+    // Then check database ownership via shop.owner_id
     Shop.findOne({ where: { id: Number(shopId), owner_id: user.id } })
       .then((shop: Shop | null) => {
         if (shop) {
@@ -49,11 +50,37 @@ export function shopAccessGuard(req: Request, res: Response, next: NextFunction)
 export function farmerReadOnlyGuard(req: Request, res: Response, next: NextFunction) {
   const user = getUser(req);
   const farmerId = req.query.farmer_id || req.body.farmer_id;
-  
-  // Owner and employee have full access
-  if (user && ['owner', 'employee'].includes(user.role)) {
-    next();
+  const shopId = req.query.shop_id || req.body.shop_id || req.params.shop_id;
+
+  // Owner can access any shop they own
+  if (user && user.role === 'owner') {
+    // First check direct shop ownership via user.shop_id
+    if (user.shop_id === Number(shopId)) {
+      next();
+      return;
+    }
+    // Then check database ownership via shop.owner_id
+    Shop.findOne({ where: { id: Number(shopId), owner_id: user.id } })
+      .then((shop: Shop | null) => {
+        if (shop) {
+          next();
+        } else {
+          res.status(403).json({ error: 'Forbidden: Only shop owner allowed for this shop' });
+        }
+      })
+      .catch(() => {
+        res.status(500).json({ error: 'Internal server error' });
+      });
     return;
+  }
+
+  // Employee must belong to the requested shop
+  if (user && user.role === 'employee') {
+    if (user.shop_id === Number(shopId)) {
+      next();
+      return;
+    }
+    return res.status(403).json({ error: 'Forbidden: Only shop employee allowed for this shop' });
   }
   
   // Farmer can only read their own data
