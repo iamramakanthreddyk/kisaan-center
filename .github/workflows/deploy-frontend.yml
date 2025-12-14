@@ -68,7 +68,7 @@ jobs:
         cache-dependency-path: kisaan-frontend/package-lock.json
 
     - name: Check required secret
-      if: secrets.REQUIRE_VITE_API_BASE_URL == 'true'
+      if: ${{ secrets.REQUIRE_VITE_API_BASE_URL == 'true' }}
       run: |
         echo "REQUIRE_VITE_API_BASE_URL is enabled — verifying secret presence..."
         if [ -z "${{ secrets.VITE_API_BASE_URL }}" ] || [ "${{ secrets.VITE_API_BASE_URL }}" = "null" ]; then
