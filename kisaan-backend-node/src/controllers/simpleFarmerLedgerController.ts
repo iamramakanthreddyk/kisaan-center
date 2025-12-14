@@ -135,16 +135,28 @@ export async function getSummary(req: Request, res: Response) {
     if (!shop_id) return res.status(400).json({ error: 'shop_id required' });
     const shopIdNum = Number(shop_id);
     const farmerIdNum = farmer_id ? Number(farmer_id) : undefined;
-    // Group by week or month
-      const groupBy = period === 'monthly' ? "to_char(created_at, 'YYYY-MM')" : "to_char(created_at, 'YYYY-IW')";
-      const results = await SimpleFarmerLedger.sequelize!.query(
-        `SELECT ${groupBy} as period, type, SUM(amount) as total
-         FROM kisaan_ledger
-         WHERE shop_id = ?${farmerIdNum ? ' AND farmer_id = ?' : ''}
-         GROUP BY period, type
-         ORDER BY period DESC`,
-      { replacements: farmerIdNum ? [shopIdNum, farmerIdNum] : [shopIdNum], type: 'SELECT' }
-    );
+
+    // Use Sequelize's built-in functions for date formatting
+    const where: any = { shop_id: shopIdNum };
+    if (farmerIdNum) where.farmer_id = farmerIdNum;
+
+    // Use Sequelize.literal for database-specific functions
+    const dateFormat = period === 'monthly'
+      ? SimpleFarmerLedger.sequelize!.fn('to_char', SimpleFarmerLedger.sequelize!.col('created_at'), 'YYYY-MM')
+      : SimpleFarmerLedger.sequelize!.fn('to_char', SimpleFarmerLedger.sequelize!.col('created_at'), 'YYYY-"W"IW');
+
+    const results = await SimpleFarmerLedger.findAll({
+      where,
+      attributes: [
+        [dateFormat, 'period'],
+        'type',
+        [SimpleFarmerLedger.sequelize!.fn('SUM', SimpleFarmerLedger.sequelize!.col('amount')), 'total']
+      ],
+      group: ['period', 'type'],
+      order: [[SimpleFarmerLedger.sequelize!.literal('period'), 'DESC']],
+      raw: true
+    });
+
     res.json(results);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -159,18 +171,28 @@ export async function getEarnings(req: Request, res: Response) {
     if (!shop_id) return res.status(400).json({ error: 'shop_id required' });
     const shopIdNum = Number(shop_id);
     const farmerIdNum = farmer_id ? Number(farmer_id) : undefined;
-    const groupBy = period === 'monthly' ? "to_char(created_at, 'YYYY-MM')" : "to_char(created_at, 'YYYY-IW')";
-    const results = await SimpleFarmerLedger.sequelize!.query(
-      `SELECT ${groupBy} as period,
-              SUM(COALESCE(commission_amount,0)) as total_commission,
-              SUM(COALESCE(net_amount,0)) as total_net,
-              SUM(COALESCE(amount,0)) as total_amount
-       FROM kisaan_ledger
-       WHERE shop_id = ?${farmerIdNum ? ' AND farmer_id = ?' : ''}
-       GROUP BY period
-       ORDER BY period DESC`,
-      { replacements: farmerIdNum ? [shopIdNum, farmerIdNum] : [shopIdNum], type: 'SELECT' }
-    );
+
+    const where: any = { shop_id: shopIdNum };
+    if (farmerIdNum) where.farmer_id = farmerIdNum;
+
+    // Use Sequelize's built-in functions for date formatting
+    const dateFormat = period === 'monthly'
+      ? SimpleFarmerLedger.sequelize!.fn('to_char', SimpleFarmerLedger.sequelize!.col('created_at'), 'YYYY-MM')
+      : SimpleFarmerLedger.sequelize!.fn('to_char', SimpleFarmerLedger.sequelize!.col('created_at'), 'YYYY-"W"IW');
+
+    const results = await SimpleFarmerLedger.findAll({
+      where,
+      attributes: [
+        [dateFormat, 'period'],
+        [SimpleFarmerLedger.sequelize!.fn('SUM', SimpleFarmerLedger.sequelize!.fn('COALESCE', SimpleFarmerLedger.sequelize!.col('commission_amount'), 0)), 'total_commission'],
+        [SimpleFarmerLedger.sequelize!.fn('SUM', SimpleFarmerLedger.sequelize!.fn('COALESCE', SimpleFarmerLedger.sequelize!.col('net_amount'), 0)), 'total_net'],
+        [SimpleFarmerLedger.sequelize!.fn('SUM', SimpleFarmerLedger.sequelize!.fn('COALESCE', SimpleFarmerLedger.sequelize!.col('amount'), 0)), 'total_amount']
+      ],
+      group: ['period'],
+      order: [[SimpleFarmerLedger.sequelize!.literal('period'), 'DESC']],
+      raw: true
+    });
+
     res.json(results);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
