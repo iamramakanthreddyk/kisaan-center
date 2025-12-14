@@ -55,6 +55,8 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     name: Build Frontend
+    env:
+      REQUIRE_VITE_API_BASE_URL: ${{ secrets.REQUIRE_VITE_API_BASE_URL }}
     
     steps:
     - name: Checkout
@@ -68,7 +70,7 @@ jobs:
         cache-dependency-path: kisaan-frontend/package-lock.json
 
     - name: Check required secret
-      if: ${{ secrets.REQUIRE_VITE_API_BASE_URL == 'true' }}
+      if: ${{ env.REQUIRE_VITE_API_BASE_URL == 'true' }}
       run: |
         echo "REQUIRE_VITE_API_BASE_URL is enabled — verifying secret presence..."
         if [ -z "${{ secrets.VITE_API_BASE_URL }}" ] || [ "${{ secrets.VITE_API_BASE_URL }}" = "null" ]; then
