@@ -122,8 +122,6 @@ jobs:
     - name: Build
       working-directory: kisaan-frontend
       run: npm run build
-    - name: Setup Pages
-    
     - name: Pages token diagnostics
       run: |
         echo "Checking PAGES_TOKEN secret presence and validating it (no token will be printed)."
