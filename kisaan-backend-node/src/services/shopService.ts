@@ -15,6 +15,8 @@ import { ValidationError, NotFoundError, BusinessRuleError, AuthorizationError, 
 import { StringFormatter } from '../shared/utils/formatting';
 import { USER_ROLES, SHOP_STATUS } from '../shared/constants/index';
 import { toUserDTO } from '../mappers/userMapper';
+import { withTransaction } from '../shared/db/withTransaction';
+import sequelize from '../config/database';
 
 export class ShopService {
   private shopRepository: ShopRepository;
@@ -108,25 +110,27 @@ export class ShopService {
         status: SHOP_STATUS.ACTIVE
       });
 
-      const createdShop = await this.shopRepository.create(shopEntity);
+      return await withTransaction(sequelize, async (tx) => {
+        const createdShop = await this.shopRepository.create(shopEntity, { tx });
 
-      // Assign the selected category to the shop
-      if (!createdShop.id) {
-        throw new DatabaseError('Failed to create shop - no ID returned');
-      }
-      await this.shopCategoryService.assignCategoryToShop({
-        shop_id: createdShop.id,
-        category_id: data.category_id
+        // Assign the selected category to the shop
+        if (!createdShop.id) {
+          throw new DatabaseError('Failed to create shop - no ID returned');
+        }
+        await this.shopCategoryService.assignCategoryToShop({
+          shop_id: createdShop.id,
+          category_id: data.category_id
+        }, { tx });
+
+        // Update owner's shop_id
+        const updatedOwner = new UserEntity({
+          ...owner,
+          shop_id: createdShop.id
+        });
+        await this.userRepository.update(data.owner_id, updatedOwner, { tx });
+
+        return createdShop;
       });
-
-      // Update owner's shop_id
-      const updatedOwner = new UserEntity({
-        ...owner,
-        shop_id: createdShop.id
-      });
-      await this.userRepository.update(data.owner_id, updatedOwner);
-
-      return createdShop;
     } catch (error) {
       // Enhanced diagnostic logging before error mapping so we can surface root cause of generic DatabaseError
       // (Avoid importing logger directly here to keep service decoupled; use console for now – upgrade later to injected logger)

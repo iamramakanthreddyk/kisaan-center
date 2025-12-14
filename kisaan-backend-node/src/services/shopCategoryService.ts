@@ -1,20 +1,21 @@
 import { ShopCategory } from '../models/shopCategory';
 import { Shop } from '../models/shop';
 import { Category } from '../models/category';
-import { 
-  ShopCategoryCreate, 
-  AssignCategoriesToShop, 
-  RemoveCategoriesFromShop 
+import {
+  ShopCategoryCreate,
+  AssignCategoriesToShop,
+  RemoveCategoriesFromShop
 } from '../schemas/shopCategory';
 import { Transaction } from 'sequelize';
 import sequelize from '../config/database';
 
 export class ShopCategoryService {
-  async assignCategoryToShop(data: ShopCategoryCreate): Promise<ShopCategory> {
+  async assignCategoryToShop(data: ShopCategoryCreate, options?: { tx?: Transaction }): Promise<ShopCategory> {
+    const createOpts = options?.tx ? { transaction: options.tx } : undefined;
     const shopCategory = await ShopCategory.create({
       shop_id: data.shop_id,
       category_id: data.category_id,
-    });
+    }, createOpts);
     return shopCategory;
   }
 
