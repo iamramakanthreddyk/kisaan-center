@@ -115,13 +115,95 @@ CREATE SEQUENCE IF NOT EXISTS kisaan_payment_allocations_id_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS kisaan_settlements_id_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS kisaan_balance_snapshots_id_seq START 1;
 
--- =============================================
--- TABLES SECTION (Complete Table Definitions)
--- =============================================
-
 -- SequelizeMeta table for migration tracking
 CREATE TABLE IF NOT EXISTS "SequelizeMeta" (
     name VARCHAR(255) NOT NULL PRIMARY KEY
+-- Expenses table
+CREATE TABLE IF NOT EXISTS kisaan_expenses (
+    id BIGSERIAL PRIMARY KEY,
+    shop_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    type VARCHAR(20) NOT NULL DEFAULT 'expense',
+    description TEXT,
+    transaction_id BIGINT,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- Allocation tracking columns
+    total_amount DECIMAL(12,2),
+    allocated_amount DECIMAL(12,2) DEFAULT 0,
+    remaining_amount DECIMAL(12,2),
+    allocation_status VARCHAR(30) DEFAULT 'unallocated',
+    created_by BIGINT
+);
+
+-- Expense Settlements table
+CREATE TABLE IF NOT EXISTS expense_settlements (
+    id BIGSERIAL PRIMARY KEY,
+    expense_id BIGINT NOT NULL REFERENCES kisaan_expenses(id) ON DELETE CASCADE,
+    payment_id BIGINT REFERENCES kisaan_payments(id) ON DELETE SET NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    settled_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Ledger Entries table
+
+-- Simple Farmer Ledger table (used by backend)
+CREATE TABLE IF NOT EXISTS kisaan_ledger (
+    id SERIAL PRIMARY KEY,
+    shop_id BIGINT NOT NULL REFERENCES kisaan_shops(id),
+    farmer_id BIGINT NOT NULL REFERENCES kisaan_users(id),
+    amount DECIMAL(12,2) NOT NULL,
+    commission_amount DECIMAL(12,2) DEFAULT 0,
+    net_amount DECIMAL(12,2) DEFAULT 0,
+    type VARCHAR(10) NOT NULL CHECK (type IN ('credit', 'debit')),
+    category VARCHAR(20) NOT NULL CHECK (category IN ('sale', 'expense', 'withdrawal', 'other')),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    created_by BIGINT NOT NULL REFERENCES kisaan_users(id)
+);
+
+-- User Balances table
+CREATE TABLE IF NOT EXISTS kisaan_user_balances (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    shop_id BIGINT NOT NULL,
+    balance DECIMAL(15,2) NOT NULL DEFAULT 0,
+    version INT NOT NULL DEFAULT 0,
+    last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_user_balance_unique UNIQUE (user_id, shop_id),
+    CONSTRAINT fk_balance_user FOREIGN KEY (user_id) REFERENCES kisaan_users(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_balance_shop FOREIGN KEY (shop_id) REFERENCES kisaan_shops(id) ON DELETE RESTRICT
+);
+
+-- Transaction Ledger table
+CREATE TABLE IF NOT EXISTS kisaan_transaction_ledger (
+    id BIGSERIAL PRIMARY KEY,
+    transaction_id BIGINT REFERENCES kisaan_transactions(id) ON DELETE SET NULL,
+    user_id BIGINT NOT NULL REFERENCES kisaan_users(id),
+    role VARCHAR(20) NOT NULL,
+    delta_amount NUMERIC(12,2) NOT NULL,
+    balance_before NUMERIC(12,2),
+    balance_after NUMERIC(12,2),
+    reason_code VARCHAR(40) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Expense Allocations table
+CREATE TABLE IF NOT EXISTS kisaan_expense_allocations (
+    id BIGSERIAL PRIMARY KEY,
+    expense_id INTEGER NOT NULL REFERENCES kisaan_expenses(id) ON DELETE CASCADE,
+    transaction_id INTEGER REFERENCES kisaan_transactions(id) ON DELETE SET NULL,
+    allocated_amount DECIMAL(12,2) NOT NULL CHECK (allocated_amount > 0),
+    allocation_type VARCHAR(30) NOT NULL CHECK (allocation_type IN ('transaction_offset', 'balance_settlement', 'advance', 'adjustment')),
+    allocated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 );
 
 -- Plans table
@@ -226,6 +308,7 @@ CREATE TABLE IF NOT EXISTS kisaan_payments (
     payment_date TIMESTAMP WITH TIME ZONE,
     method enum_kisaan_payments_method NOT NULL,
     notes TEXT,
+    shop_id BIGINT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -338,14 +421,40 @@ CREATE TABLE IF NOT EXISTS balance_snapshots (
 );
 
 
--- =============================================
--- INDEXES SECTION
--- =============================================
-
 -- Users table indexes
 CREATE INDEX IF NOT EXISTS kisaan_users_username ON kisaan_users(username);
 CREATE INDEX IF NOT EXISTS kisaan_users_role ON kisaan_users(role);
 CREATE INDEX IF NOT EXISTS kisaan_users_shop_id ON kisaan_users(shop_id);
+
+-- Expenses table indexes
+CREATE INDEX IF NOT EXISTS idx_kisaan_expenses_shop_user_status ON kisaan_expenses(shop_id, user_id, status);
+
+-- Expense Settlements table indexes
+CREATE INDEX IF NOT EXISTS idx_expense_settlements_expense_id ON expense_settlements(expense_id);
+CREATE INDEX IF NOT EXISTS idx_expense_settlements_payment_id ON expense_settlements(payment_id);
+CREATE INDEX IF NOT EXISTS idx_expense_settlements_settled_at ON expense_settlements(settled_at);
+CREATE INDEX IF NOT EXISTS idx_expense_settlements_expense_settled ON expense_settlements(expense_id, settled_at);
+CREATE INDEX IF NOT EXISTS idx_expense_settlements_payment_expense ON expense_settlements(payment_id, expense_id);
+
+-- Ledger Entries table indexes
+
+-- Simple Farmer Ledger table indexes
+CREATE INDEX IF NOT EXISTS idx_kisaan_ledger_shop ON kisaan_ledger(shop_id);
+CREATE INDEX IF NOT EXISTS idx_kisaan_ledger_farmer ON kisaan_ledger(farmer_id);
+CREATE INDEX IF NOT EXISTS idx_kisaan_ledger_shop_created_at ON kisaan_ledger(shop_id, created_at);
+
+-- User Balances table index
+CREATE INDEX IF NOT EXISTS idx_balance_user_shop ON kisaan_user_balances(user_id, shop_id);
+
+-- Transaction Ledger table indexes
+CREATE INDEX IF NOT EXISTS idx_kisaan_transaction_ledger_user_created ON kisaan_transaction_ledger (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_kisaan_transaction_ledger_txn ON kisaan_transaction_ledger (transaction_id);
+
+-- Expense Allocations table indexes
+CREATE INDEX IF NOT EXISTS idx_expense_alloc_expense ON kisaan_expense_allocations(expense_id);
+CREATE INDEX IF NOT EXISTS idx_expense_alloc_txn ON kisaan_expense_allocations(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_expense_alloc_type ON kisaan_expense_allocations(allocation_type);
+CREATE INDEX IF NOT EXISTS idx_expense_alloc_date ON kisaan_expense_allocations(allocated_at);
 CREATE INDEX IF NOT EXISTS idx_kisaan_users_shopid_roles ON kisaan_users(shop_id) WHERE role IN ('owner', 'farmer', 'buyer');
 
 -- Shops table indexes
@@ -371,6 +480,7 @@ CREATE INDEX IF NOT EXISTS kisaan_payments_payee_type ON kisaan_payments(payee_t
 CREATE INDEX IF NOT EXISTS kisaan_payments_status ON kisaan_payments(status);
 CREATE INDEX IF NOT EXISTS kisaan_payments_payment_date ON kisaan_payments(payment_date);
 CREATE INDEX IF NOT EXISTS kisaan_payments_transaction_status ON kisaan_payments(transaction_id, status);
+CREATE INDEX IF NOT EXISTS idx_kisaan_payments_shop_id ON kisaan_payments(shop_id);
 
 -- Commissions table indexes
 CREATE INDEX IF NOT EXISTS kisaan_commissions_shop_id ON kisaan_commissions(shop_id);

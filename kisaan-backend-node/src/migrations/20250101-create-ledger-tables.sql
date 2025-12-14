@@ -88,3 +88,4 @@ SELECT
   'kisaan_user_balances' as ledger_table
 FROM pg_tables 
 WHERE tablename = 'kisaan_user_balances';
+
