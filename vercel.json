@@ -7,13 +7,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://kisaan-center-production.up.railway.app/api/:path*"
-    }
-  ],
-  "redirects": [
+    },
     {
       "source": "/((?!api/).*)",
-      "destination": "/404.html",
-      "statusCode": 200
+      "destination": "/index.html"
     }
-  ]
+  ],
 }
