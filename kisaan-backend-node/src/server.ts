@@ -261,6 +261,54 @@ async function startServer() {
       })();
     }
 
+    // Ensure feature tables exist (kisaan_features and related) for Postgres/other dialects
+    if (process.env.DB_DIALECT !== 'sqlite') {
+      (async () => {
+        try {
+          const featCheck = await sequelize.query(
+            "SELECT 1 FROM information_schema.tables WHERE table_name = 'kisaan_features' LIMIT 1",
+            { type: QueryTypes.SELECT }
+          );
+          const featExists = Array.isArray(featCheck) && featCheck.length > 0;
+          if (!featExists) {
+            console.log('🔧 Creating missing feature tables: kisaan_features, kisaan_plan_features, kisaan_user_feature_overrides');
+            await sequelize.query(`
+              CREATE SEQUENCE IF NOT EXISTS kisaan_features_id_seq START 1;
+              CREATE TABLE IF NOT EXISTS kisaan_features (
+                id INTEGER DEFAULT nextval('kisaan_features_id_seq') PRIMARY KEY,
+                code VARCHAR(100) NOT NULL UNIQUE,
+                name VARCHAR(150) NOT NULL,
+                category VARCHAR(60),
+                description TEXT,
+                default_enabled BOOLEAN NOT NULL DEFAULT false,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+              );
+              CREATE TABLE IF NOT EXISTS kisaan_plan_features (
+                plan_id INTEGER NOT NULL,
+                feature_code VARCHAR(100) NOT NULL,
+                enabled BOOLEAN NOT NULL DEFAULT true,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (plan_id, feature_code)
+              );
+              CREATE TABLE IF NOT EXISTS kisaan_user_feature_overrides (
+                user_id BIGINT NOT NULL,
+                feature_code VARCHAR(100) NOT NULL,
+                enabled BOOLEAN NOT NULL,
+                reason TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, feature_code)
+              );
+            `);
+          }
+        } catch (e) {
+          console.warn('⚠️ Could not ensure feature tables exist:', e instanceof Error ? e.message : e);
+        }
+      })();
+    }
+
     // Start the server
     const server = app.listen(PORT, () => {
       console.log(`🚀 KisaanCenter Backend Server running on port ${PORT}`);

@@ -253,6 +253,42 @@ CREATE TABLE IF NOT EXISTS kisaan_ledger (
     created_by BIGINT NOT NULL REFERENCES kisaan_users(id)
 );
 
+-- Features table (feature flag definitions)
+CREATE TABLE IF NOT EXISTS kisaan_features (
+    id INTEGER DEFAULT nextval('kisaan_features_id_seq') PRIMARY KEY,
+    code VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(150) NOT NULL,
+    category VARCHAR(60),
+    description TEXT,
+    default_enabled BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE SEQUENCE IF NOT EXISTS kisaan_features_id_seq START 1;
+
+-- Plan features mapping
+CREATE TABLE IF NOT EXISTS kisaan_plan_features (
+    plan_id INTEGER NOT NULL,
+    feature_code VARCHAR(100) NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (plan_id, feature_code)
+);
+
+-- User feature overrides (per-user forced values)
+CREATE TABLE IF NOT EXISTS kisaan_user_feature_overrides (
+    user_id BIGINT NOT NULL,
+    feature_code VARCHAR(100) NOT NULL,
+    enabled BOOLEAN NOT NULL,
+    reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, feature_code)
+);
+
+
 CREATE TABLE IF NOT EXISTS kisaan_user_balances (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
