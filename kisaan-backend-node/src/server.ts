@@ -87,7 +87,7 @@ async function startServer() {
             `SELECT count(*)::int as count FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE 'kisaan_%'`,
             { type: QueryTypes.SELECT }
           );
-          const existingCount = Array.isArray(existing) && existing.length ? (existing[0] as any).count : 0;
+          const existingCount = Array.isArray(existing) && existing.length ? (existing[0] as { count: number }).count : 0;
           if (existingCount > 0) {
             console.log(`ℹ️ (background) Detected ${existingCount} existing kisaan_ tables — skipping schema apply`);
           } else {
@@ -246,7 +246,7 @@ async function startServer() {
             "SELECT column_name FROM information_schema.columns WHERE table_name = 'kisaan_shops' AND column_name IN ('commission_rate','settings')",
             { type: QueryTypes.SELECT }
           );
-          const cols = Array.isArray(check) ? (check as any[]).map((r) => r.column_name) : [];
+          const cols = Array.isArray(check) ? (check as Array<{ column_name: string }>).map((r) => r.column_name) : [];
           if (!cols.includes('commission_rate')) {
             console.log('🔧 Adding missing column `commission_rate` to kisaan_shops');
             await sequelize.query("ALTER TABLE kisaan_shops ADD COLUMN IF NOT EXISTS commission_rate DECIMAL(10,2) DEFAULT 0");

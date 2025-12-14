@@ -2,8 +2,8 @@
 
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../config/database';
-import { LEDGER_TYPES, LEDGER_TYPE_VALUES, LedgerType } from '../constants/ledgerTypes';
-import { LEDGER_CATEGORIES, LEDGER_CATEGORY_VALUES, LedgerCategory } from '../constants/ledgerCategories';
+import { LEDGER_TYPE_VALUES, LedgerType } from '../constants/ledgerTypes';
+import { LEDGER_CATEGORY_VALUES, LedgerCategory } from '../constants/ledgerCategories';
 
 export interface SimpleFarmerLedgerAttributes {
   id: number;
