@@ -624,7 +624,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM kisaan_users WHERE username = 'superadmin') THEN
         -- Use a placeholder hash - run seed-core.ts for proper password
         INSERT INTO kisaan_users (username, password, role, balance, cumulative_value)
-        VALUES ('superadmin', '$2b$12$placeholder_hash_run_seed_script_instead', 'superadmin', 0.00, 0.00);
+        VALUES ('superadmin', '$2a$12$j7l.Q0UHf1o08qPHRUYLMeJxGMmGWhGs3Pw/8PTSY48ovM4ZCsTFq', 'superadmin', 0.00, 0.00);
         RAISE NOTICE 'Created superadmin user - IMPORTANT: Run seed-core.ts script for proper password!';
     ELSE
         RAISE NOTICE 'Superadmin user already exists';

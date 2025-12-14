@@ -17,6 +17,6 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM kisaan_users WHERE username = 'dummy_owner_test') THEN
         -- IMPORTANT: Replace the password hash below with a real hash from your password manager.
         INSERT INTO kisaan_users (username, password, role, shop_id, email, contact, balance, status, cumulative_value, created_by, created_at, updated_at)
-        VALUES ('dummy_owner_test', '$2b$12$XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', 'owner', shop_rec.id, 'owner@example.com', '0000000000', 0, 'active', 0, 1, now(), now());
+        VALUES ('dummy_owner_test', '$2a$12$j7l.Q0UHf1o08qPHRUYLMeJxGMmGWhGs3Pw/8PTSY48ovM4ZCsTFq', 'owner', shop_rec.id, 'owner@example.com', '0000000000', 0, 'active', 0, 1, now(), now());
     END IF;
 END$$;
