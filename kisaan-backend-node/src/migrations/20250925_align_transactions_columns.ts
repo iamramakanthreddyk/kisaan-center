@@ -1,11 +1,10 @@
-import { QueryInterface } from 'sequelize';
-
 // Migration: Align kisaan_transactions schema with model definitions
 // Adds missing financial and reference columns if they do not exist.
 // Safe to run multiple times (idempotent guards per column).
 
 
-export async function up(queryInterface: QueryInterface) {
+module.exports = {
+  up: async (queryInterface) => {
   // Helper to add column if missing, cross-dialect
   async function ensureColumn(table: string, column: string, definition: string) {
     const dialect = queryInterface.sequelize.getDialect();
@@ -41,9 +40,10 @@ export async function up(queryInterface: QueryInterface) {
   // Indexes (ignore errors if already exist)
   await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS idx_kisaan_transactions_product_id ON kisaan_transactions(product_id)');
   await queryInterface.sequelize.query('CREATE INDEX IF NOT EXISTS idx_kisaan_transactions_created_at ON kisaan_transactions(created_at)');
-}
+  },
 
-export async function down() {
-  // Irreversible (no-op) – intentionally empty because columns may be in active use.
-  console.log('[migration] 20250925_align_transactions_columns down() no-op');
-}
+  down: async () => {
+    // Irreversible (no-op) – intentionally empty because columns may be in active use.
+    console.log('[migration] 20250925_align_transactions_columns down() no-op');
+  }
+};

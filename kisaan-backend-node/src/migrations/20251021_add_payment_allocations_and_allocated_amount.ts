@@ -1,10 +1,8 @@
-import { QueryInterface } from 'sequelize';
-
 /**
  * Migration: Create kisaan_payment_allocations table and add allocated_amount to kisaan_payments
  */
 module.exports = {
-  up: async (queryInterface: QueryInterface): Promise<void> => {
+  up: async (queryInterface) => {
     // Create allocations table if missing
     const tables = await queryInterface.showAllTables();
     if (!tables.includes('kisaan_payment_allocations')) {
@@ -37,7 +35,7 @@ module.exports = {
       }
     }
   },
-  down: async (queryInterface: QueryInterface): Promise<void> => {
+  down: async (queryInterface) => {
     const paymentDesc = await queryInterface.describeTable('kisaan_payments');
     if (paymentDesc['allocated_amount']) {
       await queryInterface.removeColumn('kisaan_payments', 'allocated_amount');

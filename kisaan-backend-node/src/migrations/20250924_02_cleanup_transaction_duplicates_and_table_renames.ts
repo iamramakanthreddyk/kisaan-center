@@ -1,4 +1,4 @@
-import { QueryInterface, DataTypes } from 'sequelize';
+const { DataTypes } = require('sequelize');
 
 /**
  * Migration: Cleanup duplicate monetary columns & standardize table names
@@ -8,10 +8,10 @@ import { QueryInterface, DataTypes } from 'sequelize';
  *  - Rename tables payment_allocations -> kisaan_payment_allocations, balance_snapshots -> kisaan_balance_snapshots
  */
 module.exports = {
-  up: async (queryInterface: QueryInterface) => {
+  up: async (queryInterface) => {
     // Table rename safety: only rename if old exists and new does not
-  const showTables = await queryInterface.showAllTables() as unknown[];
-  const normalized = showTables.map((t) => (t && typeof t === 'object' && 'tableName' in t) ? (t as { tableName: string }).tableName : String(t));
+  const showTables = await queryInterface.showAllTables();
+  const normalized = showTables.map((t) => (t && typeof t === 'object' && 'tableName' in t) ? t.tableName : String(t));
 
     if (normalized.includes('payment_allocations') && !normalized.includes('kisaan_payment_allocations')) {
       await queryInterface.renameTable('payment_allocations', 'kisaan_payment_allocations');
@@ -22,7 +22,7 @@ module.exports = {
 
     // Transaction table adjustments
     // 1. Drop legacy duplicate columns if they exist
-  const txnDesc: Record<string, unknown> = await queryInterface.describeTable('kisaan_transactions');
+  const txnDesc = await queryInterface.describeTable('kisaan_transactions');
     if (txnDesc.total_sale_value) {
       await queryInterface.removeColumn('kisaan_transactions', 'total_sale_value');
     }
@@ -53,10 +53,10 @@ module.exports = {
       });
     }
   },
-  down: async (queryInterface: QueryInterface) => {
+  down: async (queryInterface) => {
     // Recreate dropped columns (nullable) and revert table renames
-  const showTables = await queryInterface.showAllTables() as unknown[];
-  const normalized = showTables.map((t) => (t && typeof t === 'object' && 'tableName' in t) ? (t as { tableName: string }).tableName : String(t));
+  const showTables = await queryInterface.showAllTables();
+  const normalized = showTables.map((t) => (t && typeof t === 'object' && 'tableName' in t) ? t.tableName : String(t));
 
     if (normalized.includes('kisaan_payment_allocations') && !normalized.includes('payment_allocations')) {
       await queryInterface.renameTable('kisaan_payment_allocations', 'payment_allocations');
@@ -65,7 +65,7 @@ module.exports = {
       await queryInterface.renameTable('kisaan_balance_snapshots', 'balance_snapshots');
     }
 
-  const txnDesc: Record<string, unknown> = await queryInterface.describeTable('kisaan_transactions');
+  const txnDesc = await queryInterface.describeTable('kisaan_transactions');
     if (!txnDesc.total_sale_value) {
       await queryInterface.addColumn('kisaan_transactions', 'total_sale_value', { type: DataTypes.DECIMAL(12,2), allowNull: true });
     }

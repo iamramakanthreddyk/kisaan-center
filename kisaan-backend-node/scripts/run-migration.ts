@@ -74,8 +74,8 @@ async function discoverMigrations(): Promise<{ dir: string; files: string[] }> {
   console.log('Using migrations directory:', dir);
   return fs
     .readdirSync(dir)
-    // Accept .sql and .ts but ignore declaration files (.d.ts) and sourcemaps
-    .filter(f => /(\.sql|\.ts)$/i.test(f) && !/\.d\.ts$/i.test(f) && !/\.map$/i.test(f))
+    // Accept .sql, .ts, .js but ignore declaration files (.d.ts) and sourcemaps
+    .filter(f => /(\.sql|\.ts|\.js)$/i.test(f) && !/\.d\.ts$/i.test(f) && !/\.map$/i.test(f))
     .sort()
     .reduce<{ dir: string; files: string[] }>((acc, f) => {
       acc.files.push(f);
@@ -102,7 +102,7 @@ async function runAllMigrations() {
       const full = path.join(dir, file);
       if (file.endsWith('.sql')) {
         await runSqlMigration(full, file);
-      } else if (file.endsWith('.ts')) {
+      } else if (file.endsWith('.ts') || file.endsWith('.js')) {
         await runTsMigration(full, file);
       } else {
         console.log(`  ⚠ Unsupported migration type (skipped): ${file}`);
