@@ -38,6 +38,9 @@ RUN npm ci --only=production
 # Copy built application from build stage
 COPY --from=build /app/dist ./dist
 
+# Copy schema files so unified-schema.sql is available at runtime
+COPY --from=build /app/schema ./dist/schema
+
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S appuser -u 1001 -G nodejs && \
