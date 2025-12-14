@@ -26,6 +26,16 @@ const PORT = process.env.API_PORT || process.env.PORT || 8000;
 function getUnifiedSchemaPath() {
   // __dirname is dist/src in production, src in dev
   const projectRoot = path.resolve(__dirname, '..', '..');
+  // Common locations depending on whether running from source or compiled dist
+  const candidates = [
+    path.join(projectRoot, 'schema', 'unified-schema.sql'),
+    path.join(projectRoot, 'dist', 'schema', 'unified-schema.sql'),
+    path.join(projectRoot, '..', 'schema', 'unified-schema.sql'),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  // default to the repo-level path (may not exist in some builds)
   return path.join(projectRoot, 'schema', 'unified-schema.sql');
 }
 
@@ -63,23 +73,37 @@ async function startServer() {
           } else {
             schemaPath = getUnifiedSchemaPath();
           }
+          if (!fs.existsSync(schemaPath)) {
+            console.warn(`⚠️ (background) Schema file not found at ${schemaPath} — skipping apply`);
+            return;
+          }
           const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
           const schemaHash = createHash('sha256').update(schemaSQL).digest('hex');
           console.log('🔄 (background) Creating database schema from', schemaPath);
           console.log('📄 (background) Schema SHA256 (first 12):', schemaHash.slice(0, 12));
 
-          const maxAttempts = 3;
-          for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-            try {
-              await sequelize.query(schemaSQL);
-              console.log('✅ (background) Database schema applied.');
-              break;
-            } catch (err) {
-              console.warn(`⚠️ (background) Schema apply attempt ${attempt} failed:`, err instanceof Error ? err.message : err);
-              if (attempt === maxAttempts) {
-                console.error('✖ (background) Schema creation failed after retries:', err);
-              } else {
-                await new Promise((res) => setTimeout(res, attempt * 2000));
+          // If DB already has kisaan_ tables, skip apply to avoid re-initialization
+          const existing = await sequelize.query<{ count: number }>(
+            `SELECT count(*)::int as count FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE 'kisaan_%'`,
+            { type: QueryTypes.SELECT }
+          );
+          const existingCount = Array.isArray(existing) && existing.length ? (existing[0] as any).count : 0;
+          if (existingCount > 0) {
+            console.log(`ℹ️ (background) Detected ${existingCount} existing kisaan_ tables — skipping schema apply`);
+          } else {
+            const maxAttempts = 3;
+            for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+              try {
+                await sequelize.query(schemaSQL);
+                console.log('✅ (background) Database schema applied.');
+                break;
+              } catch (err) {
+                console.warn(`⚠️ (background) Schema apply attempt ${attempt} failed:`, err instanceof Error ? err.message : err);
+                if (attempt === maxAttempts) {
+                  console.error('✖ (background) Schema creation failed after retries:', err);
+                } else {
+                  await new Promise((res) => setTimeout(res, attempt * 2000));
+                }
               }
             }
           }
