@@ -122,14 +122,27 @@ jobs:
     - name: Build
       working-directory: kisaan-frontend
       run: npm run build
+    - name: Select Pages token from secrets
+      run: |
+        echo "Selecting Pages token from available secrets (PAGES_TOKEN or PASS_TOKEN)."
+        if [ -n "${{ secrets.PAGES_TOKEN }}" ]; then
+          echo "SELECTED_PAGES_TOKEN will use PAGES_TOKEN"
+          echo "SELECTED_PAGES_TOKEN=${{ secrets.PAGES_TOKEN }}" >> $GITHUB_ENV
+        elif [ -n "${{ secrets.PASS_TOKEN }}" ]; then
+          echo "SELECTED_PAGES_TOKEN will use PASS_TOKEN"
+          echo "SELECTED_PAGES_TOKEN=${{ secrets.PASS_TOKEN }}" >> $GITHUB_ENV
+        else
+          echo "SELECTED_PAGES_TOKEN=" >> $GITHUB_ENV
+        fi
+
     - name: Pages token diagnostics
       run: |
-        echo "Checking PAGES_TOKEN secret presence and validating it (no token will be printed)."
-        if [ -z "${{ secrets.PAGES_TOKEN }}" ]; then
-          echo "PAGES_TOKEN is not set. If Actions cannot create/enable Pages, add a PAT as repo secret 'PAGES_TOKEN'."
+        echo "Checking selected Pages token presence and validating it (no token will be printed)."
+        if [ -z "${SELECTED_PAGES_TOKEN}" ]; then
+          echo "No token selected. If Actions cannot create/enable Pages, add a PAT as repo secret 'PAGES_TOKEN' or 'PASS_TOKEN'."
         else
-          echo "PAGES_TOKEN is set — testing token by calling GitHub API /user"
-          status=$(curl -s -o /tmp/pagetest.json -w "%{http_code}" -H "Authorization: token ${{ secrets.PAGES_TOKEN }}" https://api.github.com/user)
+          echo "Token selected — testing token by calling GitHub API /user"
+          status=$(curl -s -o /tmp/pagetest.json -w "%{http_code}" -H "Authorization: token ${SELECTED_PAGES_TOKEN}" https://api.github.com/user)
           echo "GitHub API HTTP status: $status"
           if [ "$status" -ne 200 ]; then
             echo "Token validation failed — API returned non-200. Response body:";
@@ -138,14 +151,22 @@ jobs:
             exit 1
           fi
           echo -n "Authenticated as: "
-          sed -n 's/.*"login": *"\([^"]*\)".*/\1/p' /tmp/pagetest.json || true
+          sed -n 's/.*"login": *"\([^\"]*\)".*/\1/p' /tmp/pagetest.json || true
         fi
 
-    - name: Setup Pages
+    - name: Ensure Pages enablement (requires token)
+      if: ${{ env.SELECTED_PAGES_TOKEN != '' }}
       uses: actions/configure-pages@v4
       with:
         enablement: true
-        token: ${{ secrets.PAGES_TOKEN }}
+        token: ${{ env.SELECTED_PAGES_TOKEN }}
+
+    - name: Fail if no Pages token selected
+      if: ${{ env.SELECTED_PAGES_TOKEN == '' }}
+      run: |
+        echo "ERROR: No Pages token selected."
+        echo "Set a repository secret 'PAGES_TOKEN' or 'PASS_TOKEN' containing a PAT with repo/workflow scopes, or pre-enable GitHub Pages in repository settings."
+        exit 1
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
@@ -164,7 +185,7 @@ jobs:
       id: deployment
       uses: actions/deploy-pages@v4
       with:
-        token: ${{ secrets.PAGES_TOKEN }}
+        token: ${{ env.SELECTED_PAGES_TOKEN }}
 
     - name: Deployment Summary
       env:
