@@ -1,8 +1,8 @@
 {
   "version": 2,
   "public": true,
-  "buildCommand": "cd kisaan-frontend && npm run build",
-  "outputDirectory": "kisaan-frontend/dist",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/api/:path*",
