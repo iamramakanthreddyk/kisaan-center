@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               setUser(null);
               setIsAuthenticated(false);
             }
-          } catch (error) {
+          } catch {
             // Token invalid, clear auth
             localStorage.removeItem('auth_token');
             localStorage.removeItem('auth_user');
