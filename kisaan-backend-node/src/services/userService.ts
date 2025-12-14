@@ -68,7 +68,7 @@ export const createUser = async (
   const userData = { ...data };
   // Normalize role to lowercase to match DB constraint values
   if (typeof userData.role === 'string') {
-    userData.role = userData.role.toLowerCase() as any;
+    userData.role = userData.role.toLowerCase() as 'superadmin' | 'owner' | 'farmer' | 'buyer' | 'employee';
   }
   userData.balance = typeof userData.balance === 'number' ? userData.balance : 0;
   // Always set contact field, default to empty string if not provided
