@@ -194,8 +194,8 @@ CREATE TABLE IF NOT EXISTS kisaan_products (
     price DECIMAL(10, 2),
     record_status VARCHAR(255),
     unit VARCHAR(20),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Transactions table
@@ -282,8 +282,8 @@ CREATE TABLE IF NOT EXISTS kisaan_settlements (
     reason enum_kisaan_settlements_reason NOT NULL,
     status enum_kisaan_settlements_status DEFAULT 'pending' NOT NULL,
     settlement_date TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Audit Logs table
