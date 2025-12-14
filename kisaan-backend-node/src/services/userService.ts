@@ -66,6 +66,10 @@ export const createUser = async (
     throw new AuthenticationError(`${requestingUserRole} cannot create ${data.role} users`);
   }
   const userData = { ...data };
+  // Normalize role to lowercase to match DB constraint values
+  if (typeof userData.role === 'string') {
+    userData.role = userData.role.toLowerCase() as any;
+  }
   userData.balance = typeof userData.balance === 'number' ? userData.balance : 0;
   // Always set contact field, default to empty string if not provided
   userData.contact = typeof userData.contact === 'string' ? userData.contact : '';
