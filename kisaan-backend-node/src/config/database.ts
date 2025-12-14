@@ -77,11 +77,20 @@ if (finalDbDialect === 'sqlite') {
     logging: false,
   });
 } else {
+  const isProd = isProductionOrCI;
   sequelize = new Sequelize(dbName, dbUser, dbPassword, {
     host: dbHost,
     port: dbPort,
     dialect: finalDbDialect as 'postgres' | 'mysql' | 'mariadb' | 'sqlite' | 'mssql',
-    logging: false,
+    // Disable verbose logging in production; allow debug via DEBUG env
+    logging: isProd ? false : (process.env.SEQ_LOGGING === 'true' ? console.log : false),
+    pool: {
+      // Conservative pool sizing to avoid exceeding managed DB connection limits
+      max: parseInt(process.env.DB_POOL_MAX || '5', 10),
+      min: parseInt(process.env.DB_POOL_MIN || '0', 10),
+      acquire: parseInt(process.env.DB_POOL_ACQUIRE || '30000', 10),
+      idle: parseInt(process.env.DB_POOL_IDLE || '10000', 10),
+    },
     ...(sslMode === 'require'
       ? {
           dialectOptions: {

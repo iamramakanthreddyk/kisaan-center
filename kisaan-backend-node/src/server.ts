@@ -49,49 +49,61 @@ async function startServer() {
       }
     }
     
-    // Create schema from SQL file unless explicitly skipped; migrations can run afterward
-    const skipSchemaInit = String(process.env.SKIP_SCHEMA_INIT || '').toLowerCase() === 'true';
-    if (skipSchemaInit) {
-      console.log('⏭️  SKIP_SCHEMA_INIT=true set, skipping unified-schema apply');
-    } else {
-      let schemaPath;
-      if (process.env.DB_DIALECT === 'sqlite') {
-        schemaPath = path.join(__dirname, '..', '..', 'local-sqlite-setup', 'schema.sqlite.sql');
-      } else {
-        schemaPath = getUnifiedSchemaPath();
-      }
+            // Optionally run migrations programmatically on startup (non-blocking)
+            if (String(process.env.RUN_MIGRATIONS_ON_STARTUP).toLowerCase() === 'true') {
+              console.log('🔄 RUN_MIGRATIONS_ON_STARTUP is enabled — scheduling migrations (background)');
+              // run migrations in background, don't block server start
+              (async () => {
+                try {
+                  await runAllMigrations();
+                  console.log('✅ Programmatic migrations completed');
+                } catch (e) {
+                  console.error('✖ Migration run failed in background:', e instanceof Error ? e.message : e);
+                }
+              })();
+            }
+
       const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
       const schemaHash = createHash('sha256').update(schemaSQL).digest('hex');
       console.log('🔄 Creating database schema from', schemaPath);
       console.log('📄 Schema SHA256 (first 12):', schemaHash.slice(0, 12));
       try {
-        await sequelize.query(schemaSQL);
-        console.log('✅ Database schema created.');
-      } catch (err) {
-        if (err && typeof err === 'object' && 'parent' in (err as Record<string, unknown>)) {
-          const parent = (err as { parent?: { position?: string } }).parent;
-          const pos = parent?.position ? Number(parent.position) : undefined;
-          if (typeof pos === 'number' && !isNaN(pos)) {
-            const start = Math.max(0, pos - 120);
-            const end = Math.min(schemaSQL.length, pos + 120);
-            const snippet = schemaSQL.slice(start, end);
-            console.error('✖ Schema creation failed near position', pos, 'snippet:\n', snippet);
-          }
-        }
-        console.error('✖ Schema creation failed:', err);
-        throw err;
-      }
-    }
+              (async () => {
+                try {
+                  let schemaPath;
+                  if (process.env.DB_DIALECT === 'sqlite') {
+                    schemaPath = path.join(__dirname, '..', '..', 'local-sqlite-setup', 'schema.sqlite.sql');
+                  } else {
+                    schemaPath = getUnifiedSchemaPath();
+                  }
+                  const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
+                  const schemaHash = createHash('sha256').update(schemaSQL).digest('hex');
+                  console.log('🔄 (background) Creating database schema from', schemaPath);
+                  console.log('📄 (background) Schema SHA256 (first 12):', schemaHash.slice(0, 12));
 
-    // For SQLite local setups, ensure legacy columns exist (non-destructive)
-    if (process.env.DB_DIALECT === 'sqlite') {
-      try {
-        // Add commission_rate to transactions if it doesn't exist
-        const res: ColumnInfo[] = await sequelize.query("PRAGMA table_info('kisaan_transactions')", { type: QueryTypes.SELECT });
-        const hasCommissionRate = Array.isArray(res) && res.some((col) => col.name === 'commission_rate');
-        if (!hasCommissionRate) {
-          console.log('🔧 Adding missing column `commission_rate` to kisaan_transactions');
-          await sequelize.query('ALTER TABLE kisaan_transactions ADD COLUMN commission_rate REAL');
+                  // run with a simple retry loop to handle transient issues
+                  const maxAttempts = 3;
+                  let attempt = 0;
+                  while (attempt < maxAttempts) {
+                    attempt += 1;
+                    try {
+                      await sequelize.query(schemaSQL);
+                      console.log('✅ (background) Database schema applied.');
+                      break;
+                    } catch (err) {
+                      console.warn(`⚠️ (background) Schema apply attempt ${attempt} failed:`, err instanceof Error ? err.message : err);
+                      if (attempt >= maxAttempts) {
+                        console.error('✖ (background) Schema creation failed after retries:', err);
+                        break;
+                      }
+                      // backoff
+                      await new Promise((res) => setTimeout(res, attempt * 2000));
+                    }
+                  }
+                } catch (err) {
+                  console.error('✖ (background) Schema creation failed:', err instanceof Error ? err.message : err);
+                }
+              })();
         }
             // Add total_amount to transactions if it doesn't exist (some older local DBs)
             const hasTotalAmount = Array.isArray(res) && res.some((col) => col.name === 'total_amount');
