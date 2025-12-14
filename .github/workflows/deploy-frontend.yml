@@ -75,7 +75,7 @@ jobs:
         # Set backend URL with fallback to Azure Container Apps endpoint
         BACKEND_URL="${{ secrets.VITE_API_BASE_URL }}"
         if [ -z "$BACKEND_URL" ] || [ "$BACKEND_URL" = "null" ] || [ "$BACKEND_URL" = "undefined" ]; then
-          BACKEND_URL="https://kisaancenter-backend.whiteisland-e1233153.northeurope.azurecontainerapps.io/api"
+          BACKEND_URL="https://kisaan-center-production.up.railway.app/api"
           echo "⚠️  Using fallback backend URL: $BACKEND_URL"
         else
           echo "✅ Using backend URL from secret: $BACKEND_URL"
@@ -106,6 +106,8 @@ jobs:
 
     - name: Setup Pages
       uses: actions/configure-pages@v4
+      with:
+        enablement: true
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
