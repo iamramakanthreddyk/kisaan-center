@@ -67,7 +67,17 @@ jobs:
         cache: 'npm'
         cache-dependency-path: kisaan-frontend/package-lock.json
 
+    - name: Check required secret
+      if: secrets.REQUIRE_VITE_API_BASE_URL == 'true'
+      run: |
+        echo "REQUIRE_VITE_API_BASE_URL is enabled — verifying secret presence..."
+        if [ -z "${{ secrets.VITE_API_BASE_URL }}" ] || [ "${{ secrets.VITE_API_BASE_URL }}" = "null" ]; then
+          echo "ERROR: VITE_API_BASE_URL secret is required but not set."
+          exit 1
+        fi
+
     - name: 🔧 Create production environment file
+      id: create_env
       working-directory: kisaan-frontend
       run: |
         echo "Creating .env.production with values from GitHub secrets..."
@@ -95,10 +105,17 @@ jobs:
 
         echo "✅ Environment file created successfully"
         echo "Backend URL will be: $BACKEND_URL"
+        # Expose the final backend URL as a step output for later debugging
+        echo "final_backend_url=$BACKEND_URL" >> $GITHUB_OUTPUT
 
     - name: 📥 Install dependencies
       working-directory: kisaan-frontend
       run: npm ci --legacy-peer-deps
+
+    - name: Show final backend URL
+      run: |
+        echo "Final backend URL used by the build: ${{ steps.create_env.outputs.final_backend_url }}"
+
 
     - name: Build
       working-directory: kisaan-frontend
