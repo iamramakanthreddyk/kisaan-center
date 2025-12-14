@@ -140,10 +140,10 @@ export async function getSummary(req: Request, res: Response) {
     const where: any = { shop_id: shopIdNum };
     if (farmerIdNum) where.farmer_id = farmerIdNum;
 
-    // Use Sequelize's built-in functions for date formatting
+    // Use Sequelize.literal for PostgreSQL date formatting
     const dateFormat = period === 'monthly'
-      ? Sequelize.fn('to_char', Sequelize.col('created_at'), 'YYYY-MM')
-      : Sequelize.fn('to_char', Sequelize.col('created_at'), 'YYYY-"W"IW');
+      ? Sequelize.literal(`to_char("created_at", 'YYYY-MM')`)
+      : Sequelize.literal(`to_char("created_at", 'YYYY-"W"IW')`);
 
     const results = await SimpleFarmerLedger.findAll({
       where,
@@ -175,10 +175,10 @@ export async function getEarnings(req: Request, res: Response) {
     const where: any = { shop_id: shopIdNum };
     if (farmerIdNum) where.farmer_id = farmerIdNum;
 
-    // Use Sequelize's built-in functions for date formatting
+    // Use Sequelize.literal for PostgreSQL date formatting
     const dateFormat = period === 'monthly'
-      ? Sequelize.fn('to_char', Sequelize.col('created_at'), 'YYYY-MM')
-      : Sequelize.fn('to_char', Sequelize.col('created_at'), 'YYYY-"W"IW');
+      ? Sequelize.literal(`to_char("created_at", 'YYYY-MM')`)
+      : Sequelize.literal(`to_char("created_at", 'YYYY-"W"IW')`);
 
     const results = await SimpleFarmerLedger.findAll({
       where,
