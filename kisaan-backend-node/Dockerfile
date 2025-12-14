@@ -4,14 +4,14 @@ FROM node:20-alpine AS build
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files from backend directory (context root expected at repo root)
+COPY kisaan-backend-node/package*.json ./
 
 # Install ALL dependencies (including devDependencies for TypeScript build)
 RUN npm ci
 
-# Copy source code
-COPY . .
+# Copy backend source code only
+COPY kisaan-backend-node/. ./
 
 # Build TypeScript to JavaScript
 RUN npm run build
