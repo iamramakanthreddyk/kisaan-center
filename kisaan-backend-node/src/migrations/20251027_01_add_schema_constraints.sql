@@ -3,86 +3,64 @@
 -- Purpose: Prevent invalid data states and enforce business rules at database level
 
 -- =============================================
--- 0. DATA QUALITY FIXES (MUST RUN FIRST)
--- =============================================
-
--- Fix: Owners should NOT have shop_id
-UPDATE kisaan_users 
-SET shop_id = NULL 
-WHERE role = 'owner' AND shop_id IS NOT NULL;
-
--- Fix: Farmers/Buyers MUST have shop_id - mark them inactive if they don't
-UPDATE kisaan_users 
-SET status = 'inactive'
-WHERE role IN ('farmer', 'buyer') AND shop_id IS NULL;
-
--- =============================================
 -- 1. USER ROLE CONSTRAINTS
 -- =============================================
 
 -- Ensure role-shop_id consistency
 -- Owner: must NOT have shop_id (they create shops)
 -- Farmer/Buyer: must HAVE shop_id (belong to a shop)
--- Superadmin: can have or not have shop_id
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_user_role_shop_id') THEN
-    ALTER TABLE kisaan_users 
-      ADD CONSTRAINT chk_user_role_shop_id 
-      CHECK (
-        (role = 'owner' AND shop_id IS NULL) OR
-        (role IN ('farmer', 'buyer') AND shop_id IS NOT NULL) OR
-        (role = 'superadmin')
-      );
-  END IF;
-END $$;
+-- Admin/Superadmin: can have or not have shop_id
+ALTER TABLE kisaan_users 
+  ADD CONSTRAINT chk_user_role_shop_id 
+  CHECK (
+    (role = 'owner' AND shop_id IS NULL) OR
+    (role IN ('farmer', 'buyer') AND shop_id IS NOT NULL) OR
+    (role IN ('superadmin', 'admin'))
+  );
 
 COMMENT ON CONSTRAINT chk_user_role_shop_id ON kisaan_users IS 
   'Business rule: Owners have no shop (they create them), Farmers/Buyers must belong to a shop';
 
 -- Balance must be within reasonable range (prevent data corruption)
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_user_balance_reasonable') THEN
-    ALTER TABLE kisaan_users 
-      ADD CONSTRAINT chk_user_balance_reasonable 
-      CHECK (balance BETWEEN -10000000 AND 10000000);
-  END IF;
-END $$;
+ALTER TABLE kisaan_users 
+  ADD CONSTRAINT chk_user_balance_reasonable 
+  CHECK (balance BETWEEN -10000000 AND 10000000);
 
 COMMENT ON CONSTRAINT chk_user_balance_reasonable ON kisaan_users IS 
   'Prevents extreme balance values that indicate data corruption';
+
+-- =============================================
+-- 2. PLAN USAGE CONSTRAINTS
+-- =============================================
+
+-- Only one active plan per shop at a time
+CREATE UNIQUE INDEX idx_shop_active_plan_unique
+  ON kisaan_plan_usage(shop_id) 
+  WHERE is_active = true;
+
+COMMENT ON INDEX idx_shop_active_plan_unique IS 
+  'Business rule: A shop can only have one active plan at a time';
 
 -- =============================================
 -- 3. TRANSACTION AMOUNT CONSTRAINTS
 -- =============================================
 
 -- All amounts must be non-negative
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_transaction_amounts_positive') THEN
-    ALTER TABLE kisaan_transactions 
-      ADD CONSTRAINT chk_transaction_amounts_positive 
-      CHECK (
-        total_amount >= 0 AND 
-        commission_amount >= 0 AND 
-        farmer_earning >= 0
-      );
-  END IF;
-END $$;
+ALTER TABLE kisaan_transactions 
+  ADD CONSTRAINT chk_transaction_amounts_positive 
+  CHECK (
+    total_amount >= 0 AND 
+    commission_amount >= 0 AND 
+    farmer_earning >= 0
+  );
 
 -- Transaction amount invariant: total = commission + farmer_earning
 -- Allow small floating point tolerance (0.01)
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_transaction_amounts_sum') THEN
-    ALTER TABLE kisaan_transactions 
-      ADD CONSTRAINT chk_transaction_amounts_sum 
-      CHECK (
-        ABS(total_amount - (commission_amount + farmer_earning)) < 0.01
-      );
-  END IF;
-END $$;
+ALTER TABLE kisaan_transactions 
+  ADD CONSTRAINT chk_transaction_amounts_sum 
+  CHECK (
+    ABS(total_amount - (commission_amount + farmer_earning)) < 0.01
+  );
 
 COMMENT ON CONSTRAINT chk_transaction_amounts_sum ON kisaan_transactions IS 
   'Critical invariant: total_amount must equal commission_amount + farmer_earning (within 0.01 tolerance)';
@@ -92,14 +70,9 @@ COMMENT ON CONSTRAINT chk_transaction_amounts_sum ON kisaan_transactions IS
 -- =============================================
 
 -- Payment amount must be positive
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_payment_amount_positive') THEN
-    ALTER TABLE kisaan_payments 
-      ADD CONSTRAINT chk_payment_amount_positive 
-      CHECK (amount > 0);
-  END IF;
-END $$;
+ALTER TABLE kisaan_payments 
+  ADD CONSTRAINT chk_payment_amount_positive 
+  CHECK (amount > 0);
 
 COMMENT ON CONSTRAINT chk_payment_amount_positive ON kisaan_payments IS 
   'Payments must have positive amounts (use negative transactions for refunds)';
@@ -109,27 +82,31 @@ COMMENT ON CONSTRAINT chk_payment_amount_positive ON kisaan_payments IS
 -- =============================================
 
 -- Expense amount must be positive
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_expense_amount_positive') THEN
-    ALTER TABLE kisaan_expenses 
-      ADD CONSTRAINT chk_expense_amount_positive 
-      CHECK (amount > 0);
-  END IF;
-END $$;
+ALTER TABLE kisaan_expenses 
+  ADD CONSTRAINT chk_expense_amount_positive 
+  CHECK (amount > 0);
 
 -- If total_amount is set, it must equal amount (no drift)
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_expense_total_equals_amount') THEN
-    ALTER TABLE kisaan_expenses 
-      ADD CONSTRAINT chk_expense_total_equals_amount 
-      CHECK (total_amount IS NULL OR ABS(total_amount - amount) < 0.01);
-  END IF;
-END $$;
+ALTER TABLE kisaan_expenses 
+  ADD CONSTRAINT chk_expense_total_equals_amount 
+  CHECK (total_amount IS NULL OR ABS(total_amount - amount) < 0.01);
 
 COMMENT ON CONSTRAINT chk_expense_total_equals_amount ON kisaan_expenses IS 
   'If total_amount is tracked separately, it must match amount field';
+
+-- =============================================
+-- 6. ALLOCATION CONSTRAINTS
+-- =============================================
+
+-- Payment allocation amount must be positive
+ALTER TABLE payment_allocations 
+  ADD CONSTRAINT chk_allocation_amount_positive 
+  CHECK (allocated_amount > 0);
+
+-- Expense settlement amount must be positive
+ALTER TABLE expense_settlements 
+  ADD CONSTRAINT chk_settlement_amount_positive 
+  CHECK (amount > 0);
 
 -- =============================================
 -- VALIDATION QUERIES
