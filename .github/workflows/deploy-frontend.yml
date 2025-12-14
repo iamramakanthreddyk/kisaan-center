@@ -122,6 +122,26 @@ jobs:
     - name: Build
       working-directory: kisaan-frontend
       run: npm run build
+    - name: Setup Pages
+    
+    - name: Pages token diagnostics
+      run: |
+        echo "Checking PAGES_TOKEN secret presence and validating it (no token will be printed)."
+        if [ -z "${{ secrets.PAGES_TOKEN }}" ]; then
+          echo "PAGES_TOKEN is not set. If Actions cannot create/enable Pages, add a PAT as repo secret 'PAGES_TOKEN'."
+        else
+          echo "PAGES_TOKEN is set — testing token by calling GitHub API /user"
+          status=$(curl -s -o /tmp/pagetest.json -w "%{http_code}" -H "Authorization: token ${{ secrets.PAGES_TOKEN }}" https://api.github.com/user)
+          echo "GitHub API HTTP status: $status"
+          if [ "$status" -ne 200 ]; then
+            echo "Token validation failed — API returned non-200. Response body:";
+            cat /tmp/pagetest.json
+            echo "Ensure the PAT has 'repo' (or 'public_repo' for public repos) and 'workflow' scopes, or use a fine-grained token with repository + Actions permissions."
+            exit 1
+          fi
+          echo -n "Authenticated as: "
+          sed -n 's/.*"login": *"\([^"]*\)".*/\1/p' /tmp/pagetest.json || true
+        fi
 
     - name: Setup Pages
       uses: actions/configure-pages@v4
