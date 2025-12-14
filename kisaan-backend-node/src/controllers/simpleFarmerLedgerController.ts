@@ -136,7 +136,7 @@ export async function getSummary(req: Request, res: Response) {
     const shopIdNum = Number(shop_id);
     const farmerIdNum = farmer_id ? Number(farmer_id) : undefined;
     // Group by week or month
-      const groupBy = period === 'monthly' ? "strftime('%Y-%m', created_at)" : "strftime('%Y-%W', created_at)";
+      const groupBy = period === 'monthly' ? "to_char(created_at, 'YYYY-MM')" : "to_char(created_at, 'YYYY-IW')";
       const results = await SimpleFarmerLedger.sequelize!.query(
         `SELECT ${groupBy} as period, type, SUM(amount) as total
          FROM kisaan_ledger
@@ -159,7 +159,7 @@ export async function getEarnings(req: Request, res: Response) {
     if (!shop_id) return res.status(400).json({ error: 'shop_id required' });
     const shopIdNum = Number(shop_id);
     const farmerIdNum = farmer_id ? Number(farmer_id) : undefined;
-    const groupBy = period === 'monthly' ? "strftime('%Y-%m', created_at)" : "strftime('%Y-%W', created_at)";
+    const groupBy = period === 'monthly' ? "to_char(created_at, 'YYYY-MM')" : "to_char(created_at, 'YYYY-IW')";
     const results = await SimpleFarmerLedger.sequelize!.query(
       `SELECT ${groupBy} as period,
               SUM(COALESCE(commission_amount,0)) as total_commission,
