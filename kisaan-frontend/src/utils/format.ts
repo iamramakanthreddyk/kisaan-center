@@ -42,9 +42,17 @@ export function formatPercent(value: number | null | undefined, fractionDigits =
 export function formatAmount(value: number | string | null | undefined, decimals: number = 2): string {
   if (value === null || value === undefined || value === '') return '—';
 
-  const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+  let num: number;
+  if (typeof value === 'string') {
+    num = parseFloat(value);
+  } else if (typeof value === 'number') {
+    num = value;
+  } else {
+    // Handle unexpected types like objects or arrays
+    return '—';
+  }
 
-  if (isNaN(num)) return '—';
+  if (isNaN(num) || !isFinite(num)) return '—';
 
   return `₹${num.toFixed(decimals)}`;
 }
