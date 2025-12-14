@@ -1,10 +1,10 @@
-const { DataTypes } = require('sequelize');
+import { QueryInterface, DataTypes } from 'sequelize';
 
 /**
  * Creates table `kisaan_transaction_idempotency` to ensure idempotent transaction creation.
  */
-module.exports = {
-  up: async (queryInterface) => {
+export = {
+  up: async (queryInterface: QueryInterface) => {
     await queryInterface.createTable('kisaan_transaction_idempotency', {
       id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
       key: { type: DataTypes.STRING(100), allowNull: false, unique: true },
@@ -23,7 +23,7 @@ module.exports = {
     await queryInterface.addIndex('kisaan_transaction_idempotency', ['transaction_id']);
   },
 
-  down: async (queryInterface) => {
+  down: async (queryInterface: QueryInterface) => {
     await queryInterface.dropTable('kisaan_transaction_idempotency');
   }
 };
