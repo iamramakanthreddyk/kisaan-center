@@ -6,7 +6,7 @@ import { sequelize, Payment, PaymentAllocation, Transaction } from '../src/model
 
     console.log('\n=== Latest payments for shop_id=1 ===');
     const payments = await Payment.findAll({ where: { shop_id: 1 }, order: [['created_at', 'DESC']], limit: 50 });
-    console.log(payments.map(p => ({ id: p.id, transaction_id: p.transaction_id, payer_type: p.payer_type, payee_type: p.payee_type, amount: p.amount, status: p.status, counterparty_id: p.counterparty_id, shop_id: p.shop_id, created_at: p.created_at })));
+    console.log(payments.map(p => ({ id: p.id, transaction_id: p.transaction_id, payer_type: p.payer_type, payee_type: p.payee_type, amount: p.amount, status: p.status, shop_id: p.shop_id, created_at: p.created_at })));
 
     console.log('\n=== Latest payment allocations ===');
     const allocs = await PaymentAllocation.findAll({ order: [['created_at', 'DESC']], limit: 200 });

@@ -36,7 +36,7 @@ router.get('/buyer-due/:buyerId', authenticateToken, requireRole(['owner']), asy
     }
 
     // bookkeeping payments (standalone buyer->shop) not allocated
-    const bkPayments = await Payment.findAll({ where: { transaction_id: null, payer_type: 'BUYER', payee_type: 'SHOP', counterparty_id: buyerId, status: 'PAID' } });
+    const bkPayments = await Payment.findAll({ where: { transaction_id: null, payer_type: 'BUYER', payee_type: 'SHOP', status: 'PAID' } });
     const bookkeepingPaymentTotal = bkPayments.reduce((s: number, p: Payment) => s + Number(p.amount || 0), 0);
 
     // If ownerId provided, compute owner-scoped bookkeeping totals (payments made to shops owned by owner)
@@ -64,7 +64,7 @@ router.get('/buyer-due/:buyerId', authenticateToken, requireRole(['owner']), asy
         ownerTransactionBasedDue += Math.max(total - buyerPaid, 0);
       }
 
-      const ownerBookkeepingPayments = ownerPayments.filter(p => p.transaction_id === null && p.payer_type === 'BUYER' && p.payee_type === 'SHOP' && Number(p.counterparty_id) === buyerId && String(p.status).toUpperCase() === 'PAID');
+      const ownerBookkeepingPayments = ownerPayments.filter(p => p.transaction_id === null && p.payer_type === 'BUYER' && p.payee_type === 'SHOP' && String(p.status).toUpperCase() === 'PAID');
       const ownerBookkeepingTotal = ownerBookkeepingPayments.reduce((s: number, p: Payment) => s + Number(p.amount || 0), 0);
 
       ownerScope = { transactionBasedDue: ownerTransactionBasedDue, bookkeepingPaymentTotal: ownerBookkeepingTotal, txns: ownerTxns.length, bkCount: ownerBookkeepingPayments.length };

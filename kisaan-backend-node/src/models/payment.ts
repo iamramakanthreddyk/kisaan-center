@@ -9,6 +9,7 @@ export interface PaymentAttributes {
   id: number;
   transaction_id?: number | null;
   shop_id?: number | null;
+  counterparty_id?: number | null;
   payer_type: PaymentParty; // Future-proof: add new parties here
   payee_type: PaymentParty; // Future-proof: add new parties here
   amount: number;
@@ -33,12 +34,13 @@ export interface PaymentAttributes {
 }
 
 
-export interface PaymentCreationAttributes extends Optional<PaymentAttributes, 'id' | 'status' | 'payment_date' | 'notes' | 'shop_id' | 'transaction_id' | 'settlement_type' | 'balance_before' | 'balance_after' | 'settled_transactions' | 'settled_expenses' | 'created_at' | 'updated_at'> {}
+export interface PaymentCreationAttributes extends Optional<PaymentAttributes, 'id' | 'status' | 'payment_date' | 'notes' | 'shop_id' | 'transaction_id' | 'counterparty_id' | 'settlement_type' | 'balance_before' | 'balance_after' | 'settled_transactions' | 'settled_expenses' | 'created_at' | 'updated_at'> {}
 
 export class Payment extends Model<PaymentAttributes, PaymentCreationAttributes> implements PaymentAttributes {
   public id!: number;
   public transaction_id!: number | null;
   public shop_id!: number | null;
+  public counterparty_id!: number | null;
   public payer_type!: PaymentParty;
   public payee_type!: PaymentParty;
   public amount!: number;
@@ -66,6 +68,7 @@ Payment.init(
     id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
     transaction_id: { type: DataTypes.BIGINT, allowNull: true, references: { model: 'kisaan_transactions', key: 'id' } },
     shop_id: { type: DataTypes.BIGINT, allowNull: true, references: { model: 'kisaan_shops', key: 'id' } },
+    counterparty_id: { type: DataTypes.BIGINT, allowNull: true, references: { model: 'kisaan_users', key: 'id' } },
     payer_type: { type: DataTypes.ENUM(...Object.values(PaymentParty)), allowNull: false },
     payee_type: { type: DataTypes.ENUM(...Object.values(PaymentParty)), allowNull: false },
     amount: { type: DataTypes.DECIMAL(12,2), allowNull: false },

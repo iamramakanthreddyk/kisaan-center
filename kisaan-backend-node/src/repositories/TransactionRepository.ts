@@ -386,8 +386,7 @@ export class TransactionRepository extends BaseRepository<Transaction, Transacti
       payer_type: p.payer_type,
       payee_type: p.payee_type,
       created_at: p.created_at,
-      payment_date: p.payment_date,
-      counterparty_id: p.counterparty_id
+      payment_date: p.payment_date
     })) : [];
     // Attach to entity via a safe cast: TransactionEntity has an optional payments property
     (entity as TransactionEntity & { payments?: PaymentShape[] }).payments = paymentsList;

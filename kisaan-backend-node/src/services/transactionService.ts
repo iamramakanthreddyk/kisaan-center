@@ -1912,7 +1912,6 @@ export class TransactionService {
       const payments = await PaymentModel.findAll({
         where: {
           payee_type: PARTY_TYPE.FARMER,
-          counterparty_id: farmer.id,
           status: PaymentStatusEnum.Paid
         },
         transaction: tx
@@ -2007,7 +2006,6 @@ export class TransactionService {
       const buyerPayments = await PaymentModel2.findAll({
         where: {
           payer_type: PARTY_TYPE.BUYER,
-          counterparty_id: buyer.id,
           status: PaymentStatusEnum.Paid
         },
         transaction: tx

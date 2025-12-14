@@ -101,8 +101,7 @@ export class SimplifiedTransactionService {
           method: (payment.method === 'cash' ? PaymentMethod.Cash : payment.method === 'bank_transfer' ? PaymentMethod.BankTransfer : payment.method === 'upi' ? PaymentMethod.Upi : PaymentMethod.Other),
           status: (payment.status === 'COMPLETED' ? PaymentStatus.Paid : payment.status === 'PENDING' ? PaymentStatus.Pending : PaymentStatus.Failed),
           payment_date: payment.payment_date ? new Date(payment.payment_date) : new Date(),
-          notes: payment.notes || '',
-          counterparty_id: payerType === 'buyer' ? data.buyer_id : data.farmer_id
+          notes: payment.notes || ''
         });
         createdPayments.push(paymentRecord);
       }
@@ -135,8 +134,7 @@ export class SimplifiedTransactionService {
   amount: data.amount,
   status: PaymentStatus.Paid,
   method: PaymentMethod.Cash,
-      notes: data.notes || '',
-      counterparty_id: data.user_id
+      notes: data.notes || ''
     });
     
     // Update balance based on payment type

@@ -106,31 +106,14 @@ export class PaymentService {
     if (!data.amount) missingFields.push('amount');
     if (!data.payer_type) missingFields.push('payer_type');
     if (!data.payee_type) missingFields.push('payee_type');
-    // payment_date and counterparty_id will be checked below
 
-    // Set counterparty_id and shop_id based on payment type and transaction details
-    if (data.transaction_id && (!data.counterparty_id || !data.shop_id)) {
+    // Set shop_id based on transaction details if not provided
+    if (data.transaction_id && !data.shop_id) {
       const transaction = await (await import('../models/transaction')).Transaction.findByPk(data.transaction_id);
       if (transaction) {
         if (!data.shop_id && !paymentData.shop_id) {
           paymentData.shop_id = transaction.shop_id;
           logger.info({ transactionId: data.transaction_id, shopId: transaction.shop_id }, 'Auto-populated shop_id from transaction');
-        }
-        if (!data.counterparty_id && !paymentData.counterparty_id) {
-          if (data.payer_type === PARTY_TYPE.BUYER && data.payee_type === PARTY_TYPE.SHOP) {
-            paymentData.counterparty_id = transaction.buyer_id;
-            logger.info({ transactionId: data.transaction_id, buyerId: transaction.buyer_id }, 'Auto-populated counterparty_id (buyer) from transaction');
-          } else if (data.payer_type === PARTY_TYPE.SHOP && data.payee_type === PARTY_TYPE.FARMER) {
-            paymentData.counterparty_id = transaction.farmer_id;
-            logger.info({ transactionId: data.transaction_id, farmerId: transaction.farmer_id }, 'Auto-populated counterparty_id (farmer) from transaction');
-          } else if (data.payer_type === PARTY_TYPE.FARMER && data.payee_type === PARTY_TYPE.SHOP) {
-            paymentData.counterparty_id = transaction.farmer_id;
-            logger.info({ transactionId: data.transaction_id, farmerId: transaction.farmer_id }, 'Auto-populated counterparty_id (farmer paying) from transaction');
-          }
-        }
-        if (data.payment_date) {
-          const pd = new Date(data.payment_date as string);
-          paymentData.payment_date = isNaN(pd.getTime()) ? data.payment_date : pd;
         }
       }
     }
@@ -140,7 +123,6 @@ export class PaymentService {
     }
 
     // Final required field checks
-    if (!paymentData.counterparty_id) missingFields.push('counterparty_id');
     if (!paymentData.payment_date) missingFields.push('payment_date');
     if (!paymentData.shop_id) missingFields.push('shop_id');
     if (!paymentData.amount || Number(paymentData.amount) <= 0) missingFields.push('amount');
@@ -202,9 +184,9 @@ export class PaymentService {
       console.warn('[PAYMENT] Error while computing/persisting per-payment breakdown', { paymentId: payment.id, err });
     }
 
-    // Post-insert consistency check for NULL payment_date/counterparty_id        
-    if (!payment.payment_date || !payment.counterparty_id) {
-      logger.error({ payment: payment.toJSON() }, 'Payment created with NULL payment_date or counterparty_id');
+    // Post-insert consistency check for NULL payment_date        
+    if (!payment.payment_date) {
+      logger.error({ payment: payment.toJSON() }, 'Payment created with NULL payment_date');
     }
 
     // IMPORTANT: Skip balance updates for payments that are part of transaction creation
@@ -234,7 +216,6 @@ export class PaymentService {
         const guardResult = guardFn
           ? await guardFn({
               shop_id: payment.shop_id || undefined,
-              counterparty_id: payment.counterparty_id || undefined,
               amount: payment.amount as unknown as number,
               force_override: (data as unknown as { force_override?: boolean }).force_override
             })
@@ -246,33 +227,14 @@ export class PaymentService {
       }
 
       // Capture previous balance for ledger delta calculation
+      // Note: counterparty_id not available on Payment model, balance updates handled elsewhere
       let previousBalance: number | null = null;
-      if (payment.counterparty_id) {
-        const userBefore = await User.findByPk(payment.counterparty_id, { transaction: options?.tx });
-        previousBalance = Number(userBefore?.balance || 0);
-      }
 
       // Recalculate and apply balances (this may update the user's balance and payment records)
       balanceResult = await this.updateUserBalancesAfterPayment(payment, options);
 
       // After balances updated, create a ledger entry that records the actual delta
-      if (payment.counterparty_id) {
-        const userAfter = await User.findByPk(payment.counterparty_id, { transaction: options?.tx });
-        const afterBalance = Number(userAfter?.balance || 0);
-        const delta = (previousBalance === null ? 0 : (afterBalance - previousBalance));
-  const role = payment.payer_type === 'BUYER' || payment.payee_type === 'BUYER' ? USER_ROLES.BUYER : USER_ROLES.FARMER;
-
-        await TransactionLedger.create({
-          user_id: payment.counterparty_id,
-          transaction_id: null,
-          delta_amount: delta,
-          role,
-          reason_code: 'PAYMENT',
-          created_at: new Date(),
-          balance_before: previousBalance ?? undefined,
-          balance_after: afterBalance
-        }, { transaction: options?.tx });
-      }
+      // Note: counterparty_id not available on Payment model, ledger entries handled elsewhere
     } else {
       // This is part of a transaction - skip balance update
       // The transaction's updateUserBalances method will handle this
@@ -327,7 +289,6 @@ export class PaymentService {
       id: normalizeId(base.id),
       transaction_id: base.transaction_id == null ? null : normalizeId(base.transaction_id),
       shop_id: base.shop_id == null ? null : normalizeId(base.shop_id),
-      counterparty_id: base.counterparty_id == null ? null : normalizeId(base.counterparty_id),
       payer_type: typeof base.payer_type === 'string' ? String(base.payer_type).toUpperCase() : base.payer_type,
       payee_type: typeof base.payee_type === 'string' ? String(base.payee_type).toUpperCase() : base.payee_type,
       method: typeof base.method === 'string' ? String(base.method).toUpperCase() : base.method,
@@ -387,7 +348,6 @@ export class PaymentService {
       payer_type: payment.payer_type,
       payee_type: payment.payee_type,
       amount: payment.amount,
-      counterparty_id: payment.counterparty_id,
       transaction_id: payment.transaction_id
     });
 
@@ -400,12 +360,12 @@ export class PaymentService {
 
     if (payment.payer_type === PARTY_TYPE.BUYER && payment.payee_type === PARTY_TYPE.SHOP) {
   // Buyer pays shop: reduce buyer's positive balance (buyer owes less). Negative buyer balance means shop owes buyer (refund scenario).
-      userIdToUpdate = payment.counterparty_id;
+      userIdToUpdate = null; // counterparty_id not available on Payment model
       userRole = PARTY_TYPE.BUYER;
       // Defer balance mutation: unified recalculation later will update buyer balance based on unpaid amounts.
     } else if (payment.payer_type === PARTY_TYPE.FARMER && payment.payee_type === PARTY_TYPE.SHOP) {
   // Farmer pays shop: if farmer balance is negative (farmer owes shop) this payment moves balance toward 0 (increase). If balance positive, this would be unusual (farmer paying while shop owes) but we still recalc.
-      userIdToUpdate = payment.counterparty_id;
+      userIdToUpdate = null; // counterparty_id not available on Payment model
       userRole = PARTY_TYPE.FARMER;
 
       if (userIdToUpdate && payment.shop_id) {
@@ -757,7 +717,7 @@ export class PaymentService {
         }, 0);
 
         // If there are shop->buyer refund payments (payer=SHOP payee=BUYER) without allocations, treat them as overpayments reducing balance
-        const refundPayments = await Payment.findAll({ where: { payer_type: PARTY_TYPE.SHOP, payee_type: PARTY_TYPE.BUYER, counterparty_id: userIdToUpdate, status: 'PAID' } });
+        const refundPayments = await Payment.findAll({ where: { payer_type: PARTY_TYPE.SHOP, payee_type: PARTY_TYPE.BUYER, status: 'PAID' } });
         const refundTotal = refundPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
         if (refundTotal > 0) {
           newBalance = newBalance - refundTotal; // subtract refunds
@@ -1268,7 +1228,6 @@ export class PaymentService {
       // Fetch payments
       const where: Record<string, unknown> = {
         payee_type: PARTY_TYPE.FARMER,
-        counterparty_id: farmerId,
         status: { [Op.not]: PAYMENT_STATUS.FAILED }
       };
       if (options?.startDate && options?.endDate) {
@@ -1350,7 +1309,6 @@ export class PaymentService {
     try {
       const where: Record<string, unknown> = {
         payer_type: PARTY_TYPE.BUYER,
-        counterparty_id: buyerId,
         status: { [Op.not]: PAYMENT_STATUS.FAILED }
       };
       if (options?.startDate && options?.endDate) {
@@ -1390,7 +1348,6 @@ export class PaymentService {
 
     const recentPayments = await this.paymentRepository.findByFilters({
       shop_id: shopId,
-      counterparty_id: farmerId,
       payer_type: PaymentParty.Shop,
       payee_type: PaymentParty.Farmer,
       status: PaymentStatus.Paid,
