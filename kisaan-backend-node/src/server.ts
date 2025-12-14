@@ -23,6 +23,12 @@ dotenv.config();
 
 const PORT = process.env.API_PORT || process.env.PORT || 8000;
 
+function getUnifiedSchemaPath() {
+  // __dirname is dist/src in production, src in dev
+  const projectRoot = path.resolve(__dirname, '..', '..');
+  return path.join(projectRoot, 'schema', 'unified-schema.sql');
+}
+
 async function startServer() {
   try {
     console.log('🔄 Connecting to database...');
@@ -52,7 +58,7 @@ async function startServer() {
       if (process.env.DB_DIALECT === 'sqlite') {
         schemaPath = path.join(__dirname, '..', '..', 'local-sqlite-setup', 'schema.sqlite.sql');
       } else {
-        schemaPath = path.join(__dirname, '..', 'schema', 'unified-schema.sql');
+        schemaPath = getUnifiedSchemaPath();
       }
       const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
       const schemaHash = createHash('sha256').update(schemaSQL).digest('hex');
@@ -65,7 +71,7 @@ async function startServer() {
         if (err && typeof err === 'object' && 'parent' in (err as Record<string, unknown>)) {
           const parent = (err as { parent?: { position?: string } }).parent;
           const pos = parent?.position ? Number(parent.position) : undefined;
-          if (pos && Number.isFinite(pos)) {
+          if (typeof pos === 'number' && !isNaN(pos)) {
             const start = Math.max(0, pos - 120);
             const end = Math.min(schemaSQL.length, pos + 120);
             const snippet = schemaSQL.slice(start, end);

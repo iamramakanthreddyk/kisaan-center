@@ -115,10 +115,40 @@ CREATE SEQUENCE IF NOT EXISTS kisaan_payment_allocations_id_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS kisaan_settlements_id_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS kisaan_balance_snapshots_id_seq START 1;
 
--- SequelizeMeta table for migration tracking
 CREATE TABLE IF NOT EXISTS "SequelizeMeta" (
     name VARCHAR(255) NOT NULL PRIMARY KEY
--- Expenses table
+);
+
+CREATE TABLE IF NOT EXISTS kisaan_shops (
+    id BIGINT DEFAULT nextval('kisaan_shops_id_seq') PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    owner_id BIGINT NOT NULL,
+    plan_id INTEGER,
+    address TEXT,
+    contact VARCHAR(255),
+    status enum_kisaan_shops_status NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Users table (moved up to resolve FK dependencies)
+CREATE TABLE IF NOT EXISTS kisaan_users (
+    id BIGINT DEFAULT nextval('kisaan_users_id_seq') PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role enum_kisaan_users_role NOT NULL,
+    shop_id BIGINT,
+    contact VARCHAR(255),
+    email VARCHAR(255),
+    firstname VARCHAR(255),
+    status enum_kisaan_users_status NOT NULL DEFAULT 'active',
+    balance DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    cumulative_value DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    created_by BIGINT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS kisaan_expenses (
     id BIGSERIAL PRIMARY KEY,
     shop_id BIGINT NOT NULL,
@@ -138,7 +168,22 @@ CREATE TABLE IF NOT EXISTS kisaan_expenses (
     created_by BIGINT
 );
 
--- Expense Settlements table
+-- Payments table (moved up to resolve FK dependencies)
+CREATE TABLE IF NOT EXISTS kisaan_payments (
+    id BIGINT DEFAULT nextval('kisaan_payments_id_seq') PRIMARY KEY,
+    transaction_id INTEGER NOT NULL,
+    payer_type enum_kisaan_payments_payer_type NOT NULL,
+    payee_type enum_kisaan_payments_payee_type NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    status enum_kisaan_payments_status NOT NULL DEFAULT 'PENDING',
+    payment_date TIMESTAMP WITH TIME ZONE,
+    method enum_kisaan_payments_method NOT NULL,
+    notes TEXT,
+    shop_id BIGINT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS expense_settlements (
     id BIGSERIAL PRIMARY KEY,
     expense_id BIGINT NOT NULL REFERENCES kisaan_expenses(id) ON DELETE CASCADE,
@@ -150,7 +195,6 @@ CREATE TABLE IF NOT EXISTS expense_settlements (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Ledger Entries table
 
 -- Simple Farmer Ledger table (used by backend)
 CREATE TABLE IF NOT EXISTS kisaan_ledger (
@@ -167,10 +211,8 @@ CREATE TABLE IF NOT EXISTS kisaan_ledger (
     created_by BIGINT NOT NULL REFERENCES kisaan_users(id)
 );
 
--- User Balances table
 CREATE TABLE IF NOT EXISTS kisaan_user_balances (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
     shop_id BIGINT NOT NULL,
     balance DECIMAL(15,2) NOT NULL DEFAULT 0,
     version INT NOT NULL DEFAULT 0,
@@ -202,27 +244,9 @@ CREATE TABLE IF NOT EXISTS kisaan_expense_allocations (
     allocation_type VARCHAR(30) NOT NULL CHECK (allocation_type IN ('transaction_offset', 'balance_settlement', 'advance', 'adjustment')),
     allocated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Plans table
-CREATE TABLE IF NOT EXISTS kisaan_plans (
-    id INTEGER DEFAULT nextval('kisaan_plans_id_seq') PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    description TEXT,
-    price DECIMAL(10, 2),
-    billing_cycle enum_kisaan_plans_billing_cycle DEFAULT 'monthly',
-    monthly_price DECIMAL(10, 2),
-    quarterly_price DECIMAL(10, 2),
-    yearly_price DECIMAL(10, 2),
-    max_farmers INTEGER,
-    max_buyers INTEGER,
-    max_transactions INTEGER,
-    data_retention_months INTEGER,
-    features TEXT NOT NULL DEFAULT '[]',
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -254,18 +278,6 @@ CREATE TABLE IF NOT EXISTS kisaan_users (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Shops table
-CREATE TABLE IF NOT EXISTS kisaan_shops (
-    id BIGINT DEFAULT nextval('kisaan_shops_id_seq') PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    owner_id BIGINT NOT NULL,
-    plan_id INTEGER,
-    address TEXT,
-    contact VARCHAR(255),
-    status enum_kisaan_shops_status NOT NULL DEFAULT 'active',
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
 
 -- Products table
 CREATE TABLE IF NOT EXISTS kisaan_products (
@@ -297,21 +309,6 @@ CREATE TABLE IF NOT EXISTS kisaan_transactions (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Payments table
-CREATE TABLE IF NOT EXISTS kisaan_payments (
-    id BIGINT DEFAULT nextval('kisaan_payments_id_seq') PRIMARY KEY,
-    transaction_id INTEGER NOT NULL,
-    payer_type enum_kisaan_payments_payer_type NOT NULL,
-    payee_type enum_kisaan_payments_payee_type NOT NULL,
-    amount DECIMAL(12,2) NOT NULL,
-    status enum_kisaan_payments_status NOT NULL DEFAULT 'PENDING',
-    payment_date TIMESTAMP WITH TIME ZONE,
-    method enum_kisaan_payments_method NOT NULL,
-    notes TEXT,
-    shop_id BIGINT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
 
 -- Commissions table
 CREATE TABLE IF NOT EXISTS kisaan_commissions (

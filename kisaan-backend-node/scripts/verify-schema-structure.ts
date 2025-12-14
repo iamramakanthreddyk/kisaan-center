@@ -47,8 +47,8 @@ async function main() {
   });
   await client.connect();
   const schemaDir = path.join(process.cwd(), 'schema');
-  const completePath = path.join(schemaDir, 'complete-schema.sql');
-  const sql = fs.readFileSync(completePath, 'utf8');
+  const unifiedPath = path.join(schemaDir, 'unified-schema.sql');
+  const sql = fs.readFileSync(unifiedPath, 'utf8');
   const expected = parseSchema(sql);
 
   const problems: string[] = [];
