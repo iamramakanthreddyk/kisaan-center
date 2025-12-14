@@ -6,6 +6,7 @@ import './models'; // Import models to ensure they're initialized
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import { createHash } from 'crypto';
 // Optional programmatic migration runner (safe to require)
 import { runAllMigrations } from '../scripts/run-migration';
 import { QueryTypes } from 'sequelize';
@@ -54,7 +55,9 @@ async function startServer() {
         schemaPath = path.join(__dirname, '..', 'schema', 'unified-schema.sql');
       }
       const schemaSQL = fs.readFileSync(schemaPath, 'utf8');
+      const schemaHash = createHash('sha256').update(schemaSQL).digest('hex');
       console.log('🔄 Creating database schema from', schemaPath);
+      console.log('📄 Schema SHA256 (first 12):', schemaHash.slice(0, 12));
       try {
         await sequelize.query(schemaSQL);
         console.log('✅ Database schema created.');
