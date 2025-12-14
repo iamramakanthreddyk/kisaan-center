@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { User } from '../types/api';
+import type { User } from '../types';
 import { UserSearchDropdown } from '../components/ui/UserSearchDropdown';
 import { Button } from '../components/ui/button';
 import { AlertCircle } from 'lucide-react';

@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { fetchLedgerEntries } from './api';
 import { useTransactionStore } from '../store/transactionStore';
 import { usersApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '../components/ui/table';
 import { AlertCircle, Inbox } from 'lucide-react';
-import { User } from '../types/api';
+import type { User } from '../types';
 
 interface LedgerEntry {
   id: number;
@@ -29,11 +30,12 @@ interface LedgerListProps {
 }
 
 const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerId, from, to }) => {
+  const { user } = useAuth();
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const shopId = 1;
+  const shopId = user?.shop_id ? Number(user.shop_id) : 1;
   const getUsersForShop = useTransactionStore(state => state.getUsers);
   const setUsersForShop = useTransactionStore(state => state.setUsers);
 

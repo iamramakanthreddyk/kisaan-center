@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { TrendingUp, TrendingDown, BarChart3, AlertCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { fetchLedgerSummary } from './api';
 
 interface SummaryData {
@@ -10,6 +11,7 @@ interface SummaryData {
 }
 
 const LedgerSummary: React.FC = () => {
+  const { user } = useAuth();
   const [summary, setSummary] = useState<SummaryData>({
     totalCredit: 0,
     totalDebit: 0,
@@ -25,7 +27,8 @@ const LedgerSummary: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchLedgerSummary(1, period);
+        const shopId = user?.shop_id ? Number(user.shop_id) : 1;
+        const data = await fetchLedgerSummary(shopId, period);
         // Expecting an array of rows: [{ period, type, total }, ...]
         const rows = Array.isArray(data) ? data : (data && Array.isArray((data as { data?: unknown[] }).data) ? (data as { data?: unknown[] }).data : []);
         let totalCredit = 0;

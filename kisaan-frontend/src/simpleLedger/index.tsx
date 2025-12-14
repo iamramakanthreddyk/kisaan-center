@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
 import { BookOpen, Plus } from 'lucide-react';
-// note: no additional imports
+import { useAuth } from '../context/AuthContext';
 import { UserSearchDropdown } from '../components/ui/UserSearchDropdown';
-import { User } from '../types/api';
+import type { User } from '../types';
 import { exportLedgerCsv } from './api';
-// no extra imports
 
 const SimpleLedger: React.FC = () => {
+  const { user } = useAuth();
+  const shopId = user?.shop_id ? Number(user.shop_id) : 1;
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState<'entries' | 'summary'>('entries');
   const [refreshTrigger, setRefreshTrigger] = useState(false);
@@ -47,7 +48,7 @@ const SimpleLedger: React.FC = () => {
           <Button onClick={async ()=>{
             // CSV export
             try {
-              const blob = await exportLedgerCsv(1, selectedFarmer ?? undefined, fromDate, toDate);
+              const blob = await exportLedgerCsv(shopId, selectedFarmer ?? undefined, fromDate, toDate);
               const url = window.URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;
