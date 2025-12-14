@@ -42,10 +42,11 @@ async function startServer() {
       }
     }
     
-    // Create schema from SQL file unless explicitly skipped
-    const skipSchemaInit = String(process.env.SKIP_SCHEMA_INIT || '').toLowerCase() === 'true';
+    // Create schema from SQL file unless explicitly skipped or when migrations are running
+    const skipSchemaInit = String(process.env.SKIP_SCHEMA_INIT || '').toLowerCase() === 'true' ||
+      String(process.env.RUN_MIGRATIONS_ON_STARTUP || '').toLowerCase() === 'true';
     if (skipSchemaInit) {
-      console.log('⏭️  SKIP_SCHEMA_INIT=true set, skipping unified-schema apply');
+      console.log('⏭️  Skipping unified-schema apply (SKIP_SCHEMA_INIT or RUN_MIGRATIONS_ON_STARTUP=true)');
     } else {
       let schemaPath;
       if (process.env.DB_DIALECT === 'sqlite') {
