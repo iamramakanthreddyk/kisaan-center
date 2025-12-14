@@ -69,9 +69,7 @@ export const createUser = async (
   userData.balance = typeof userData.balance === 'number' ? userData.balance : 0;
   // Always set contact field, default to empty string if not provided
   userData.contact = typeof userData.contact === 'string' ? userData.contact : '';
-  if (userData.role === USER_ROLES.OWNER || userData.role === USER_ROLES.SUPERADMIN) {
-    userData.shop_id = null;
-  }
+  // Do not overwrite shop_id for owner/superadmin here; allow creation flow to provide it when appropriate
   // Auto-generate username if not provided
   if (!userData.username) {
   const baseName = 'user';
@@ -89,8 +87,11 @@ export const createUser = async (
       throw new ConflictError('Username already exists', { code: 'USER_ALREADY_EXISTS', field: 'username' });
     }
   }
-  // Validate shop exists for farmer/buyer
-  if ((data.role === USER_ROLES.FARMER || data.role === USER_ROLES.BUYER) && userData.shop_id) {
+  // Enforce presence of shop_id for farmer/buyer and validate existence
+  if (data.role === USER_ROLES.FARMER || data.role === USER_ROLES.BUYER) {
+    if (userData.shop_id === null || userData.shop_id === undefined) {
+      throw new ValidationError('shop_id is required for farmer and buyer users');
+    }
     const { Shop } = await import('../models/shop');
     const shop = await Shop.findByPk(userData.shop_id);
     if (!shop) {
