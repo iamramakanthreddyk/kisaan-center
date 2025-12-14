@@ -28,15 +28,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return stored ? JSON.parse(stored) : null;
   });
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('auth_token'));
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Refresh user data on mount if token exists
+  // Verify auth token on mount
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (token && !user) {
-      refreshUser();
-    }
+    const initAuth = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          // Try to refresh user data to validate token
+          try {
+            const res = await authApi.getCurrentUser();
+            if (res.data) {
+              setUser(res.data);
+              setIsAuthenticated(true);
+              localStorage.setItem('auth_user', JSON.stringify(res.data));
+            } else {
+              // Invalid token
+              localStorage.removeItem('auth_token');
+              localStorage.removeItem('auth_user');
+              setUser(null);
+              setIsAuthenticated(false);
+            }
+          } catch (error) {
+            // Token invalid, clear auth
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_user');
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
   }, []);
 
   const login = async (username: string, password: string) => {

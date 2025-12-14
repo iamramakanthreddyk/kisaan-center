@@ -53,7 +53,21 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode;
 };
 
 const AppRoutes = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
+  
+  // Show loading state while verifying auth
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+        <div className="text-center">
+          <div className="inline-block">
+            <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
+          </div>
+          <p className="mt-4 text-gray-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <Routes>
