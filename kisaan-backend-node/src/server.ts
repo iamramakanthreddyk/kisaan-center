@@ -179,6 +179,26 @@ async function startServer() {
       })();
     }
 
+    // Ensure `custom_commission_rate` exists on kisaan_users for Postgres/other dialects
+    if (process.env.DB_DIALECT !== 'sqlite') {
+      (async () => {
+        try {
+          const colCheck = await sequelize.query(
+            "SELECT 1 FROM information_schema.columns WHERE table_name = 'kisaan_users' AND column_name = 'custom_commission_rate' LIMIT 1",
+            { type: QueryTypes.SELECT }
+          );
+          const exists = Array.isArray(colCheck) && colCheck.length > 0;
+          if (!exists) {
+            console.log('🔧 Adding missing column `custom_commission_rate` to kisaan_users');
+            // Use IF NOT EXISTS to be safe on concurrent runs
+            await sequelize.query("ALTER TABLE kisaan_users ADD COLUMN IF NOT EXISTS custom_commission_rate DECIMAL(6,4)");
+          }
+        } catch (e) {
+          console.warn('⚠️ Could not ensure column custom_commission_rate on kisaan_users:', e instanceof Error ? e.message : e);
+        }
+      })();
+    }
+
     // Start the server
     const server = app.listen(PORT, () => {
       console.log(`🚀 KisaanCenter Backend Server running on port ${PORT}`);
