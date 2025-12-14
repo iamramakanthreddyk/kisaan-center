@@ -1,9 +1,8 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm run build"
 
 [deploy]
-startCommand = "npm run db:bootstrap && npm start"
+startCommand = "npm run build && npm run db:bootstrap && npm start"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
