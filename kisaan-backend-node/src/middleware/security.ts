@@ -4,16 +4,33 @@ import { Application, Request, Response, json, urlencoded } from 'express';
 import { env } from '../config/env';
 
 // Build CORS origins list
-function buildCorsOrigins(): string[] | RegExp[] {
+function buildCorsOrigins(): Array<string | RegExp> {
   const defaults = [
     'http://localhost:5173',
     'http://localhost:3000',
     'http://localhost:8080'
   ];
-  const extra = (process.env.CORS_ORIGINS || '')
+  const extraRaw = (process.env.CORS_ORIGINS || '')
     .split(',')
     .map(o => o.trim())
     .filter(Boolean);
+
+  const extra = extraRaw.map((entry) => {
+    // Regex entry prefixed with r:
+    if (entry.startsWith('r:')) {
+      try { return new RegExp(entry.slice(2)); } catch { return entry; }
+    }
+    // Wildcard support like *.vercel.app or https://*.vercel.app
+    if (entry.includes('*')) {
+      // Escape dots and slashes, replace * with [^/]+ to match a single host segment
+      const pattern = entry
+        .replace(/[-/\\^$+?.()|[\]{}]/g, '\\$&')
+        .replace(/\\\*/g, '[^/]+');
+      try { return new RegExp(`^${pattern}$`); } catch { return entry; }
+    }
+    return entry;
+  });
+
   return Array.from(new Set([...defaults, ...extra]));
 }
 
@@ -37,8 +54,18 @@ export function applySecurity(app: Application, opts: SecurityOptions = {}) {
 
   // CORS
   const corsOrigins = buildCorsOrigins();
+  // origin as function to handle dynamic matching of RegExp and strings
+  const originMatcher = (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
+    if (!origin) return cb(null, true); // allow non-browser clients (e.g., curl)
+    for (const o of corsOrigins) {
+      if (typeof o === 'string' && o === origin) return cb(null, true);
+      if (o instanceof RegExp && o.test(origin)) return cb(null, true);
+    }
+    return cb(new Error('Not allowed by CORS'), false);
+  };
+
   const corsOptions: CorsOptions = {
-    origin: corsOrigins,
+    origin: originMatcher,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
