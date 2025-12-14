@@ -1,16 +1,31 @@
 {
   "version": 2,
   "public": true,
+  "buildCommand": "cd kisaan-frontend && npm run build",
+  "outputDirectory": "kisaan-frontend/dist",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://kisaan-center-production.up.railway.app/api/$1"
+      "source": "/api/:path*",
+      "destination": "https://kisaan-center-production.up.railway.app/api/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ],
-  "cleanUrls": true,
-  "trailingSlash": false
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
 }
+
+
