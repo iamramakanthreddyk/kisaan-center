@@ -309,6 +309,7 @@ CREATE TABLE IF NOT EXISTS kisaan_users (
     status enum_kisaan_users_status NOT NULL DEFAULT 'active',
     balance DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     cumulative_value DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    custom_commission_rate DECIMAL(6,4) DEFAULT NULL,
     created_by BIGINT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
