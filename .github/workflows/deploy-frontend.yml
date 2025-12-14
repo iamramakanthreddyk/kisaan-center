@@ -1,21 +1,13 @@
-name: Deploy Frontend to GitHub Pages
+name: Build and Validate Frontend
 
 on:
-  workflow_dispatch:
+  pull_request:
+    branches: [ main, develop ]
   push: 
-    branches: [ main ]
+    branches: [ main, develop ]
     paths:
       - 'kisaan-frontend/**'
       - '.github/workflows/deploy-frontend.yml'
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
 
 jobs:
   validate:
@@ -55,8 +47,6 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     name: Build Frontend
-    env:
-      REQUIRE_VITE_API_BASE_URL: ${{ secrets.REQUIRE_VITE_API_BASE_URL }}
     
     steps:
     - name: Checkout
@@ -65,89 +55,23 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         cache: 'npm'
         cache-dependency-path: kisaan-frontend/package-lock.json
-
-    - name: Check required secret
-      if: ${{ env.REQUIRE_VITE_API_BASE_URL == 'true' }}
-      run: |
-        echo "REQUIRE_VITE_API_BASE_URL is enabled — verifying secret presence..."
-        if [ -z "${{ secrets.VITE_API_BASE_URL }}" ] || [ "${{ secrets.VITE_API_BASE_URL }}" = "null" ]; then
-          echo "ERROR: VITE_API_BASE_URL secret is required but not set."
-          exit 1
-        fi
-
-    - name: 🔧 Create production environment file
-      id: create_env
-      working-directory: kisaan-frontend
-      run: |
-        echo "Creating .env.production with values from GitHub secrets..."
-        
-        # Set backend URL with fallback to Azure Container Apps endpoint
-        BACKEND_URL="${{ secrets.VITE_API_BASE_URL }}"
-        if [ -z "$BACKEND_URL" ] || [ "$BACKEND_URL" = "null" ] || [ "$BACKEND_URL" = "undefined" ]; then
-          BACKEND_URL="https://kisaan-center-production.up.railway.app/api"
-          echo "⚠️  Using fallback backend URL: $BACKEND_URL"
-        else
-          echo "✅ Using backend URL from secret: $BACKEND_URL"
-        fi
-        
-        cat > .env.production << EOF
-        # Production environment configuration (auto-generated)
-        VITE_API_BASE_URL=$BACKEND_URL
-        VITE_APP_TITLE=KisaanCenter
-        VITE_APP_DESCRIPTION=Market Management System
-        VITE_APP_VERSION=1.0.0
-        VITE_ENVIRONMENT=production
-        VITE_BACKEND_URL=$BACKEND_URL
-        VITE_API_TIMEOUT=30000
-        VITE_ENABLE_LOGGING=false
-        EOF
-
-        echo "✅ Environment file created successfully"
-        echo "Backend URL will be: $BACKEND_URL"
-        # Expose the final backend URL as a step output for later debugging
-        echo "final_backend_url=$BACKEND_URL" >> $GITHUB_OUTPUT
 
     - name: 📥 Install dependencies
       working-directory: kisaan-frontend
       run: npm ci --legacy-peer-deps
 
-    - name: Show final backend URL
-      run: |
-        echo "Final backend URL used by the build: ${{ steps.create_env.outputs.final_backend_url }}"
-
-
     - name: Build
       working-directory: kisaan-frontend
       run: npm run build
-    - name: Select Pages token from secrets
-      run: |
-        echo "Selecting Pages token from available secrets (PAGES_TOKEN or PASS_TOKEN)."
-        if [ -n "${{ secrets.PAGES_TOKEN }}" ]; then
-          echo "SELECTED_PAGES_TOKEN will use PAGES_TOKEN"
-          echo "SELECTED_PAGES_TOKEN=${{ secrets.PAGES_TOKEN }}" >> $GITHUB_ENV
-        elif [ -n "${{ secrets.PASS_TOKEN }}" ]; then
-          echo "SELECTED_PAGES_TOKEN will use PASS_TOKEN"
-          echo "SELECTED_PAGES_TOKEN=${{ secrets.PASS_TOKEN }}" >> $GITHUB_ENV
-        else
-          echo "SELECTED_PAGES_TOKEN=" >> $GITHUB_ENV
-        fi
 
-    - name: Pages token diagnostics
+    - name: ✅ Build Success
       run: |
-        echo "Checking selected Pages token presence and validating it (no token will be printed)."
-        if [ -z "${SELECTED_PAGES_TOKEN}" ]; then
-          echo "No token selected. If Actions cannot create/enable Pages, add a PAT as repo secret 'PAGES_TOKEN' or 'PASS_TOKEN'."
-        else
-          echo "Token selected — testing token by calling GitHub API /user"
-          status=$(curl -s -o /tmp/pagetest.json -w "%{http_code}" -H "Authorization: token ${SELECTED_PAGES_TOKEN}" https://api.github.com/user)
-          echo "GitHub API HTTP status: $status"
-          if [ "$status" -ne 200 ]; then
-            echo "Token validation failed — API returned non-200. Response body:";
-            cat /tmp/pagetest.json
-            echo "Ensure the PAT has 'repo' (or 'public_repo' for public repos) and 'workflow' scopes, or use a fine-grained token with repository + Actions permissions."
+        echo "✅ Frontend build completed successfully"
+        echo "📦 Frontend is ready for Vercel deployment"
+
             exit 1
           fi
           echo -n "Authenticated as: "
