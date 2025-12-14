@@ -115,6 +115,26 @@ CREATE SEQUENCE IF NOT EXISTS kisaan_payment_allocations_id_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS kisaan_settlements_id_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS kisaan_balance_snapshots_id_seq START 1;
 
+-- Plans table (ensure exists before ALTER SEQUENCE and seeding)
+CREATE TABLE IF NOT EXISTS kisaan_plans (
+    id INTEGER DEFAULT nextval('kisaan_plans_id_seq') PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    price DECIMAL(10,2),
+    billing_cycle enum_kisaan_plans_billing_cycle DEFAULT 'monthly',
+    monthly_price DECIMAL(10,2),
+    quarterly_price DECIMAL(10,2),
+    yearly_price DECIMAL(10,2),
+    max_farmers INTEGER,
+    max_buyers INTEGER,
+    max_transactions INTEGER,
+    data_retention_months INTEGER,
+    features TEXT NOT NULL DEFAULT '[]',
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS "SequelizeMeta" (
     name VARCHAR(255) NOT NULL PRIMARY KEY
 );
@@ -127,6 +147,23 @@ CREATE TABLE IF NOT EXISTS kisaan_shops (
     address TEXT,
     contact VARCHAR(255),
     status enum_kisaan_shops_status NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Transactions table (moved earlier to satisfy FK dependencies)
+CREATE TABLE IF NOT EXISTS kisaan_transactions (
+    id INTEGER DEFAULT nextval('kisaan_transactions_id_seq') PRIMARY KEY,
+    shop_id BIGINT NOT NULL,
+    farmer_id BIGINT NOT NULL,
+    buyer_id BIGINT NOT NULL,
+    category_id INTEGER NOT NULL,
+    product_name VARCHAR(255) NOT NULL,
+    quantity DECIMAL(12,2) NOT NULL,
+    unit_price DECIMAL(12,2) NOT NULL,
+    total_sale_value DECIMAL(12,2) NOT NULL,
+    shop_commission DECIMAL(12,2) NOT NULL,
+    farmer_earning DECIMAL(12,2) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -213,6 +250,7 @@ CREATE TABLE IF NOT EXISTS kisaan_ledger (
 
 CREATE TABLE IF NOT EXISTS kisaan_user_balances (
     id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
     shop_id BIGINT NOT NULL,
     balance DECIMAL(15,2) NOT NULL DEFAULT 0,
     version INT NOT NULL DEFAULT 0,
@@ -244,9 +282,7 @@ CREATE TABLE IF NOT EXISTS kisaan_expense_allocations (
     allocation_type VARCHAR(30) NOT NULL CHECK (allocation_type IN ('transaction_offset', 'balance_settlement', 'advance', 'adjustment')),
     allocated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     notes TEXT,
-	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -260,7 +296,6 @@ CREATE TABLE IF NOT EXISTS kisaan_categories (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Users table
 CREATE TABLE IF NOT EXISTS kisaan_users (
     id BIGINT DEFAULT nextval('kisaan_users_id_seq') PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
@@ -278,7 +313,6 @@ CREATE TABLE IF NOT EXISTS kisaan_users (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-
 -- Products table
 CREATE TABLE IF NOT EXISTS kisaan_products (
     id INTEGER DEFAULT nextval('kisaan_products_id_seq') PRIMARY KEY,
@@ -292,22 +326,6 @@ CREATE TABLE IF NOT EXISTS kisaan_products (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Transactions table
-CREATE TABLE IF NOT EXISTS kisaan_transactions (
-    id INTEGER DEFAULT nextval('kisaan_transactions_id_seq') PRIMARY KEY,
-    shop_id BIGINT NOT NULL,
-    farmer_id BIGINT NOT NULL,
-    buyer_id BIGINT NOT NULL,
-    category_id INTEGER NOT NULL,
-    product_name VARCHAR(255) NOT NULL,
-    quantity DECIMAL(12,2) NOT NULL,
-    unit_price DECIMAL(12,2) NOT NULL,
-    total_sale_value DECIMAL(12,2) NOT NULL,
-    shop_commission DECIMAL(12,2) NOT NULL,
-    farmer_earning DECIMAL(12,2) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
 
 
 -- Commissions table
