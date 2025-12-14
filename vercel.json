@@ -3,9 +3,6 @@
   "public": true,
   "buildCommand": "cd kisaan-frontend && npm run build",
   "outputDirectory": "kisaan-frontend/dist",
-  "env": {
-    "VITE_API_BASE_URL": "@vite_api_base_url"
-  },
   "rewrites": [
     {
       "source": "/api/:path*",
