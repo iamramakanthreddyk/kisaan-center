@@ -4,7 +4,7 @@
 
 
 module.exports = {
-  up: async (queryInterface) => {
+  up: async (queryInterface: import('sequelize').QueryInterface) => {
   // Helper to add column if missing, cross-dialect
   async function ensureColumn(table: string, column: string, definition: string) {
     const dialect = queryInterface.sequelize.getDialect();

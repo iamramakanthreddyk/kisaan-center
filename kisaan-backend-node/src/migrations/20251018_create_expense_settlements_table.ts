@@ -1,7 +1,7 @@
-const { QueryTypes, Sequelize, DataTypes } = require('sequelize');
+import { QueryInterface, DataTypes, Sequelize } from 'sequelize';
 
-module.exports = {
-  up: async (queryInterface, SequelizeLib = Sequelize) => {
+export = {
+  up: async (queryInterface: QueryInterface, SequelizeLib: typeof Sequelize = Sequelize) => {
     await queryInterface.createTable('expense_settlements', {
       id: {
         type: DataTypes.BIGINT,
@@ -35,7 +35,7 @@ module.exports = {
     await queryInterface.addIndex('expense_settlements', ['payment_id', 'expense_id']);
   },
 
-  down: async (queryInterface) => {
+  down: async (queryInterface: QueryInterface) => {
     await queryInterface.dropTable('expense_settlements');
   }
 };

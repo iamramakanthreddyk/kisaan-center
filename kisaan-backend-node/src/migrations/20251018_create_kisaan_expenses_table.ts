@@ -1,7 +1,7 @@
-const { DataTypes } = require('sequelize');
+import { QueryInterface, DataTypes } from 'sequelize';
 
-module.exports = {
-  up: async (queryInterface) => {
+export = {
+  up: async (queryInterface: QueryInterface) => {
     await queryInterface.createTable('kisaan_expenses', {
       id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true, allowNull: false },
       shop_id: { type: DataTypes.BIGINT, allowNull: false },
@@ -18,7 +18,7 @@ module.exports = {
     await queryInterface.addIndex('kisaan_expenses', ['shop_id', 'user_id', 'status'], { name: 'idx_kisaan_expenses_shop_user_status' });
   },
 
-  down: async (queryInterface) => {
+  down: async (queryInterface: QueryInterface) => {
     await queryInterface.removeIndex('kisaan_expenses', 'idx_kisaan_expenses_shop_user_status');
     await queryInterface.dropTable('kisaan_expenses');
   }
