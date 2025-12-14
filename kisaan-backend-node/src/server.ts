@@ -199,6 +199,45 @@ async function startServer() {
       })();
     }
 
+    // Ensure `location` exists on kisaan_shops for Postgres/other dialects (emergency mitigation)
+    if (process.env.DB_DIALECT !== 'sqlite') {
+      (async () => {
+        try {
+          const shopColCheck = await sequelize.query(
+            "SELECT 1 FROM information_schema.columns WHERE table_name = 'kisaan_shops' AND column_name = 'location' LIMIT 1",
+            { type: QueryTypes.SELECT }
+          );
+          const shopLocationExists = Array.isArray(shopColCheck) && shopColCheck.length > 0;
+          if (!shopLocationExists) {
+            console.log('🔧 Adding missing column `location` to kisaan_shops');
+            // Use IF NOT EXISTS so concurrent starts are safe
+            await sequelize.query("ALTER TABLE kisaan_shops ADD COLUMN IF NOT EXISTS location TEXT");
+          }
+        } catch (e) {
+          console.warn('⚠️ Could not ensure column location on kisaan_shops:', e instanceof Error ? e.message : e);
+        }
+      })();
+    }
+
+    // Ensure `email` exists on kisaan_shops for Postgres/other dialects (emergency mitigation)
+    if (process.env.DB_DIALECT !== 'sqlite') {
+      (async () => {
+        try {
+          const emailColCheck = await sequelize.query(
+            "SELECT 1 FROM information_schema.columns WHERE table_name = 'kisaan_shops' AND column_name = 'email' LIMIT 1",
+            { type: QueryTypes.SELECT }
+          );
+          const shopEmailExists = Array.isArray(emailColCheck) && emailColCheck.length > 0;
+          if (!shopEmailExists) {
+            console.log('🔧 Adding missing column `email` to kisaan_shops');
+            await sequelize.query("ALTER TABLE kisaan_shops ADD COLUMN IF NOT EXISTS email VARCHAR(255)");
+          }
+        } catch (e) {
+          console.warn('⚠️ Could not ensure column email on kisaan_shops:', e instanceof Error ? e.message : e);
+        }
+      })();
+    }
+
     // Start the server
     const server = app.listen(PORT, () => {
       console.log(`🚀 KisaanCenter Backend Server running on port ${PORT}`);
