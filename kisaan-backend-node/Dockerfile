@@ -28,15 +28,15 @@ RUN apk add --no-cache \
 # Create app directory
 WORKDIR /app
 
-# Copy package files and install only production dependencies
-COPY package*.json ./
+# Copy package files and lockfile from build stage (guarantees lock is present)
+COPY --from=build /app/package.json ./
+COPY --from=build /app/package-lock.json ./
+
+# Install only production dependencies using the lockfile
 RUN npm ci --only=production
 
 # Copy built application from build stage
 COPY --from=build /app/dist ./dist
-
-# Copy other necessary files
-COPY --from=build /app/package.json ./
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
