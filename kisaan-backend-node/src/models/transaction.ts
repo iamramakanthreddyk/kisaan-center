@@ -35,6 +35,9 @@ export interface TransactionAttributes {
   pending_amount?: number;
   settlement_status?: 'UNSETTLED' | 'PARTIALLY_SETTLED' | 'FULLY_SETTLED';
   
+  // Counterparty field (added by migration 20251214_15)
+  counterparty_id?: number | null;
+  
   created_at?: Date;
   updated_at?: Date;
 }
@@ -69,6 +72,9 @@ export class Transaction extends Model<TransactionAttributes, TransactionCreatio
   public settled_amount?: number;
   public pending_amount?: number;
   public settlement_status?: 'UNSETTLED' | 'PARTIALLY_SETTLED' | 'FULLY_SETTLED';
+  
+  // Counterparty field
+  public counterparty_id?: number | null;
   
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
@@ -106,6 +112,9 @@ Transaction.init(
       defaultValue: 'UNSETTLED',
       validate: { isIn: [['UNSETTLED', 'PARTIALLY_SETTLED', 'FULLY_SETTLED']] }
     },
+    
+    // Counterparty field (added by migration 20251214_15)
+    counterparty_id: { type: DataTypes.BIGINT, allowNull: true, references: { model: 'kisaan_users', key: 'id' } },
     
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },

@@ -16,7 +16,6 @@ export interface PaymentAttributes {
   payment_date?: Date;
   method: PaymentMethod; // Future-proof: add new methods here
   notes?: string;
-  counterparty_id?: number | null;
 
   // Enhanced Settlement Tracking (New)
   settlement_type?: SettlementType;
@@ -34,7 +33,7 @@ export interface PaymentAttributes {
 }
 
 
-export interface PaymentCreationAttributes extends Optional<PaymentAttributes, 'id' | 'status' | 'payment_date' | 'notes' | 'counterparty_id' | 'shop_id' | 'transaction_id' | 'settlement_type' | 'balance_before' | 'balance_after' | 'settled_transactions' | 'settled_expenses' | 'created_at' | 'updated_at'> {}
+export interface PaymentCreationAttributes extends Optional<PaymentAttributes, 'id' | 'status' | 'payment_date' | 'notes' | 'shop_id' | 'transaction_id' | 'settlement_type' | 'balance_before' | 'balance_after' | 'settled_transactions' | 'settled_expenses' | 'created_at' | 'updated_at'> {}
 
 export class Payment extends Model<PaymentAttributes, PaymentCreationAttributes> implements PaymentAttributes {
   public id!: number;
@@ -47,7 +46,6 @@ export class Payment extends Model<PaymentAttributes, PaymentCreationAttributes>
   public payment_date?: Date;
   public method!: PaymentMethod;
   public notes?: string;
-  public counterparty_id!: number | null;
 
   // Enhanced Settlement Tracking
   public settlement_type?: SettlementType;
@@ -75,7 +73,6 @@ Payment.init(
     payment_date: { type: DataTypes.DATE, allowNull: true },
     method: { type: DataTypes.ENUM(...Object.values(PaymentMethod)), allowNull: false },
     notes: { type: DataTypes.TEXT, allowNull: true },
-    counterparty_id: { type: DataTypes.BIGINT, allowNull: true, references: { model: 'kisaan_users', key: 'id' } },
 
     // Enhanced Settlement Tracking
     settlement_type: { type: DataTypes.ENUM(...Object.values(SettlementType)), allowNull: true, defaultValue: SettlementType.Partial },
@@ -108,8 +105,6 @@ Payment.init(
       { fields: ['status'] },
       // Index for queries by payment date
       { fields: ['payment_date'] },
-      // Index for queries by counterparty
-      { fields: ['counterparty_id'] },
       // Composite index for transaction and status
       { fields: ['transaction_id', 'status'] },
       // Composite index for transaction, shop, status, and created_at
