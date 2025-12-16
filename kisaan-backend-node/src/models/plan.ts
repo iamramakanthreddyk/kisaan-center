@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../config/database';
 
-interface PlanAttributes {
+export interface PlanAttributes {
   id: number;
   name: string;
   description?: string | null;
@@ -25,6 +25,7 @@ export interface PlanCreationAttributes extends Optional<
   'id' | 'description' | 'features' | 'createdAt' | 'updatedAt'
 > {}
 
+export class Plan extends Model<PlanAttributes, PlanCreationAttributes> implements PlanAttributes {
   public id!: number;
   public name!: string;
   public description!: string | null;
@@ -42,6 +43,7 @@ export interface PlanCreationAttributes extends Optional<
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
+
 
 Plan.init(
   {

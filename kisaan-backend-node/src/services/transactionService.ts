@@ -869,14 +869,13 @@ export class TransactionService {
         if (recordFarmerEarning > 0) {
           console.error('[LEDGER] Creating CREDIT entry for farmer', { farmerId: farmer.id, shopId: farmer.shop_id, amount: recordFarmerEarning });
           await this.ledgerService.appendEntry({
-            user_id: farmer.id!,
+            farmer_id: farmer.id!,
             shop_id: farmer.shop_id!,
-            direction: 'CREDIT',
             amount: recordFarmerEarning,
             type: 'TRANSACTION',
-            reference_type: 'transaction',
-            reference_id: (createdTransaction as { id: number }).id,
-            description: `Transaction #${(createdTransaction as { id: number }).id}: Farmer earns ₹${recordFarmerEarning}`
+            category: 'TRANSACTION',
+            notes: `Transaction #${(createdTransaction as { id: number }).id}: Farmer earns 9${recordFarmerEarning}`,
+            created_by: farmer.id!
           });
           console.error('[LEDGER] CREDIT entry created successfully');
         }
@@ -886,14 +885,13 @@ export class TransactionService {
         if (recordTotalAmount > 0) {
           console.error('[LEDGER] Creating DEBIT entry for buyer', { buyerId: buyer.id, shopId: buyer.shop_id, amount: recordTotalAmount });
           await this.ledgerService.appendEntry({
-            user_id: buyer.id!,
+            farmer_id: buyer.id!,
             shop_id: buyer.shop_id!,
-            direction: 'DEBIT',
             amount: recordTotalAmount,
             type: 'TRANSACTION',
-            reference_type: 'transaction',
-            reference_id: (createdTransaction as { id: number }).id,
-            description: `Transaction #${(createdTransaction as { id: number }).id}: Buyer owes ₹${recordTotalAmount}`
+            category: 'TRANSACTION',
+            notes: `Transaction #${(createdTransaction as { id: number }).id}: Buyer owes 9${recordTotalAmount}`,
+            created_by: buyer.id!
           });
           console.error('[LEDGER] DEBIT entry created successfully');
         }

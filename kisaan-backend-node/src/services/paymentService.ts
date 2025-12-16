@@ -397,14 +397,13 @@ export class PaymentService {
             // Since farmer is paying the shop, create a CREDIT ledger entry (payment received)
             try {
               await this.ledgerService.appendEntry({
-                user_id: userIdToUpdate,
+                farmer_id: userIdToUpdate,
                 shop_id: payment.shop_id!,
-                direction: 'CREDIT',
                 amount: amountAppliedToBalance,
                 type: 'PAYMENT',
-                reference_type: 'payment',
-                reference_id: payment.id!,
-                description: `Payment #${payment.id}: Farmer payment to shop (applied ₹${amountAppliedToBalance})`
+                category: 'PAYMENT',
+                notes: `Payment #${payment.id}: Farmer payment to shop (applied 9${amountAppliedToBalance})`,
+                created_by: userIdToUpdate
               });
 
               console.log('[LEDGER] Created CREDIT entry for farmer->shop payment', {
@@ -485,14 +484,13 @@ export class PaymentService {
             // When shop pays farmer, create a DEBIT ledger entry (payment made)
             try {
               await this.ledgerService.appendEntry({
-                user_id: userIdToUpdate,
+                farmer_id: userIdToUpdate,
                 shop_id: payment.shop_id!,
-                direction: 'DEBIT',
                 amount: remainingForBalance,
                 type: 'PAYMENT',
-                reference_type: 'payment',
-                reference_id: payment.id!,
-                description: `Payment #${payment.id}: Shop payment to farmer (applied ₹${remainingForBalance})`
+                category: 'PAYMENT',
+                notes: `Payment #${payment.id}: Shop payment to farmer (applied 9${remainingForBalance})`,
+                created_by: userIdToUpdate
               });
 
               console.log('[LEDGER] Created DEBIT entry for shop->farmer payment', {

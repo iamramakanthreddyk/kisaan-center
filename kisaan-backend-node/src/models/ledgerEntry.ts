@@ -17,6 +17,7 @@ export interface LedgerEntryAttributes {
 
 export interface LedgerEntryCreationAttributes extends Optional<LedgerEntryAttributes, 'id' | 'commission_amount' | 'net_amount' | 'notes'> {}
 
+export class LedgerEntry extends Model<LedgerEntryAttributes, LedgerEntryCreationAttributes> implements LedgerEntryAttributes {
   public id!: number;
   public shop_id!: number;
   public farmer_id!: number;

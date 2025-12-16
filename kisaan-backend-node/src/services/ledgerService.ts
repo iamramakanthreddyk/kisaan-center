@@ -1,18 +1,18 @@
+import { logger } from '../shared/logging/logger';
 import { Transaction as SequelizeTransaction, Op, WhereOptions } from 'sequelize';
 import LedgerEntry, { LedgerEntryAttributes } from '../models/ledgerEntry';
 import UserBalance, { UserBalanceCreationAttributes } from '../models/userBalance';
-import { logger } from '../shared/logging/logger';
 
 export interface LedgerEntryData {
-  user_id: number;
+  farmer_id: number;
   shop_id: number;
-  direction: 'DEBIT' | 'CREDIT';
   amount: number;
   type: 'TRANSACTION' | 'PAYMENT' | 'ADVANCE' | 'EXPENSE' | 'EXPENSE_SETTLED' | 'ADJUSTMENT' | 'REFUND';
-  reference_type?: string;
-  reference_id?: number;
-  description?: string;
-  created_by?: number;
+  category: string;
+  notes?: string;
+  commission_amount?: number;
+  net_amount?: number;
+  created_by: number;
 }
 
 export interface SettlementSummary {
@@ -44,7 +44,7 @@ export class LedgerService {
     let finalTx = tx;
 
     try {
-      console.error('[LEDGER SERVICE] appendEntry called:', { user_id: data.user_id, shop_id: data.shop_id, direction: data.direction, amount: data.amount, type: data.type });
+      console.error('[LEDGER SERVICE] appendEntry called:', { farmer_id: data.farmer_id, shop_id: data.shop_id, amount: data.amount, type: data.type, category: data.category });
       
       if (!finalTx) {
         finalTx = await (LedgerEntry.sequelize?.transaction() as Promise<SequelizeTransaction>);
@@ -53,33 +53,33 @@ export class LedgerService {
       // 1. Create ledger entry
       const entry = await LedgerEntry.create(
         {
-          user_id: data.user_id,
+          farmer_id: data.farmer_id,
           shop_id: data.shop_id,
-          direction: data.direction,
           amount: data.amount,
           type: data.type,
-          reference_type: data.reference_type,
-          reference_id: data.reference_id,
-          description: data.description,
+          category: data.category,
+          notes: data.notes,
+          commission_amount: data.commission_amount,
+          net_amount: data.net_amount,
           created_by: data.created_by,
           created_at: new Date()
         } as LedgerEntryAttributes,
         { transaction: finalTx }
       );
 
-      // 2. Calculate signed amount
-      const signedAmount = data.direction === 'CREDIT' ? data.amount : -data.amount;
+      // No direction field, just use amount as is
+      const signedAmount = data.amount;
 
       // 3. Update or create user balance
       const [userBalance, created] = await UserBalance.findOrCreate({
         where: {
-          user_id: data.user_id,
+          user_id: data.farmer_id,
           shop_id: data.shop_id
         },
         defaults: {
-          user_id: data.user_id,
+          user_id: data.farmer_id,
           shop_id: data.shop_id,
-          balance: signedAmount,
+          balance: data.amount,
           version: 1,
           last_updated: new Date()
         } as UserBalanceCreationAttributes,
@@ -89,11 +89,11 @@ export class LedgerService {
       let newBalance: number;
 
       if (created) {
-        newBalance = Number(userBalance.balance || signedAmount);
+        newBalance = Number(userBalance.balance || data.amount);
       } else {
         // Update existing balance
         const oldBalance = Number(userBalance.balance || 0);
-        newBalance = oldBalance + signedAmount;
+        newBalance = oldBalance + data.amount;
 
         await UserBalance.update(
           {
@@ -103,7 +103,7 @@ export class LedgerService {
           },
           {
             where: {
-              user_id: data.user_id,
+              user_id: data.farmer_id,
               shop_id: data.shop_id
             },
             transaction: finalTx
@@ -114,10 +114,10 @@ export class LedgerService {
       logger.info(
         {
           entryId: entry.id,
-          userId: data.user_id,
+          farmerId: data.farmer_id,
           shopId: data.shop_id,
           type: data.type,
-          direction: data.direction,
+          category: data.category,
           amount: data.amount,
           newBalance: newBalance
         },
@@ -145,10 +145,10 @@ export class LedgerService {
    * Get current balance for a user-shop pair
    * No calculation needed - it's pre-calculated!
    */
-  async getBalance(userId: number, shopId: number): Promise<number> {
+  async getBalance(farmerId: number, shopId: number): Promise<number> {
     const balance = await UserBalance.findOne({
       where: {
-        user_id: userId,
+        user_id: farmerId,
         shop_id: shopId
       }
     });
@@ -160,7 +160,7 @@ export class LedgerService {
    * Get ledger history for audit trail
    */
   async getLedgerHistory(
-    userId: number,
+    farmerId: number,
     shopId: number,
     filters?: {
       types?: string[];
@@ -170,7 +170,7 @@ export class LedgerService {
     }
   ): Promise<LedgerEntry[]> {
     const where: WhereOptions<LedgerEntryAttributes> = {
-      user_id: userId,
+      farmer_id: farmerId,
       shop_id: shopId
     };
 
@@ -218,11 +218,8 @@ export class LedgerService {
         byType[key] = { debit: 0, credit: 0, count: 0 };
       }
       const amount = Number(entry.amount || 0);
-      if (entry.direction === 'DEBIT') {
-        byType[key].debit += amount;
-      } else {
-        byType[key].credit += amount;
-      }
+      // No direction field, so just sum as credit
+      byType[key].credit += amount;
       byType[key].count++;
     }
 
