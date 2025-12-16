@@ -803,28 +803,16 @@ export class PaymentService {
       
       // Update payment record with balance tracking information
       try {
-        const { SettlementType } = await import('../models/payment');
-        const paymentAmount = Number(payment.amount);
-        
-        // Determine settlement type based on expense application
-        const settlementType = appliedToExpenses > 0 
-          ? SettlementType.Adjustment // Mixed: part went to expenses, part to balance
-          : (appliedToBalance >= paymentAmount ? SettlementType.Partial : SettlementType.Partial);
-        
         const updateOptions = options?.tx ? { transaction: options.tx } : {};
-        
         await payment.update({
           balance_before: previousBalance,
-          balance_after: newBalance,
-          settlement_type: settlementType
+          balance_after: newBalance
         }, updateOptions);
-        
         console.log(`[PAYMENT BALANCE TRACKING] Updated payment #${payment.id} with balance info`, {
           balance_before: previousBalance,
           balance_after: newBalance,
           applied_to_expenses: appliedToExpenses,
-          applied_to_balance: appliedToBalance,
-          settlement_type: settlementType
+          applied_to_balance: appliedToBalance
         });
       } catch (updateError: unknown) {
         const error = updateError as Error;

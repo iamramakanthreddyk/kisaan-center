@@ -51,7 +51,9 @@ Category.init(
   {
     sequelize,
     tableName: 'kisaan_categories',
-    timestamps: false,
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     indexes: [
       { unique: true, fields: ['name'] },
     ],

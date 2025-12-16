@@ -38,7 +38,9 @@ Product.init({
 }, {
   sequelize,
   tableName: 'kisaan_products',
-  timestamps: false, // explicit columns handled manually
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
   indexes: [
     { fields: ['category_id'] },
     { fields: ['name', 'category_id'], unique: true }

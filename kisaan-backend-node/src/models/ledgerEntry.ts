@@ -3,68 +3,57 @@ import sequelize from '../config/database';
 
 export interface LedgerEntryAttributes {
   id: number;
-  user_id: number;
   shop_id: number;
-  direction: 'DEBIT' | 'CREDIT';
+  farmer_id: number;
   amount: number;
-  type: 'TRANSACTION' | 'PAYMENT' | 'ADVANCE' | 'EXPENSE' | 'EXPENSE_SETTLED' | 'ADJUSTMENT' | 'REFUND';
-  reference_type?: string;
-  reference_id?: number;
-  description?: string;
+  commission_amount?: number;
+  net_amount?: number;
+  type: string;
+  category: string;
+  notes?: string;
   created_at: Date;
-  created_by?: number;
+  created_by: number;
 }
 
-export interface LedgerEntryCreationAttributes extends Optional<LedgerEntryAttributes, 'id' | 'created_at'> {}
+export interface LedgerEntryCreationAttributes extends Optional<LedgerEntryAttributes, 'id' | 'commission_amount' | 'net_amount' | 'notes'> {}
 
-export class LedgerEntry extends Model<LedgerEntryAttributes, LedgerEntryCreationAttributes> implements LedgerEntryAttributes {
   public id!: number;
-  public user_id!: number;
   public shop_id!: number;
-  public direction!: 'DEBIT' | 'CREDIT';
+  public farmer_id!: number;
   public amount!: number;
-  public type!: 'TRANSACTION' | 'PAYMENT' | 'ADVANCE' | 'EXPENSE' | 'EXPENSE_SETTLED' | 'ADJUSTMENT' | 'REFUND';
-  public reference_type?: string;
-  public reference_id?: number;
-  public description?: string;
+  public commission_amount?: number;
+  public net_amount?: number;
+  public type!: string;
+  public category!: string;
+  public notes?: string;
   public created_at!: Date;
-  public created_by?: number;
+  public created_by!: number;
 }
 
 LedgerEntry.init(
   {
-    id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
-    user_id: { type: DataTypes.BIGINT, allowNull: false },
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     shop_id: { type: DataTypes.BIGINT, allowNull: false },
-    direction: {
-      type: DataTypes.ENUM('DEBIT', 'CREDIT'),
-      allowNull: false
-    },
+    farmer_id: { type: DataTypes.BIGINT, allowNull: false },
     amount: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
-    type: {
-      type: DataTypes.ENUM('TRANSACTION', 'PAYMENT', 'ADVANCE', 'EXPENSE', 'EXPENSE_SETTLED', 'ADJUSTMENT', 'REFUND'),
-      allowNull: false
-    },
-    reference_type: { type: DataTypes.STRING(50) },
-    reference_id: { type: DataTypes.BIGINT },
-    description: { type: DataTypes.TEXT },
-    created_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    },
-    created_by: { type: DataTypes.BIGINT }
+    commission_amount: { type: DataTypes.DECIMAL(12, 2), allowNull: true, defaultValue: 0 },
+    net_amount: { type: DataTypes.DECIMAL(12, 2), allowNull: true, defaultValue: 0 },
+    type: { type: DataTypes.STRING, allowNull: false },
+    category: { type: DataTypes.STRING, allowNull: false },
+    notes: { type: DataTypes.TEXT, allowNull: true },
+    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
+    created_by: { type: DataTypes.BIGINT, allowNull: false },
   },
   {
     sequelize,
     modelName: 'LedgerEntry',
-    tableName: 'kisaan_ledger_entries',
+    tableName: 'kisaan_ledger',
     timestamps: false,
     indexes: [
-      { fields: ['user_id', 'shop_id'] },
+      { fields: ['shop_id', 'farmer_id'] },
       { fields: ['created_at'] },
       { fields: ['type'] },
-      { fields: ['reference_type', 'reference_id'] }
+      { fields: ['category'] }
     ]
   }
 );

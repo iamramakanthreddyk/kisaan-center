@@ -16,6 +16,7 @@ export class TransactionEntity {
   
   // Enhanced Financial Tracking (New)
   total_sale_value?: number; // Total sale amount
+  shop_commission?: number; // Shop commission (canonical field)
   commission_rate?: number;
   commission_type?: string;
   commission_amount?: number; // Platform commission

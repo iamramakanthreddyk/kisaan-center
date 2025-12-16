@@ -95,6 +95,7 @@ Transaction.init(
     shop_commission: { type: DataTypes.DECIMAL(12,2), allowNull: false, validate: { min: 0 } },
     farmer_earning: { type: DataTypes.DECIMAL(12,2), allowNull: false, validate: { min: 0 } },
     product_id: { type: DataTypes.BIGINT, allowNull: true, references: { model: 'kisaan_products', key: 'id' } },
+    commission_amount: { type: DataTypes.DECIMAL(12,2), allowNull: true },
     commission_rate: { type: DataTypes.DECIMAL(6,4), allowNull: true },
     commission_type: { type: DataTypes.STRING(30), allowNull: true },
     status: { type: DataTypes.ENUM(...Object.values(TransactionStatus)), allowNull: true, defaultValue: TransactionStatus.Pending },

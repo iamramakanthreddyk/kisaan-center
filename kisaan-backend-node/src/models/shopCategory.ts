@@ -63,7 +63,9 @@ ShopCategory.init(
   {
     sequelize,
     tableName: 'kisaan_shop_categories',
-    timestamps: false,
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     indexes: [
       { fields: ['shop_id'] },
       { fields: ['category_id'] },

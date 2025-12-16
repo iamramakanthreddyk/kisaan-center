@@ -1,9 +1,9 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../config/database';
-import { PaymentParty, PaymentStatus, PaymentMethod, SettlementType } from '../shared/enums';
+import { PaymentParty, PaymentStatus, PaymentMethod } from '../shared/enums';
 
 // Re-export for backward compatibility
-export { PaymentParty, PaymentStatus, PaymentMethod, SettlementType };
+export { PaymentParty, PaymentStatus, PaymentMethod };
 
 export interface PaymentAttributes {
   id: number;
@@ -19,7 +19,6 @@ export interface PaymentAttributes {
   notes?: string;
 
   // Enhanced Settlement Tracking (New)
-  settlement_type?: SettlementType;
   balance_before?: number | null;
   balance_after?: number | null;
   // Amount applied by this payment towards expenses (e.g. expense settlements)
@@ -34,7 +33,7 @@ export interface PaymentAttributes {
 }
 
 
-export interface PaymentCreationAttributes extends Optional<PaymentAttributes, 'id' | 'status' | 'payment_date' | 'notes' | 'shop_id' | 'transaction_id' | 'counterparty_id' | 'settlement_type' | 'balance_before' | 'balance_after' | 'settled_transactions' | 'settled_expenses' | 'created_at' | 'updated_at'> {}
+export interface PaymentCreationAttributes extends Optional<PaymentAttributes, 'id' | 'status' | 'payment_date' | 'notes' | 'shop_id' | 'transaction_id' | 'counterparty_id' | 'balance_before' | 'balance_after' | 'settled_transactions' | 'settled_expenses' | 'created_at' | 'updated_at'> {}
 
 export class Payment extends Model<PaymentAttributes, PaymentCreationAttributes> implements PaymentAttributes {
   public id!: number;
@@ -50,7 +49,6 @@ export class Payment extends Model<PaymentAttributes, PaymentCreationAttributes>
   public notes?: string;
 
   // Enhanced Settlement Tracking
-  public settlement_type?: SettlementType;
   public balance_before?: number | null;
   public balance_after?: number | null;
   public applied_to_expenses?: number | null;
@@ -78,7 +76,6 @@ Payment.init(
     notes: { type: DataTypes.TEXT, allowNull: true },
 
     // Enhanced Settlement Tracking
-    settlement_type: { type: DataTypes.ENUM(...Object.values(SettlementType)), allowNull: true, defaultValue: SettlementType.Partial },
     balance_before: { type: DataTypes.DECIMAL(10,2), allowNull: true },
     balance_after: { type: DataTypes.DECIMAL(10,2), allowNull: true },
   applied_to_expenses: { type: DataTypes.DECIMAL(12,2), allowNull: true, defaultValue: 0 },

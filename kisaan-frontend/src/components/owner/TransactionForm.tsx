@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,7 @@ import { TransactionPartySelectors, TransactionQuantityPricing, TransactionSumma
 import { useTransactionFormLogic } from '../../hooks/useTransactionFormLogic';
 import { useSharedShopProducts } from '../../hooks/useShopProductsCache';
 import type { Transaction } from '../../types/api';
+import { shopCategoryApi } from '../../services/shopCategoryApi';
 
 interface TransactionFormProps {
   onSuccess?: (transaction: Transaction) => void;
@@ -31,6 +32,22 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onSuccess, onC
   const [expenseAmount, setExpenseAmount] = useState<number>(0);
   const [expenseDescription, setExpenseDescription] = useState<string>('');
   const [includeExpense, setIncludeExpense] = useState<boolean>(false);
+
+  // Prefill shop category and fetch mapped categories
+  const [shopCategoryId, setShopCategoryId] = useState<number | undefined>(undefined);
+  const [shopCategories, setShopCategories] = useState<{ id: number; name: string }[]>([]);
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (user?.shop_id) {
+        const cats = await shopCategoryApi.getCategoriesForShop(user.shop_id);
+        setShopCategories(Array.isArray(cats) ? cats : []);
+        if (cats && cats.length > 0) {
+          setShopCategoryId(cats[0].id);
+        }
+      }
+    };
+    fetchCategories();
+  }, [user?.shop_id]);
   
   // Check if user is owner for backdated transaction permission
   const canCreateBackdated = user?.role === 'owner';
@@ -61,7 +78,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onSuccess, onC
     resetForm,
   } = useTransactionFormLogic({
     onSuccess: (transaction) => {
-      // Reset form and expense fields
       if (resetForm) resetForm();
       setExpenseAmount(0);
       setExpenseDescription('');
@@ -73,25 +89,20 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onSuccess, onC
     expenseAmount,
     expenseDescription,
     includeExpense,
+    initialValues: shopCategoryId ? { category_id: shopCategoryId } : {},
   });
 
-    // Shop-specific products and categories
+  // If shopCategoryId is set and formData.category_id is not, prefill it
+  useEffect(() => {
+    if (shopCategoryId && !formData.category_id) {
+      setFormData(prev => ({ ...prev, category_id: shopCategoryId }));
+    }
+  }, [shopCategoryId, formData.category_id, setFormData]);
+
+    // Shop-specific products
     const shopId = user?.shop_id;
     const { products: shopProducts } = useSharedShopProducts(Number(shopId));
     const shopProductsArray = Array.isArray(shopProducts) ? shopProducts : [];
-    // Only use ShopProduct items with a category field
-    type RawShopProduct = { category?: { id?: number } } & Record<string, unknown>;
-    const shopCategories = Array.from(
-      new Map(
-        (shopProductsArray as Array<RawShopProduct>)
-          .filter(p => p && typeof p === 'object' && 'category' in p && Number.isFinite((p as RawShopProduct).category?.id))
-          .map(p => {
-            const c = (p as RawShopProduct).category!;
-            const name = typeof (c as Record<string, unknown>).name === 'string' ? (c as Record<string, unknown>).name as string : 'Unknown';
-            return [Number(c.id), { id: Number(c.id), name }];
-          })
-      ).values()
-    );
 
   // Map ShopProduct[] to Product[] for TransactionPartySelectors
   type ShopProduct = {
@@ -285,6 +296,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onSuccess, onC
                   buyerPaid={buyerPaid}
                   farmerPaid={farmerPaid}
                   commissionReceived={commissionReceived}
+                  commissionRate={commissionRate}
                   buyerPaymentMethod={buyerPaymentMethod}
                   farmerPaymentMethod={farmerPaymentMethod}
                   onChange={patch => {

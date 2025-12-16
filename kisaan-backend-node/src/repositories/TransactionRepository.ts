@@ -223,6 +223,9 @@ export class TransactionRepository extends BaseRepository<Transaction, Transacti
    * Convert domain entity to database model data
    */
   protected toModelData(entity: Partial<TransactionEntity>): Record<string, unknown> {
+    // Always set both legacy and canonical fields, using all available values
+    const totalAmount = entity.total_amount ?? entity.total_sale_value;
+    const commissionAmount = entity.commission_amount ?? entity.shop_commission;
     return {
       shop_id: entity.shop_id,
       farmer_id: entity.farmer_id,
@@ -232,15 +235,18 @@ export class TransactionRepository extends BaseRepository<Transaction, Transacti
       product_name: entity.product_name,
       quantity: entity.quantity,
       unit_price: entity.unit_price,
-      total_amount: entity.total_amount,
+      total_amount: totalAmount,
       commission_rate: entity.commission_rate,
-      commission_amount: entity.commission_amount,
+      commission_amount: commissionAmount,
       farmer_earning: entity.farmer_earning,
       status: entity.status,
       transaction_date: entity.transaction_date,
       settlement_date: entity.settlement_date,
       notes: entity.notes,
-      metadata: entity.metadata
+      metadata: entity.metadata,
+      // Always set canonical DB fields
+      total_sale_value: totalAmount,
+      shop_commission: commissionAmount
     };
   }
 
