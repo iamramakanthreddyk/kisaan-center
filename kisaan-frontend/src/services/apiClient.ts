@@ -59,7 +59,7 @@ class ApiClient {
   constructor(apiConfig: typeof API_CONFIG) {
     // Sanitize baseURL to avoid malformed placeholders injected at runtime
     let base = apiConfig.baseURL || '';
-    const DEFAULT_BASE = 'https://kisaancenter-backend.whiteisland-e1233153.northeurope.azurecontainerapps.io/api';
+    const DEFAULT_BASE = 'https://kisaan-center-production.up.railway.app/api';
     try {
       // If base is missing, empty, or contains angle-bracket placeholders, use a safe fallback.
       // Also avoid silently re-using a placeholder value from config.apiBaseUrl — ensure it's validated.
