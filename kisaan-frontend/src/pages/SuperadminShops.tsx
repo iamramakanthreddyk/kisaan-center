@@ -9,6 +9,7 @@ import { Plus, Search, Eye, Edit, RefreshCw, MapPin, Phone, User } from 'lucide-
 import { shopsApi } from '../services/api';
 import type { Shop } from '../types/api';
 import { ShopForm } from '../components/superadmin/ShopForm';
+import { EditShopForm } from '../components/superadmin/EditShopForm';
 import { useIsMobile } from '../hooks/useMediaQuery';
 
 const SuperadminShops: React.FC = () => {
@@ -19,6 +20,8 @@ const SuperadminShops: React.FC = () => {
     status: '',
     search: ''
   });
+
+  const [editingShop, setEditingShop] = useState<Shop | null>(null);
 
   // Responsive hooks
   const isMobile = useIsMobile();
@@ -65,12 +68,28 @@ const SuperadminShops: React.FC = () => {
     return status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
   };
 
+
   if (showCreateForm) {
     return (
       <div className="p-6">
         <ShopForm 
           onSuccess={handleShopCreated}
           onCancel={() => setShowCreateForm(false)}
+        />
+      </div>
+    );
+  }
+
+  if (editingShop) {
+    return (
+      <div className="p-6">
+        <EditShopForm
+          shop={editingShop}
+          onSuccess={updatedShop => {
+            setShops(prev => prev.map(s => s.id === updatedShop.id ? updatedShop : s));
+            setEditingShop(null);
+          }}
+          onCancel={() => setEditingShop(null)}
         />
       </div>
     );
@@ -200,7 +219,7 @@ const SuperadminShops: React.FC = () => {
                             <Eye className="w-3 h-3 mr-1" />
                             View
                           </Button>
-                          <Button size="sm" variant="outline" className="flex-1 h-8">
+                          <Button size="sm" variant="outline" className="flex-1 h-8" onClick={() => setEditingShop(shop)}>
                             <Edit className="w-3 h-3 mr-1" />
                             Edit
                           </Button>
@@ -241,7 +260,7 @@ const SuperadminShops: React.FC = () => {
                             <Button size="sm" variant="outline">
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button size="sm" variant="outline" onClick={() => setEditingShop(shop)}>
                               <Edit className="w-4 h-4" />
                             </Button>
                           </div>

@@ -150,6 +150,7 @@ export interface Shop {
   commission_rate?: number;
   created_at: string;
   updated_at?: string;
+  category_id?: number; // Added for editing category
 }
 
 export interface Transaction {
