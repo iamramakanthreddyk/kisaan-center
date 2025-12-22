@@ -47,7 +47,7 @@ export const NAV_ITEMS: AppNavItem[] = [
   { key: 'owner-reports', label: 'Analytics & Reports', href: '/reports', icon: BarChart4, roles: ['owner'], order: 60 },
   { key: 'owner-expenses', label: 'Expense Tracking', href: '/expenses', icon: ReceiptText, roles: ['owner'], order: 65 },
   { key: 'owner-products', label: 'Product Catalog', href: '/products', icon: ShoppingBasket, roles: ['owner'], order: 70, quick: true },
-  { key: 'owner-simple-ledger', label: 'Simple Ledger', href: '/simple-ledger', icon: BookOpen, roles: ['owner'], order: 75, quick: true },
+  { key: 'owner-simple-ledger', label: '📊 Farmer Accounts', href: '/simple-ledger', icon: BookOpen, roles: ['owner'], order: 12, quick: true },
   { key: 'owner-settings', label: 'Shop Settings', href: '/settings', icon: Settings2, roles: ['owner'], order: 80 },
 
   // Superadmin

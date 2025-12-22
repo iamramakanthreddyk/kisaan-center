@@ -255,6 +255,22 @@ CREATE TABLE IF NOT EXISTS expense_settlements (
 );
 
 
+-- =============================================
+-- SIMPLE FARMER LEDGER - INDEPENDENT COMPONENT
+-- =============================================
+--
+-- ⚠️  CRITICAL: This is an INDEPENDENT ledger system!
+--
+-- This table (kisaan_ledger) is NOT the main accounting ledger.
+-- - No direct foreign key relationships to transactions/payments
+-- - Uses text references in notes field only
+-- - Maintained separately from transaction processing
+-- - For UI display and manual adjustments only
+--
+-- For proper accounting, use kisaan_ledger_entries table instead.
+--
+-- =============================================
+
 -- Simple Farmer Ledger table (used by backend)
 CREATE TABLE IF NOT EXISTS kisaan_ledger (
     id SERIAL PRIMARY KEY,

@@ -1,5 +1,25 @@
 
 
+/**
+ * SIMPLE FARMER LEDGER - INDEPENDENT COMPONENT
+ *
+ * ⚠️  IMPORTANT: This is NOT the main accounting ledger system!
+ *
+ * This table (kisaan_ledger) is an INDEPENDENT, SIMPLIFIED ledger component that:
+ * - Provides a user-friendly view for shop owners to track farmer balances
+ * - Does NOT have direct foreign key relationships to transactions/payments
+ * - Uses text-based references in the 'notes' field (e.g., "Transaction #123")
+ * - Is maintained SEPARATELY from the main accounting system
+ *
+ * DO NOT CONFUSE WITH: kisaan_ledger_entries (the real ERP ledger)
+ * - kisaan_ledger_entries HAS proper FK relationships (reference_type, reference_id)
+ * - kisaan_ledger_entries is the authoritative source for financial audit trails
+ * - TransactionService writes to kisaan_ledger_entries, NOT this table
+ *
+ * This component exists for UI simplicity and should be maintained independently.
+ * Changes to transaction logic should NOT automatically update this table.
+ */
+
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../config/database';
 import { LEDGER_TYPE_VALUES, LedgerType } from '../constants/ledgerTypes';

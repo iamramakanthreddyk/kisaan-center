@@ -2,6 +2,14 @@
 
 This is the clean, modular Node.js backend for Kisaan Center.
 
+## ⚠️ Critical Architecture Note
+
+**This application contains TWO INDEPENDENT ledger systems:**
+- `kisaan_ledger` - Simple Farmer Ledger (UI component, no transaction FKs)
+- `kisaan_ledger_entries` - Main Accounting Ledger (ERP component, with proper FKs)
+
+**See:** `docs/LEDGER_SYSTEMS_ARCHITECTURE.md` for complete details.
+
 ## Structure
 - `src/controllers/` - Route handlers
 - `src/routes/` - API route definitions

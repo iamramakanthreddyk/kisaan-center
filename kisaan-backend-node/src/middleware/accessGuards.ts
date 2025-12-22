@@ -1,3 +1,12 @@
+// Owner-only guard - only allows shop owners
+export function ownerOnlyGuard(req: Request, res: Response, next: NextFunction) {
+  const user = getUser(req);
+  if (user && user.role === 'owner') {
+    next();
+    return;
+  }
+  return res.status(403).json({ error: 'Forbidden: Only shop owner allowed' });
+}
 import { Request, Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../middlewares/auth';
 import { Shop } from '../models/shop';

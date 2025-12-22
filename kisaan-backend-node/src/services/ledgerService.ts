@@ -3,6 +3,22 @@ import { Transaction as SequelizeTransaction, Op, WhereOptions } from 'sequelize
 import LedgerEntry, { LedgerEntryAttributes } from '../models/ledgerEntry';
 import UserBalance, { UserBalanceCreationAttributes } from '../models/userBalance';
 
+/**
+ * LEDGER SERVICE - MAIN ACCOUNTING SYSTEM
+ *
+ * ⚠️  IMPORTANT: This service manages the MAIN ACCOUNTING LEDGER!
+ *
+ * This service works with kisaan_ledger_entries table (proper ERP ledger):
+ * - Has foreign key relationships (reference_type, reference_id)
+ * - Automatically updated by TransactionService, PaymentService, etc.
+ * - Provides authoritative financial audit trails
+ *
+ * DO NOT CONFUSE WITH: SimpleFarmerLedger (kisaan_ledger table)
+ * - SimpleFarmerLedger is independent UI component
+ * - No direct transaction relationships
+ * - Maintained separately
+ */
+
 export interface LedgerEntryData {
   farmer_id: number;
   shop_id: number;

@@ -1,7 +1,77 @@
+// Get owner commission summary (owner only)
+export async function getOwnerCommissionSummary(req: Request, res: Response) {
+  try {
+    const { shop_id, from, to, period } = req.query;
+    if (!shop_id) return res.status(400).json({ error: 'shop_id required' });
+    const shopIdNum = Number(shop_id);
+
+    let whereClause = 'shop_id = $1';
+    const bindParams: any[] = [shopIdNum];
+    let paramIndex = 2;
+    if (from) {
+      whereClause += ` AND created_at >= $${paramIndex}`;
+      let fromDate = from;
+      if ((from as string).length === 10) {
+        fromDate = from + 'T00:00:00.000Z';
+      }
+      bindParams.push(fromDate);
+      paramIndex++;
+    }
+    if (to) {
+      whereClause += ` AND created_at <= $${paramIndex}`;
+      let toDate = to;
+      if ((to as string).length === 10) {
+        toDate = to + 'T23:59:59.999Z';
+      }
+      bindParams.push(toDate);
+      paramIndex++;
+    }
+
+    // Group by period if requested
+    let groupBy = '';
+    let selectPeriod = '';
+    if (period === 'monthly') {
+      groupBy = `GROUP BY to_char(created_at, 'YYYY-MM')`;
+      selectPeriod = ", to_char(created_at, 'YYYY-MM') as period";
+    } else if (period === 'weekly') {
+      groupBy = `GROUP BY to_char(created_at, 'YYYY-\"W\"IW')`;
+      selectPeriod = ", to_char(created_at, 'YYYY-\"W\"IW') as period";
+    }
+
+    const sql = `SELECT SUM(COALESCE(commission_amount,0)) as total_commission${selectPeriod}
+      FROM kisaan_ledger
+      WHERE ${whereClause}
+      ${groupBy}
+      ${selectPeriod ? 'ORDER BY period DESC' : ''}`;
+
+    const results = await SimpleFarmerLedger.sequelize!.query(sql, {
+      bind: bindParams,
+      type: 'SELECT'
+    });
+
+    res.json(results);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: message });
+  }
+}
+/**
+ * SIMPLE FARMER LEDGER CONTROLLER - INDEPENDENT COMPONENT
+ *
+ * ⚠️  CRITICAL: This controller manages an INDEPENDENT ledger system!
+ *
+ * This is NOT connected to the main accounting ledger (kisaan_ledger_entries).
+ * - Does not read from or write to transaction/payment tables directly
+ * - Maintains its own simplified balance tracking
+ * - Uses text-based transaction references only
+ *
+ * For actual financial audit trails, use the main LedgerService and kisaan_ledger_entries table.
+ */
+
 import { Request, Response } from 'express';
 import { SimpleFarmerLedger } from '../models/simpleFarmerLedger';
 import { simpleFarmerLedgerSchema } from '../schema/simpleFarmerLedgerSchema';
-import { QueryTypes, Sequelize } from 'sequelize';
+import { QueryTypes, Sequelize, Op } from 'sequelize';
 import { LedgerType } from '../constants/ledgerTypes';
 import { LedgerCategory } from '../constants/ledgerCategories';
 
@@ -95,12 +165,40 @@ export async function listEntries(req: Request, res: Response) {
     if (shop_id) where.shop_id = Number(shop_id);
     if (farmer_id) where.farmer_id = Number(farmer_id);
     if (category) where.category = category;
+
+    // Improved date filtering (robust UTC handling)
     if (from || to) {
       where.created_at = {};
-      if (from) (where.created_at as Record<string, string>)['$gte'] = from as string;
-      if (to) (where.created_at as Record<string, string>)['$lte'] = to as string;
+      if (from) {
+        // Always treat 'from' as UTC midnight
+        let fromDate = new Date(from as string);
+        if ((from as string).length === 10) {
+          // If only date provided (YYYY-MM-DD), force UTC midnight
+          fromDate = new Date(from + 'T00:00:00.000Z');
+        }
+        (where.created_at as any)[Op.gte] = fromDate;
+      }
+      if (to) {
+        // Always treat 'to' as UTC end of day
+        let toDate = new Date(to as string);
+        if ((to as string).length === 10) {
+          // If only date provided (YYYY-MM-DD), force UTC end of day
+          toDate = new Date(to + 'T23:59:59.999Z');
+        } else {
+          toDate.setUTCHours(23, 59, 59, 999);
+        }
+        (where.created_at as any)[Op.lte] = toDate;
+      }
     }
-    const entries = await SimpleFarmerLedger.findAll({ where, order: [['created_at', 'DESC']] });
+
+    // Debug: log the filter and result count
+    console.log('[SimpleLedger] Filter where:', JSON.stringify(where, null, 2));
+    const entries = await SimpleFarmerLedger.findAll({
+      where,
+      order: [['created_at', 'DESC']],
+      limit: 1000 // Prevent excessive results
+    });
+    console.log(`[SimpleLedger] Entries found: ${entries.length}`);
     res.json(entries);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -131,26 +229,51 @@ export async function getFarmerBalance(req: Request, res: Response) {
 // Get summary (weekly/monthly)
 export async function getSummary(req: Request, res: Response) {
   try {
-    const { shop_id, farmer_id, period } = req.query;
+    const { shop_id, farmer_id, period, from, to } = req.query;
     if (!shop_id) return res.status(400).json({ error: 'shop_id required' });
     const shopIdNum = Number(shop_id);
     const farmerIdNum = farmer_id ? Number(farmer_id) : undefined;
 
-    // Use Sequelize's built-in functions for date formatting
-    const where: any = { shop_id: shopIdNum };
-    if (farmerIdNum) where.farmer_id = farmerIdNum;
+    // Build WHERE clause and bind params
+    let whereClause = 'shop_id = $1';
+    const bindParams: any[] = [shopIdNum];
+    let paramIndex = 2;
+    if (farmerIdNum) {
+      whereClause += ` AND farmer_id = $${paramIndex}`;
+      bindParams.push(farmerIdNum);
+      paramIndex++;
+    }
+    if (from) {
+      whereClause += ` AND created_at >= $${paramIndex}`;
+      // Always treat 'from' as UTC midnight
+      let fromDate = from;
+      if ((from as string).length === 10) {
+        fromDate = from + 'T00:00:00.000Z';
+      }
+      bindParams.push(fromDate);
+      paramIndex++;
+    }
+    if (to) {
+      whereClause += ` AND created_at <= $${paramIndex}`;
+      // Always treat 'to' as UTC end of day
+      let toDate = to;
+      if ((to as string).length === 10) {
+        toDate = to + 'T23:59:59.999Z';
+      }
+      bindParams.push(toDate);
+      paramIndex++;
+    }
 
-    // Use raw SQL query with proper PostgreSQL syntax and bind parameters
     const groupBy = period === 'monthly' ? "to_char(created_at, 'YYYY-MM')" : "to_char(created_at, 'YYYY-\"W\"IW')";
 
     const results = await SimpleFarmerLedger.sequelize!.query(
       `SELECT ${groupBy} as period, type, SUM(amount) as total
        FROM kisaan_ledger
-       WHERE shop_id = $1${farmerIdNum ? ' AND farmer_id = $2' : ''}
+       WHERE ${whereClause}
        GROUP BY period, type
        ORDER BY period DESC`,
       {
-        bind: farmerIdNum ? [shopIdNum, farmerIdNum] : [shopIdNum],
+        bind: bindParams,
         type: 'SELECT'
       }
     );
@@ -221,6 +344,51 @@ export async function deleteEntry(req: Request, res: Response) {
     if (!entry) return res.status(404).json({ error: 'Entry not found' });
     await entry.destroy();
     res.json({ success: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: message });
+  }
+}
+
+// Export CSV
+export async function exportCsv(req: Request, res: Response) {
+  try {
+    const { shop_id, farmer_id, from, to, category } = req.query;
+
+    // Build where clause same as listEntries
+    const where: Record<string, unknown> = {};
+    if (shop_id) where.shop_id = Number(shop_id);
+    if (farmer_id) where.farmer_id = Number(farmer_id);
+    if (category) where.category = category;
+
+    if (from || to) {
+      where.created_at = {};
+      if (from) {
+        (where.created_at as any)[Op.gte] = new Date(from as string);
+      }
+      if (to) {
+        const toDate = new Date(to as string);
+        toDate.setHours(23, 59, 59, 999);
+        (where.created_at as any)[Op.lte] = toDate;
+      }
+    }
+
+    const entries = await SimpleFarmerLedger.findAll({
+      where,
+      order: [['created_at', 'DESC']]
+    });
+
+    // Generate CSV
+    const csvHeader = 'ID,Farmer ID,Shop ID,Amount,Commission Amount,Net Amount,Type,Category,Notes,Created At\n';
+    const csvRows = entries.map(entry =>
+      `${entry.id},${entry.farmer_id},${entry.shop_id},${entry.amount},${entry.commission_amount || 0},${entry.net_amount || 0},${entry.type},${entry.category},"${(entry.notes || '').replace(/"/g, '""')}",${entry.created_at || ''}`
+    ).join('\n');
+
+    const csv = csvHeader + csvRows;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="farmer-accounts.csv"');
+    res.send(csv);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: message });
