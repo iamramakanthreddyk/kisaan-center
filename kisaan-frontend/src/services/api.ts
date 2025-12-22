@@ -25,7 +25,9 @@ import type {
   ExpenseAllocation,
   TransactionSettlementDetail,
   ExpenseAllocationDetail,
-  ExpenseAllocationDetail
+  LedgerEntry,
+  LedgerSummary,
+  FarmerPaymentsExpenses
 } from '../types/api';
 
 // Commissions API
@@ -155,7 +157,6 @@ export const getTransactionFormData = async () => {
     categories: categoriesRes.data
   };
 };
-/* duplicate imports removed (kept single import block at top of file) */
 
 // Authentication API
 export const authApi = {
@@ -730,4 +731,87 @@ export const farmerProductApi = {
   // Set product as default for farmer
   setDefault: (farmerId: number, productId: number): Promise<ApiResponse<Product>> =>
   apiClient.put<ApiResponse<Product>>(FARMER_PRODUCT_ENDPOINTS.SET_DEFAULT(farmerId, productId))
+};
+
+// Simple Ledger API - for farmer ledger tracking
+export const simpleLedgerApi = {
+  // Get ledger entries
+  getEntries: async (params?: {
+    shop_id?: string;
+    farmer_id?: string;
+    from?: string;
+    to?: string;
+    category?: string;
+  }): Promise<LedgerEntry[]> => {
+    const qs = buildQueryString(params);
+    const response = await apiClient.get<LedgerEntry[] | ApiResponse<LedgerEntry[]>>(`/simple-ledger${qs}`);
+    
+    // Handle both direct array response and wrapped response
+    if (Array.isArray(response)) {
+      return response;
+    }
+    return (response as ApiResponse<LedgerEntry[]>).data || [];
+  },
+
+  // Get ledger summary
+  getSummary: async (params?: {
+    shop_id?: string;
+    farmer_id?: string;
+    period?: 'weekly' | 'monthly';
+    from?: string;
+    to?: string;
+    category?: string;
+  }): Promise<LedgerSummary[]> => {
+    const qs = buildQueryString(params);
+    const response = await apiClient.get<LedgerSummary[] | ApiResponse<LedgerSummary[]>>(`/simple-ledger/summary${qs}`);
+    
+    // Handle both direct array response and wrapped response
+    if (Array.isArray(response)) {
+      return response;
+    }
+    return (response as ApiResponse<LedgerSummary[]>).data || [];
+  },
+
+  // Get farmer balance
+  getBalance: async (shopId: string, farmerId: string): Promise<{
+    farmer_id: number;
+    shop_id: number;
+    credit: number;
+    debit: number;
+    balance: number;
+  }> => {
+    const response = await apiClient.get<ApiResponse<{
+      farmer_id: number;
+      shop_id: number;
+      credit: number;
+      debit: number;
+      balance: number;
+    }>>(`/simple-ledger/balance?shop_id=${shopId}&farmer_id=${farmerId}`);
+    return response.data!;
+  },
+
+  // Create ledger entry
+  createEntry: async (data: {
+    shop_id: string;
+    farmer_id: string;
+    type: 'credit' | 'debit';
+    category: string;
+    amount: number;
+    notes?: string;
+  }): Promise<LedgerEntry> => {
+    const response = await apiClient.post<ApiResponse<LedgerEntry>>('/simple-ledger', data);
+    return response.data!;
+  },
+
+  // Export CSV
+  exportCsv: async (params?: {
+    shop_id?: string;
+    farmer_id?: string;
+    from?: string;
+    to?: string;
+    category?: string;
+  }): Promise<Blob> => {
+    const qs = buildQueryString(params);
+    return apiClient.fetchBlob(`/simple-ledger/export${qs}`);
+  }
 };

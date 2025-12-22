@@ -142,8 +142,13 @@ export async function createEntry(req: Request, res: Response) {
       source = 'none';
     }
 
-    payload.commission_amount = +(Number(payload.amount || 0) * (Number(rateUsed) / 100)).toFixed(2);
-    payload.net_amount = +(Number(payload.amount || 0) - payload.commission_amount).toFixed(2);
+    if (payload.type === 'credit') {
+      payload.commission_amount = +(Number(payload.amount || 0) * (Number(rateUsed) / 100)).toFixed(2);
+      payload.net_amount = +(Number(payload.amount || 0) - payload.commission_amount).toFixed(2);
+    } else {
+      payload.commission_amount = 0;
+      payload.net_amount = Number(payload.amount || 0);
+    }
     
     // Add required fields
     payload.type = payload.type || 'income'; // Default type
@@ -199,7 +204,23 @@ export async function listEntries(req: Request, res: Response) {
       limit: 1000 // Prevent excessive results
     });
     console.log(`[SimpleLedger] Entries found: ${entries.length}`);
-    res.json(entries);
+    
+    // Convert string fields to numbers for frontend compatibility
+    const formattedEntries = entries.map(entry => ({
+      id: Number(entry.id),
+      shop_id: Number(entry.shop_id),
+      farmer_id: Number(entry.farmer_id),
+      amount: Number(entry.amount),
+      type: entry.type,
+      category: entry.category,
+      notes: entry.notes,
+      created_at: entry.created_at?.toISOString(),
+      created_by: Number(entry.created_by),
+      commission_amount: entry.commission_amount ? Number(entry.commission_amount) : undefined,
+      net_amount: entry.net_amount ? Number(entry.net_amount) : undefined,
+    }));
+    
+    res.json(formattedEntries);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: message });
@@ -328,7 +349,47 @@ export async function updateEntry(req: Request, res: Response) {
     await simpleFarmerLedgerSchema.validate(req.body);
     const entry = await SimpleFarmerLedger.findByPk(id);
     if (!entry) return res.status(404).json({ error: 'Entry not found' });
-    await entry.update(req.body);
+    // Recalculate commission and net_amount as in createEntry
+    const payload: any = { ...req.body };
+    const farmerId = Number(payload.farmer_id ?? entry.farmer_id);
+    const shopId = Number(payload.shop_id ?? entry.shop_id);
+    // Resolve commission rate precedence: farmer -> shop owner -> shop -> 0
+    let rateUsed = 0;
+    try {
+      const farmerRow: any[] = (await SimpleFarmerLedger.sequelize!.query('SELECT custom_commission_rate FROM kisaan_users WHERE id = ?', { replacements: [farmerId], type: QueryTypes.SELECT })) as any[];
+      const farmerRate = farmerRow && farmerRow[0] ? Number(farmerRow[0].custom_commission_rate) : null;
+      if (farmerRate != null) {
+        rateUsed = farmerRate;
+      } else {
+        const shopRow: any[] = (await SimpleFarmerLedger.sequelize!.query('SELECT commission_rate, owner_id FROM kisaan_shops WHERE id = ?', { replacements: [shopId], type: QueryTypes.SELECT })) as any[];
+        const shopRate = shopRow && shopRow[0] ? Number(shopRow[0].commission_rate) : null;
+        const ownerId = shopRow && shopRow[0] ? shopRow[0].owner_id : null;
+        if (ownerId) {
+          const ownerRow: any[] = (await SimpleFarmerLedger.sequelize!.query('SELECT commission_rate FROM kisaan_users WHERE id = ?', { replacements: [ownerId], type: QueryTypes.SELECT })) as any[];
+          const ownerRate = ownerRow && ownerRow[0] ? Number(ownerRow[0].commission_rate) : null;
+          if (ownerRate != null) {
+            rateUsed = ownerRate;
+          }
+        }
+        if (rateUsed === 0 && shopRate != null) {
+          rateUsed = shopRate;
+        }
+      }
+    } catch (e) {
+      rateUsed = 0;
+    }
+
+    if (payload.type === 'credit' || (!payload.type && entry.type === 'credit')) {
+      const amount = Number(payload.amount ?? entry.amount);
+      payload.commission_amount = +(amount * (Number(rateUsed) / 100)).toFixed(2);
+      payload.net_amount = +(amount - payload.commission_amount).toFixed(2);
+    } else {
+      const amount = Number(payload.amount ?? entry.amount);
+      payload.commission_amount = 0;
+      payload.net_amount = amount;
+    }
+
+    await entry.update(payload);
     res.json(entry);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

@@ -123,7 +123,7 @@ class ApiClient {
       data = await response.text();
     }
 
-    if (!response.ok) {
+    if (!response.ok && response.status !== 304) {
       let errorMessage: string;
       if (typeof data === 'object' && data !== null) {
         const maybeData = data as { message?: string; error?: string };

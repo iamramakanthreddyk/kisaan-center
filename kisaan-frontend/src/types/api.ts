@@ -392,3 +392,44 @@ export interface LoginResponse {
     user: User;
   };
 }
+
+// Simple Farmer Ledger Types
+export interface LedgerEntry {
+  id: number;
+  shop_id: number;
+  farmer_id: number;
+  amount: number;
+  type: string;
+  category: string;
+  notes?: string;
+  created_at?: string;
+  created_by: number;
+  commission_amount?: number;
+  net_amount?: number;
+}
+
+export interface LedgerSummary {
+  period: string;
+  type: string;
+  total: number;
+}
+
+// Farmer Payments Types
+export interface FarmerPaymentsExpenses {
+  id: number;
+  shop_id?: number | null;
+  user_id: number;
+  amount: number;
+  type: 'expense' | 'advance' | 'adjustment';
+  description?: string;
+  transaction_id?: number | null;
+  status: 'pending' | 'settled';
+  expense_date?: string;
+  category?: string | null;
+  total_amount?: number;
+  allocated_amount?: number;
+  remaining_amount?: number;
+  allocation_status?: 'UNALLOCATED' | 'PARTIALLY_ALLOCATED' | 'FULLY_ALLOCATED';
+  created_at: string;
+  updated_at: string;
+}
