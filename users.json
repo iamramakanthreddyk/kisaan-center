@@ -771,21 +771,6 @@
             "custom_commission_rate": null,
             "status": "active",
             "cumulative_value": 0
-        },
-        {
-            "id": 5,
-            "username": "dmr_0_232",
-            "email": "dmr@kisaancenter.com",
-            "role": "owner",
-            "shop_id": 2,
-            "firstname": "DMR",
-            "contact": "",
-            "balance": 0,
-            "created_at": "2025-10-05 08:23:08.178+00",
-            "updated_at": "2025-10-05 10:05:11.096+00",
-            "custom_commission_rate": null,
-            "status": "active",
-            "cumulative_value": 0
         }
     ]
 }

@@ -219,6 +219,42 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
           </>
         )}
       </CardContent>
+      {/* Print-only table */}
+      <div className="hidden print-table">
+        <h2 style={{textAlign: 'center', marginBottom: '20px'}}>Farmer Accounts Ledger</h2>
+        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+          <thead>
+            <tr>
+              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Type</th>
+              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Farmer</th>
+              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Category</th>
+              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0', textAlign: 'right'}}>Amount</th>
+              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0', textAlign: 'right'}}>Total Earning</th>
+              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Date</th>
+              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((entry) => (
+              <tr key={entry.id}>
+                <td style={{border: '1px solid #000', padding: '4px'}}>{entry.type.toUpperCase()}</td>
+                <td style={{border: '1px solid #000', padding: '4px'}}>{getFarmerName(entry.farmer_id)}</td>
+                <td style={{border: '1px solid #000', padding: '4px'}}>{entry.category.toUpperCase()}</td>
+                <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right'}}>{formatAmount(entry.amount)}</td>
+                <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right'}}>{entry.category === 'sale' && entry.net_amount !== undefined ? formatAmount(entry.net_amount) : '-'}</td>
+                <td style={{border: '1px solid #000', padding: '4px'}}>{entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</td>
+                <td style={{border: '1px solid #000', padding: '4px'}}>{entry.notes || ''}</td>
+              </tr>
+            ))}
+            <tr>
+              <td colSpan={3} style={{border: '1px solid #000', padding: '4px', fontWeight: 'bold'}}>Net Balance</td>
+              <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right', fontWeight: 'bold'}}>{formatAmount(entries.reduce((sum, e) => e.type === 'credit' ? sum + Number(e.amount || 0) : sum - Number(e.amount || 0), 0))}</td>
+              <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right', fontWeight: 'bold'}}>{formatAmount(entries.filter(e => e.category === 'sale' && e.net_amount !== undefined).reduce((sum, e) => sum + Number(e.net_amount || 0), 0))}</td>
+              <td colSpan={2} style={{border: '1px solid #000', padding: '4px'}}></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </Card>
   );
 };

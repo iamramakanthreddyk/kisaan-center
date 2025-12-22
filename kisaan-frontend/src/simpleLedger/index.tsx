@@ -38,8 +38,22 @@ const SimpleLedger: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-1 sm:px-2 md:px-4 py-4 space-y-4 sm:space-y-6">
+      <style>
+        {`
+          @media print {
+            body { font-size: 12px; }
+            .no-print { display: none !important; }
+            .print-table { display: block !important; }
+            .print-table th, .print-table td { border: 1px solid #000; padding: 4px; text-align: left; }
+            .print-table th { background: #f0f0f0; font-weight: bold; }
+            .print-table .text-right { text-align: right; }
+            .print-table .text-center { text-align: center; }
+            @page { margin: 0.5in; }
+          }
+        `}
+      </style>
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-3 sm:p-4 md:p-6 border border-blue-100">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-3 sm:p-4 md:p-6 border border-blue-100 no-print">
         <div className="flex items-center gap-3 mb-2">
           <div className="p-2 bg-blue-100 rounded-lg">
             <BookOpen className="h-6 w-6 text-blue-600" />
@@ -52,7 +66,7 @@ const SimpleLedger: React.FC = () => {
       </div>
 
       {/* Filters Section - Mobile Friendly */}
-      <Card className="border-gray-200">
+      <Card className="border-gray-200 no-print">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2 flex-wrap justify-between">
             <div className="flex items-center gap-2">
@@ -170,7 +184,7 @@ const SimpleLedger: React.FC = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={v => setActiveTab(v as typeof activeTab)} className="w-full">
-        <TabsList className={`grid w-full ${hasRole('owner') ? 'grid-cols-3' : 'grid-cols-2'} bg-gray-100 overflow-x-auto whitespace-nowrap rounded-lg`}>
+        <TabsList className={`grid w-full ${hasRole('owner') ? 'grid-cols-3' : 'grid-cols-2'} bg-gray-100 overflow-x-auto whitespace-nowrap rounded-lg no-print`}>
           <TabsTrigger value="entries" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
             📝 Account Entries
           </TabsTrigger>

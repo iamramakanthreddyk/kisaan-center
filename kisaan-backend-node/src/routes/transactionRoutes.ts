@@ -187,7 +187,7 @@ router.get('/analytics', authenticateToken, loadFeatures, requireFeature('transa
         SELECT pa.transaction_id, SUM(pa.allocated_amount) as alloc
         FROM payment_allocations pa
         JOIN kisaan_payments p ON pa.payment_id = p.id
-        WHERE p.status = 'PAID' AND p.payer_type = 'SHOP' AND p.payee_type = 'FARMER'
+        WHERE p.status = 'COMPLETED' AND p.payer_type = 'shop' AND p.payee_type = 'farmer'
         GROUP BY pa.transaction_id
       ) a ON t.id = a.transaction_id
       ${whereClause}
@@ -206,7 +206,7 @@ router.get('/analytics', authenticateToken, loadFeatures, requireFeature('transa
         FROM payment_allocations
         GROUP BY payment_id
       ) a ON p.id = a.payment_id
-      WHERE p.payer_type = 'SHOP' AND p.payee_type = 'FARMER' AND p.status = 'PAID' AND p.transaction_id IS NULL
+      WHERE p.payer_type = 'shop' AND p.payee_type = 'farmer' AND p.status = 'COMPLETED' AND p.transaction_id IS NULL
       ${shop_id ? ' AND p.shop_id = ?' : ''}
     `, { replacements: shop_id ? [shop_id] : [] });
     const unlinked_paid_to_farmer = Number((Array.isArray(unlinkedShopToFarmer) ? unlinkedShopToFarmer[0]?.unlinked_paid : unlinkedShopToFarmer?.unlinked_paid) || 0);
@@ -218,7 +218,7 @@ router.get('/analytics', authenticateToken, loadFeatures, requireFeature('transa
       LEFT JOIN (
         SELECT transaction_id, SUM(amount) as paid
         FROM kisaan_payments
-        WHERE payer_type = 'BUYER' AND payee_type = 'SHOP' AND status = 'PAID'
+        WHERE payer_type = 'buyer' AND payee_type = 'shop' AND status = 'COMPLETED'
         GROUP BY transaction_id
       ) p ON t.id = p.transaction_id
       ${whereClause}
@@ -251,7 +251,7 @@ router.get('/analytics', authenticateToken, loadFeatures, requireFeature('transa
     const [buyerPaidResult] = await sequelize.query(`
       SELECT COALESCE(SUM(amount),0) as buyer_paid
       FROM kisaan_payments
-      WHERE payer_type = 'BUYER' AND payee_type = 'SHOP' AND status = 'PAID' ${paymentWhereClause}
+      WHERE payer_type = 'buyer' AND payee_type = 'shop' AND status = 'COMPLETED' ${paymentWhereClause}
     `, { replacements: paymentReplacements });
 
     const buyer_total_spent = Number((Array.isArray(buyerPaidResult) ? buyerPaidResult[0]?.buyer_paid : buyerPaidResult?.buyer_paid) || 0);
@@ -300,7 +300,7 @@ router.get('/analytics/debug', authenticateToken, loadFeatures, requireFeature('
       LEFT JOIN (
         SELECT transaction_id, SUM(amount) as paid
         FROM kisaan_payments
-        WHERE payer_type = 'SHOP' AND payee_type = 'FARMER' AND status = 'PAID'
+        WHERE payer_type = 'shop' AND payee_type = 'farmer' AND status = 'COMPLETED'
         GROUP BY transaction_id
       ) p ON t.id = p.transaction_id
       ${shopFilter}
