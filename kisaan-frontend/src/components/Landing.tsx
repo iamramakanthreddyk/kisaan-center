@@ -67,20 +67,22 @@ const Landing: React.FC = () => {
 
           {/* CTA Section */}
           <div className="mt-12 space-y-6">
+            {/* Prominent Login Button for Mobile & Desktop */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-700">
+              <Button asChild variant="emerald" size="xl" className="w-full sm:w-auto shadow-lg animate-bounce focus:animate-none">
+                <Link to="/login" className="flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H3m0 0l4-4m-4 4l4 4m13-8v8a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h6" /></svg>
+                  <span className="font-bold text-base block sm:hidden">Login</span>
+                  <span className="font-bold text-base hidden sm:block">Get Started</span>
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
                 <Link to="/dashboard">
                   Go to Dashboard
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link to="/login">
-                  Get Started
-                </Link>
-              </Button>
             </div>
-            
             <p className="text-sm text-gray-500">
               Ready to transform your agricultural business? Join thousands of users worldwide.
             </p>
