@@ -5,7 +5,7 @@ import LedgerSummary from './LedgerSummary';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
-import { BookOpen, Plus, Download, Printer, Filter, Calendar } from 'lucide-react';
+import { BookOpen, Plus, Download, Printer, Filter, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserSearchDropdown } from '../components/ui/UserSearchDropdown';
 import type { User } from '../types';
@@ -21,6 +21,7 @@ const SimpleLedger: React.FC = () => {
   const [fromDate, setFromDate] = useState<string | undefined>(undefined);
   const [toDate, setToDate] = useState<string | undefined>(undefined);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
 
   const handleEntryAdded = () => {
     setShowForm(false);
@@ -65,115 +66,133 @@ const SimpleLedger: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters Section - Mobile Friendly */}
-      <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm no-print">
-        <CardHeader className="pb-2 border-b border-blue-100 bg-white/60 rounded-t-xl">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-base font-semibold text-blue-900">Filters</CardTitle>
-            </div>
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="text-xs text-blue-700 hover:underline"
-              >
-                Clear All
-              </Button>
-            )}
+      {/* Filters Section - Collapsible */}
+      <div className="no-print">
+        <Button
+          onClick={() => setShowFilters(!showFilters)}
+          variant="outline"
+          className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:bg-blue-100 transition-colors rounded-xl"
+        >
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-blue-500" />
+            <span className="font-medium text-blue-900">
+              Filters {hasActiveFilters && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-2">Active</span>}
+            </span>
           </div>
-        </CardHeader>
-        <CardContent className="pt-4 pb-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-700 mb-1">Farmer</label>
-              <UserSearchDropdown
-                onSelect={(u: User | null) => setSelectedFarmer(u?.id ?? null)}
-                roleFilter="farmer"
-                placeholder="Select farmer"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
-                <Calendar className="h-3 w-3 text-blue-400" /> From
-              </label>
-              <input
-                type="date"
-                value={fromDate ?? ''}
-                onChange={e => {
-                  const newFromDate = e.target.value || undefined;
-                  setFromDate(newFromDate);
-                  if (newFromDate && !toDate) {
-                    const today = new Date().toISOString().split('T')[0];
-                    setToDate(today);
-                  }
-                }}
-                className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xs"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
-                <Calendar className="h-3 w-3 text-blue-400" /> To
-              </label>
-              <input
-                type="date"
-                value={toDate ?? ''}
-                onChange={e=> setToDate(e.target.value || undefined)}
-                className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xs"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-700 mb-1">Category</label>
-              <select
-                value={selectedCategory}
-                onChange={e=> setSelectedCategory(e.target.value)}
-                className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xs"
-              >
-                <option value="">All Categories</option>
-                <option value="sale">Sale</option>
-                <option value="expense">Expense</option>
-                <option value="withdrawal">Withdrawal</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </div>
-          {/* Action Buttons - Compact Row */}
-          <div className="flex flex-row flex-wrap gap-2 mt-3 pt-2 border-t border-blue-100 items-center justify-end">
-            <Button
-              onClick={async ()=>{
-                try {
-                  const blob = await exportLedgerCsv(shopId, selectedFarmer ?? undefined, fromDate, toDate, selectedCategory || undefined);
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  const d = new Date().toISOString().slice(0,10).replace(/-/g,'');
-                  a.download = `farmer-accounts-${d}.csv`;
-                  document.body.appendChild(a);
-                  a.click();
-                  a.remove();
-                } catch (err) {
-                  console.error('Export failed', err);
-                }
-              }}
-              variant="outline"
-              className="flex items-center gap-2 text-xs sm:text-sm px-3 py-1.5"
-            >
-              <Download className="h-4 w-4" />
-              Export CSV
-            </Button>
-            <Button
-              onClick={()=> window.print()}
-              variant="outline"
-              className="flex items-center gap-2 text-xs sm:text-sm px-3 py-1.5"
-            >
-              <Printer className="h-4 w-4" />
-              Print / PDF
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          {showFilters ? <ChevronUp className="h-4 w-4 text-blue-500" /> : <ChevronDown className="h-4 w-4 text-blue-500" />}
+        </Button>
+
+        {showFilters && (
+          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm mt-2">
+            <CardHeader className="pb-2 border-b border-blue-100 bg-white/60 rounded-t-xl">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-5 w-5 text-blue-500" />
+                  <CardTitle className="text-base font-semibold text-blue-900">Filter Options</CardTitle>
+                </div>
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="text-xs text-blue-700 hover:underline"
+                  >
+                    Clear All
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4 pb-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-gray-700 mb-1">Farmer</label>
+                  <UserSearchDropdown
+                    onSelect={(u: User | null) => setSelectedFarmer(u?.id ?? null)}
+                    roleFilter="farmer"
+                    placeholder="Select farmer"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-blue-400" /> From
+                  </label>
+                  <input
+                    type="date"
+                    value={fromDate ?? ''}
+                    onChange={e => {
+                      const newFromDate = e.target.value || undefined;
+                      setFromDate(newFromDate);
+                      if (newFromDate && !toDate) {
+                        const today = new Date().toISOString().split('T')[0];
+                        setToDate(today);
+                      }
+                    }}
+                    className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xs"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-blue-400" /> To
+                  </label>
+                  <input
+                    type="date"
+                    value={toDate ?? ''}
+                    onChange={e=> setToDate(e.target.value || undefined)}
+                    className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xs"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-gray-700 mb-1">Category</label>
+                  <select
+                    value={selectedCategory}
+                    onChange={e=> setSelectedCategory(e.target.value)}
+                    className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xs"
+                  >
+                    <option value="">All Categories</option>
+                    <option value="sale">Sale</option>
+                    <option value="expense">Expense</option>
+                    <option value="withdrawal">Withdrawal</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+              {/* Action Buttons - Compact Row */}
+              <div className="flex flex-row flex-wrap gap-2 mt-3 pt-2 border-t border-blue-100 items-center justify-end">
+                <Button
+                  onClick={async ()=>{
+                    try {
+                      const blob = await exportLedgerCsv(shopId, selectedFarmer ?? undefined, fromDate, toDate, selectedCategory || undefined);
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      const d = new Date().toISOString().slice(0,10).replace(/-/g,'');
+                      a.download = `farmer-accounts-${d}.csv`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                    } catch (err) {
+                      console.error('Export failed', err);
+                    }
+                  }}
+                  variant="outline"
+                  className="flex items-center gap-2 text-xs sm:text-sm px-3 py-1.5"
+                >
+                  <Download className="h-4 w-4" />
+                  Export CSV
+                </Button>
+                <Button
+                  onClick={()=> window.print()}
+                  variant="outline"
+                  className="flex items-center gap-2 text-xs sm:text-sm px-3 py-1.5"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print / PDF
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Main Content Tabs */}
 
