@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { UserSearchDropdown } from '../components/ui/UserSearchDropdown';
 import type { User } from '../types';
 import { exportLedgerCsv, fetchLedgerSummary } from './api';
+import { formatAmount } from '../utils/format';
 
 const SimpleLedger: React.FC = () => {
   const { user, hasRole } = useAuth();
@@ -63,7 +64,7 @@ const SimpleLedger: React.FC = () => {
   const hasActiveFilters = selectedFarmer || fromDate || toDate || selectedCategory;
 
   return (
-    <div className="max-w-6xl mx-auto px-1 sm:px-2 md:px-4 py-4 space-y-4 sm:space-y-6">
+    <div className="w-full max-w-7xl mx-auto px-1 sm:px-2 md:px-4 lg:px-6 xl:px-8 py-4 space-y-4 sm:space-y-6">
       <style>
         {`
           @media print {
@@ -79,15 +80,18 @@ const SimpleLedger: React.FC = () => {
         `}
       </style>
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-3 sm:p-4 md:p-6 border border-blue-100 no-print">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <BookOpen className="h-6 w-6 text-blue-600" />
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-3 sm:p-4 md:p-6 lg:p-8 border border-blue-100 no-print">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <BookOpen className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900">Farmer Accounts</h1>
+              <p className="text-gray-600 text-sm md:text-base lg:text-lg">Track credits, debits, and balances for all farmers</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Farmer Accounts</h1>
-            <p className="text-gray-600 text-sm md:text-base">Track credits, debits, and balances for all farmers</p>
-          </div>
+
         </div>
       </div>
 
@@ -128,7 +132,7 @@ const SimpleLedger: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent className="pt-4 pb-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-gray-700 mb-1">Farmer</label>
                   <UserSearchDropdown
@@ -152,7 +156,7 @@ const SimpleLedger: React.FC = () => {
                         setToDate(today);
                       }
                     }}
-                    className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xs"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-sm"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -163,7 +167,7 @@ const SimpleLedger: React.FC = () => {
                     type="date"
                     value={toDate ?? ''}
                     onChange={e=> setToDate(e.target.value || undefined)}
-                    className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xs"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-sm"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -171,7 +175,7 @@ const SimpleLedger: React.FC = () => {
                   <select
                     value={selectedCategory}
                     onChange={e=> setSelectedCategory(e.target.value)}
-                    className="w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xs"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-sm"
                   >
                     <option value="">All Categories</option>
                     <option value="sale">Sale</option>
@@ -181,38 +185,42 @@ const SimpleLedger: React.FC = () => {
                   </select>
                 </div>
               </div>
-              {/* Action Buttons - Compact Row */}
-              <div className="flex flex-row flex-wrap gap-2 mt-3 pt-2 border-t border-blue-100 items-center justify-end">
-                <Button
-                  onClick={async ()=>{
-                    try {
-                      const blob = await exportLedgerCsv(shopId, selectedFarmer ?? undefined, fromDate, toDate, selectedCategory || undefined);
-                      const url = window.URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      const d = new Date().toISOString().slice(0,10).replace(/-/g,'');
-                      a.download = `farmer-accounts-${d}.csv`;
-                      document.body.appendChild(a);
-                      a.click();
-                      a.remove();
-                    } catch (err) {
-                      console.error('Export failed', err);
-                    }
-                  }}
-                  variant="outline"
-                  className="flex items-center gap-2 text-xs sm:text-sm px-3 py-1.5"
-                >
-                  <Download className="h-4 w-4" />
-                  Export CSV
-                </Button>
-                <Button
-                  onClick={()=> window.print()}
-                  variant="outline"
-                  className="flex items-center gap-2 text-xs sm:text-sm px-3 py-1.5"
-                >
-                  <Printer className="h-4 w-4" />
-                  Print / PDF
-                </Button>
+              {/* Action Buttons - Better responsive layout */}
+              <div className="flex flex-col sm:flex-row gap-2 mt-3 pt-2 border-t border-blue-100 items-stretch sm:items-center justify-end">
+                <div className="flex gap-2">
+                  <Button
+                    onClick={async ()=>{
+                      try {
+                        const blob = await exportLedgerCsv(shopId, selectedFarmer ?? undefined, fromDate, toDate, selectedCategory || undefined);
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const d = new Date().toISOString().slice(0,10).replace(/-/g,'');
+                        a.download = `farmer-accounts-${d}.csv`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                      } catch (err) {
+                        console.error('Export failed', err);
+                      }
+                    }}
+                    variant="outline"
+                    className="flex items-center gap-2 text-xs sm:text-sm px-3 py-2 flex-1 sm:flex-initial"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span className="hidden sm:inline">Export CSV</span>
+                    <span className="sm:hidden">CSV</span>
+                  </Button>
+                  <Button
+                    onClick={()=> window.print()}
+                    variant="outline"
+                    className="flex items-center gap-2 text-xs sm:text-sm px-3 py-2 flex-1 sm:flex-initial"
+                  >
+                    <Printer className="h-4 w-4" />
+                    <span className="hidden sm:inline">Print / PDF</span>
+                    <span className="sm:hidden">Print</span>
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -220,32 +228,29 @@ const SimpleLedger: React.FC = () => {
       </div>
 
       {/* Main Content Tabs */}
-
       <Tabs value={activeTab} onValueChange={v => setActiveTab(v as typeof activeTab)} className="w-full">
-        <TabsList
-          className="flex w-full justify-center bg-gradient-to-r from-blue-200 to-indigo-200 rounded-xl no-print shadow-sm border border-blue-300"
-        >
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-3 h-auto p-2 bg-gradient-to-r from-blue-200 to-indigo-200 rounded-xl no-print shadow-sm border border-blue-300 gap-1">
           <TabsTrigger
             value="entries"
-            className="flex items-center gap-2 px-4 py-2 sm:py-3 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-lg hover:bg-blue-50 border-r border-blue-300 first:rounded-l-xl last:border-r-0"
+            className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-4 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-lg hover:bg-blue-50 rounded-lg min-h-[60px] sm:min-h-[48px]"
           >
-            <span className="text-base sm:text-lg">📒</span>
-            <span>Entries</span>
+            <span className="text-lg sm:text-base">📒</span>
+            <span className="text-center leading-tight">Entries</span>
           </TabsTrigger>
           <TabsTrigger
             value="summary"
-            className="flex items-center gap-2 px-4 py-2 sm:py-3 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-lg hover:bg-blue-50 border-r border-blue-300 last:border-r-0"
+            className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-4 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-lg hover:bg-blue-50 rounded-lg min-h-[60px] sm:min-h-[48px]"
           >
-            <span className="text-base sm:text-lg">📈</span>
-            <span>Summary</span>
+            <span className="text-lg sm:text-base">📈</span>
+            <span className="text-center leading-tight">Summary</span>
           </TabsTrigger>
           {hasRole('owner') && (
             <TabsTrigger
               value="commission"
-              className="flex items-center gap-2 px-4 py-2 sm:py-3 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-lg hover:bg-blue-50 last:rounded-r-xl"
+              className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-4 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-lg hover:bg-blue-50 rounded-lg min-h-[60px] sm:min-h-[48px] col-span-2 lg:col-span-1"
             >
-              <span className="text-base sm:text-lg">🏆</span>
-              <span>Commission</span>
+              <span className="text-lg sm:text-base">🏆</span>
+              <span className="text-center leading-tight">Commission</span>
             </TabsTrigger>
           )}
         </TabsList>
