@@ -121,37 +121,39 @@ const LedgerForm: React.FC<LedgerFormProps> = ({ onSuccess, onCancel }) => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="space-y-3">
         <div>
           <label className="block text-sm font-semibold mb-2">Type</label>
-          <select
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-          >
+          <div className="flex gap-2">
             {ledgerTypes.map(t => (
-              <option key={t} value={t}>
+              <button
+                key={t}
+                type="button"
+                name="type"
+                onClick={() => handleChange({ target: { name: 'type', value: t } } as any)}
+                className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center ${formData.type === t ? 'bg-primary text-white' : 'bg-white border border-gray-200'}`}
+              >
                 {t.charAt(0).toUpperCase() + t.slice(1)}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
         <div>
           <label className="block text-sm font-semibold mb-2">Category</label>
-          <select
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-          >
+          <div className="flex flex-wrap gap-2">
             {ledgerCategories.map(c => (
-              <option key={c} value={c}>
+              <button
+                key={c}
+                type="button"
+                name="category"
+                onClick={() => handleChange({ target: { name: 'category', value: c } } as any)}
+                className={`px-3 py-2 rounded-full text-sm font-medium ${formData.category === c ? 'bg-primary text-white' : 'bg-white border border-gray-200'}`}
+              >
                 {c.charAt(0).toUpperCase() + c.slice(1)}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
         </div>
       </div>
 
@@ -170,15 +172,17 @@ const LedgerForm: React.FC<LedgerFormProps> = ({ onSuccess, onCancel }) => {
       </div>
 
       <div>
+        <label className="block text-sm font-semibold mb-2">Amount <span className="text-gray-400 text-xs">(₹)</span></label>
         <input
           type="number"
+          inputMode="decimal"
           name="amount"
           value={formData.amount}
           onChange={handleChange}
           placeholder="0.00"
           step="0.01"
           min="0"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono"
           required
         />
       </div>
@@ -195,11 +199,11 @@ const LedgerForm: React.FC<LedgerFormProps> = ({ onSuccess, onCancel }) => {
         />
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2 pt-4">
-        <Button type="submit" disabled={loading} className="w-full sm:flex-1">
+      <div className="flex flex-col gap-2 pt-4">
+        <Button type="submit" disabled={loading} className="w-full py-3">
           {loading ? 'Adding...' : 'Add Entry'}
         </Button>
-        <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:flex-1">
+        <Button type="button" variant="outline" onClick={onCancel} className="w-full py-3">
           Cancel
         </Button>
       </div>

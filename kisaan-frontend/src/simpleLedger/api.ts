@@ -16,15 +16,45 @@ export async function fetchOwnerCommissionSummary(
 // API utility for simple ledger (uses centralized apiClient)
 import { apiClient } from '../services/apiClient';
 
-export async function fetchLedgerEntries(shopId: number, farmerId?: number, from?: string, to?: string, category?: string) {
+export type LedgerEntriesResponse = {
+  entries: Array<{
+    id: number;
+    shop_id: number;
+    farmer_id: number;
+    amount: number;
+    commission_amount?: number;
+    net_amount?: number;
+    type: string;
+    category: string;
+    notes?: string;
+    transaction_date?: string;
+    created_at?: string;
+    created_by: number;
+  }>;
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export async function fetchLedgerEntries(
+  shopId: number,
+  farmerId?: number,
+  from?: string,
+  to?: string,
+  category?: string,
+  page?: number,
+  page_size?: number
+): Promise<LedgerEntriesResponse> {
   const params = new URLSearchParams();
   params.append('shop_id', String(shopId));
-  if (farmerId) params.append('farmer_id', String(farmerId));
+  if (farmerId != null) params.append('farmer_id', String(farmerId));
   if (from) params.append('from', from);
   if (to) params.append('to', to);
   if (category) params.append('category', category);
+  if (page) params.append('page', String(page));
+  if (page_size) params.append('page_size', String(page_size));
   const qs = `?${params.toString()}`;
-  return apiClient.get(`/simple-ledger${qs}`);
+  return apiClient.get<LedgerEntriesResponse>(`/simple-ledger${qs}`);
 }
 
 export async function createLedgerEntry(data: {
@@ -51,7 +81,7 @@ export async function fetchLedgerSummary(
   const params = new URLSearchParams();
   params.append('shop_id', String(shopId));
   if (period) params.append('period', period);
-  if (farmerId) params.append('farmer_id', String(farmerId));
+  if (farmerId != null) params.append('farmer_id', String(farmerId));
   if (from) params.append('from', from);
   if (to) params.append('to', to);
   if (category) params.append('category', category);
@@ -62,7 +92,7 @@ export async function fetchLedgerSummary(
 export async function exportLedgerCsv(shopId: number, farmerId?: number, from?: string, to?: string, category?: string): Promise<Blob> {
   const params = new URLSearchParams();
   params.append('shop_id', String(shopId));
-  if (farmerId) params.append('farmer_id', String(farmerId));
+  if (farmerId != null) params.append('farmer_id', String(farmerId));
   if (from) params.append('from', from);
   if (to) params.append('to', to);
   if (category) params.append('category', category);

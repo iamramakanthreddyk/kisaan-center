@@ -5,7 +5,7 @@ import { usersApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { AlertCircle, Inbox, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { AlertCircle, Inbox, TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { User } from '../types';
 import { formatAmount } from '../utils/format';
 
@@ -35,6 +35,9 @@ interface LedgerListProps {
 const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerId, from, to, category }) => {
   const { user } = useAuth();
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
+  const [total, setTotal] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
+  const [pageSize] = useState<number>(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,12 +61,14 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
       })();
     }
 
-    const loadEntries = async () => {
+    const loadEntries = async (pageToLoad = page) => {
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchLedgerEntries(shopId, farmerId ?? undefined, from ?? undefined, to ?? undefined, category ?? undefined);
-        setEntries(Array.isArray(data) ? data : []);
+        const payload = await fetchLedgerEntries(shopId, farmerId ?? undefined, from ?? undefined, to ?? undefined, category ?? undefined, pageToLoad, pageSize);
+        setEntries(payload.entries);
+        setTotal(typeof payload.total === 'number' ? payload.total : 0);
+        setPage(typeof payload.page === 'number' ? payload.page : pageToLoad);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to fetch ledger entries');
         setEntries([]);
@@ -71,7 +76,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
         setLoading(false);
       }
     };
-    loadEntries();
+    loadEntries(1);
   }, [shopId, farmerId, from, to, category, refreshTrigger]);
 
   const getFarmerName = (farmerId: number): string => {
@@ -101,6 +106,33 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
       default:
         return 'text-gray-700 bg-gray-50';
     }
+  };
+
+  // Load a specific page (used by pagination handlers)
+  const handleLoadPage = async (pageToLoad: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const payload = await fetchLedgerEntries(shopId, farmerId ?? undefined, from ?? undefined, to ?? undefined, category ?? undefined, pageToLoad, pageSize);
+      setEntries(Array.isArray(payload.entries) ? payload.entries : []);
+      setTotal(typeof payload.total === 'number' ? payload.total : 0);
+      setPage(typeof payload.page === 'number' ? payload.page : pageToLoad);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to fetch ledger entries');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePrev = () => {
+    if (page <= 1) return;
+    handleLoadPage(page - 1);
+  };
+
+  const handleNext = () => {
+    const maxPage = Math.max(1, Math.ceil(total / pageSize));
+    if (page >= maxPage) return;
+    handleLoadPage(page + 1);
   };
 
   return (
@@ -290,6 +322,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                 <td style={{border: '1px solid #000', padding: '4px'}}>{entry.notes || ''}</td>
               </tr>
             ))}
+            {/* end of entries list */}
             <tr>
               <td colSpan={3} style={{border: '1px solid #000', padding: '4px', fontWeight: 'bold'}}>Balance</td>
               <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right', fontWeight: 'bold'}}>{(() => {
@@ -302,6 +335,41 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
             </tr>
           </tbody>
         </table>
+      </div>
+      {/* Pagination controls (shared mobile & desktop) */}
+      <div className="px-2 py-2 flex items-center justify-between gap-2 bg-gray-50 rounded-lg border">
+        <div className="text-xs text-gray-600 font-medium">
+          Showing {(page-1)*pageSize + 1} - {Math.min(total, page*pageSize)} of {total} entries
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-md font-medium text-xs transition-all duration-200 min-h-[40px] touch-manipulation shadow-sm ${
+              page <= 1
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-md hover:shadow-lg'
+            }`}
+            onClick={handlePrev}
+            disabled={page <= 1}
+          >
+            <ChevronLeft className="h-3 w-3" />
+            Prev
+          </button>
+          <div className="bg-white px-2 py-1.5 rounded-md border font-semibold text-gray-700 shadow-sm text-xs">
+            Page {page}
+          </div>
+          <button
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-md font-medium text-xs transition-all duration-200 min-h-[40px] touch-manipulation shadow-sm ${
+              page >= Math.ceil(total / pageSize)
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-md hover:shadow-lg'
+            }`}
+            onClick={handleNext}
+            disabled={page >= Math.ceil(total / pageSize)}
+          >
+            Next
+            <ChevronRight className="h-3 w-3" />
+          </button>
+        </div>
       </div>
     </Card>
   );

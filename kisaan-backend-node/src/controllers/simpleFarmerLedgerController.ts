@@ -183,7 +183,7 @@ export async function createEntry(req: Request, res: Response) {
 // List entries (with filters)
 export async function listEntries(req: Request, res: Response) {
   try {
-    const { shop_id, farmer_id, from, to, category } = req.query;
+    const { shop_id, farmer_id, from, to, category, page, page_size } = req.query;
     const where: any = {};
     if (shop_id) where.shop_id = Number(shop_id);
     if (farmer_id) where.farmer_id = Number(farmer_id);
@@ -242,16 +242,24 @@ export async function listEntries(req: Request, res: Response) {
 
     // Debug: log the filter and result count
     console.log('[SimpleLedger] Filter where:', JSON.stringify(where, null, 2));
-    const entries = await SimpleFarmerLedger.findAll({
+    // Pagination params
+    const pageNum = page ? Math.max(1, Number(page)) : 1;
+    const pageSizeNum = page_size ? Math.min(200, Math.max(5, Number(page_size))) : 25; // default page size 25, clamp 5..200
+    const offset = (pageNum - 1) * pageSizeNum;
+
+    const result = await SimpleFarmerLedger.findAndCountAll({
       where,
       order: [
         // Sort by transaction_date first (for backdated entries), then by created_at
         [Sequelize.literal('COALESCE(transaction_date, created_at)'), 'DESC'],
         ['created_at', 'DESC']
       ],
-      limit: 1000 // Prevent excessive results
+      limit: pageSizeNum,
+      offset
     });
-    console.log(`[SimpleLedger] Entries found: ${entries.length}`);
+    const entries = result.rows;
+    const total = result.count;
+    console.log(`[SimpleLedger] Entries found: ${entries.length} (total: ${total})`);
     
     // Convert string fields to numbers for frontend compatibility
     const formattedEntries = entries.map(entry => ({
@@ -269,7 +277,7 @@ export async function listEntries(req: Request, res: Response) {
       net_amount: entry.net_amount ? Number(entry.net_amount) : undefined,
     }));
     
-    res.json(formattedEntries);
+    res.json({ entries: formattedEntries, total, page: pageNum, page_size: pageSizeNum });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: message });

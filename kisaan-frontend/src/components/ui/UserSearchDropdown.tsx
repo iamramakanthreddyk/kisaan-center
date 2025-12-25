@@ -7,7 +7,7 @@ import { getUserDisplayWithRoleAndId } from '../../utils/userDisplayName';
 
 
 interface UserSearchDropdownProps {
-  onSelect: (user: User) => void;
+  onSelect: (user: User | null) => void;
   placeholder?: string;
   // Optional role filter to limit results (e.g., 'buyer' or 'farmer')
   roleFilter?: 'farmer' | 'buyer' | 'all';
@@ -96,7 +96,7 @@ export const UserSearchDropdown: React.FC<UserSearchDropdownProps> = ({ onSelect
         <button
           type="button"
           className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          onClick={() => { setSelectedUser(null); onSelect(null as unknown as User); setQuery(''); setShow(false); }}
+          onClick={() => { setSelectedUser(null); onSelect(null); setQuery(''); setShow(false); }}
           aria-label="Clear selection"
         >
           ×
