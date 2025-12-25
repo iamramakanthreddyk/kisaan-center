@@ -1,0 +1,1 @@
+-- Empty migration file to fix startup error

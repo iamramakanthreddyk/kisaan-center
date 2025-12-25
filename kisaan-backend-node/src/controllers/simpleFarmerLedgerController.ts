@@ -284,14 +284,15 @@ export async function listEntries(req: Request, res: Response) {
   }
 }
 
-// Get farmer balance
+// Get farmer balance (or shop total if no farmer_id)
 export async function getFarmerBalance(req: Request, res: Response) {
   try {
     const { shop_id, farmer_id } = req.query;
-    if (!shop_id || !farmer_id) return res.status(400).json({ error: 'shop_id and farmer_id required' });
+    if (!shop_id) return res.status(400).json({ error: 'shop_id required' });
     const shopIdNum = Number(shop_id);
-    const farmerIdNum = Number(farmer_id);
-    const entries = await SimpleFarmerLedger.findAll({ where: { shop_id: shopIdNum, farmer_id: farmerIdNum } });
+    const farmerIdNum = farmer_id ? Number(farmer_id) : undefined;
+    const whereClause = farmerIdNum ? { shop_id: shopIdNum, farmer_id: farmerIdNum } : { shop_id: shopIdNum };
+    const entries = await SimpleFarmerLedger.findAll({ where: whereClause });
     let credit = 0, debit = 0;
     for (const e of entries) {
       if (e.type === 'credit') credit += Number(e.amount);

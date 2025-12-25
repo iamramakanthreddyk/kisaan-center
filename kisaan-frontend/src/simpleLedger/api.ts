@@ -100,3 +100,14 @@ export async function exportLedgerCsv(shopId: number, farmerId?: number, from?: 
   // Use apiClient.fetchBlob which is designed to return a Blob
   return apiClient.fetchBlob(`/simple-ledger/export${qs}`);
 }
+
+export async function fetchLedgerBalance(
+  shopId: number,
+  farmerId?: number
+): Promise<{ farmer_id?: number; shop_id: number; credit: number; debit: number; balance: number }> {
+  const params = new URLSearchParams();
+  params.append('shop_id', String(shopId));
+  if (farmerId != null) params.append('farmer_id', String(farmerId));
+  const qs = `?${params.toString()}`;
+  return apiClient.get(`/simple-ledger/balance${qs}`);
+}

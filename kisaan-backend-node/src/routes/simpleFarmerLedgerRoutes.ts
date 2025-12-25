@@ -31,7 +31,7 @@ router.delete('/:id', shopAccessGuard, controller.deleteEntry);
 
 // List, balance, summary: owner/employee full, farmer read-only
 router.get('/', farmerReadOnlyGuard, controller.listEntries);
-router.get('/balance', farmerReadOnlyGuard, controller.getFarmerBalance);
+router.get('/balance', authenticateToken, controller.getFarmerBalance);
 router.get('/summary', farmerReadOnlyGuard, controller.getSummary);
 router.get('/export', farmerReadOnlyGuard, controller.exportCsv);
 // Earnings: only shop owners/employees can view earnings

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { fetchLedgerEntries } from './api';
+import { fetchLedgerEntries, fetchLedgerBalance } from './api';
 import { useTransactionStore } from '../store/transactionStore';
 import { usersApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -40,6 +40,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
   const [pageSize] = useState<number>(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [overallBalance, setOverallBalance] = useState<any>(null);
 
   const shopId = user?.shop_id ? Number(user.shop_id) : 1;
   const getUsersForShop = useTransactionStore(state => state.getUsers);
@@ -60,6 +61,19 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
         }
       })();
     }
+
+    // Fetch overall shop balance for all users
+    (async () => {
+      try {
+        const balanceRes = await fetchLedgerBalance(shopId, farmerId ?? undefined); // Pass farmerId if set
+        console.log('Fetched balance:', balanceRes);
+        setOverallBalance(balanceRes);
+        console.log('Setting overallBalance to:', balanceRes);
+      } catch (error) {
+        console.error('Failed to fetch overall balance:', error);
+        // Keep overallBalance null so display uses per-page calculation after entries load
+      }
+    })();
 
     const loadEntries = async (pageToLoad = page) => {
       setLoading(true);
@@ -198,38 +212,6 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                   </div>
                 </div>
               ))}
-              {/* Mobile summary row */}
-              {entries.length > 0 && (
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {/* Balance Card */}
-                  <div className="rounded-lg bg-green-50 p-3 flex flex-col items-center shadow-sm border border-green-100">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-green-700 font-semibold text-sm">Balance</span>
-                      <span className="inline-block bg-green-200 text-green-900 text-[10px] px-2 py-0.5 rounded-full font-bold">Available</span>
-                    </div>
-                    <div className={`font-mono text-lg font-bold mb-1 ${(() => {
-                      const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-                      const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-                      const netBalance = totalCredits - totalDebits;
-                      return netBalance > 0 ? 'text-green-600' : netBalance < 0 ? 'text-red-600' : 'text-gray-600';
-                    })()}`}>{(() => {
-                      const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-                      const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-                      return formatAmount(totalCredits - totalDebits);
-                    })()}</div>
-                    <div className="text-[11px] text-green-900/80 text-center leading-tight">Amount available to withdraw<br/>(credits - debits)</div>
-                  </div>
-                  {/* Total Earning Card */}
-                  <div className="rounded-lg bg-blue-50 p-3 flex flex-col items-center shadow-sm border border-blue-100">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-blue-700 font-semibold text-sm">Total Earning</span>
-                      <span className="inline-block bg-blue-200 text-blue-900 text-[10px] px-2 py-0.5 rounded-full font-bold">From Sales</span>
-                    </div>
-                    <div className="font-mono text-lg font-bold mb-1 text-blue-700">{formatAmount(entries.filter(e => e.category === 'sale' && e.type === 'credit' && e.net_amount !== undefined).reduce((sum, e) => sum + Number(e.net_amount || 0), 0))}</div>
-                    <div className="text-[11px] text-blue-900/80 text-center leading-tight">Farmer's actual earnings from sales<br/>(after commission)</div>
-                  </div>
-                </div>
-              )}
             </div>
             {/* Desktop: Responsive Card List layout (fills width) */}
             <div className="hidden md:flex flex-col gap-3 w-full">
@@ -261,25 +243,74 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                   <div className="flex-grow min-w-[120px] text-xs text-gray-500 mt-1 md:mt-0">{entry.notes ? (<><span className="font-medium">Notes:</span> {entry.notes}</>) : <span className="text-gray-400 italic">No notes</span>}</div>
                 </div>
               ))}
-              {/* Summary cards below the list */}
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {/* Balance Card */}
+            </div>
+          </>
+        )}
+
+        {/* Summary cards - shown when not loading and not error */}
+        {!loading && !error && (
+          <>
+            {/* Mobile summary row - stack cards vertically */}
+            <div className="flex flex-col gap-2 md:hidden mt-2 w-full">
+              {/* Balance Card (per-page) */}
+              <div className="rounded-lg bg-green-50 p-3 flex flex-col items-center shadow-sm border border-green-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-green-700 font-semibold text-sm">Balance</span>
+                  <span className="inline-block bg-green-200 text-green-900 text-[10px] px-2 py-0.5 rounded-full font-bold">Page</span>
+                </div>
+                <div className={`font-mono text-lg font-bold mb-1 ${(() => {
+                  const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                  const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                  const balance = totalCredits - totalDebits;
+                  return balance > 0 ? 'text-green-600' : balance < 0 ? 'text-red-600' : 'text-gray-600';
+                })()}`}>{(() => {
+                  const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                  const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                  const balance = totalCredits - totalDebits;
+                  return formatAmount(balance);
+                })()}</div>
+                <div className="text-[11px] text-green-900/80 text-center leading-tight">Amount available to withdraw<br/>(from entries on this page)</div>
+              </div>
+              {/* Total Earning Card */}
+              <div className="rounded-lg bg-blue-50 p-3 flex flex-col items-center shadow-sm border border-blue-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-blue-700 font-semibold text-sm">Total Earning</span>
+                  <span className="inline-block bg-blue-200 text-blue-900 text-[10px] px-2 py-0.5 rounded-full font-bold">From Sales</span>
+                </div>
+                <div className="font-mono text-lg font-bold mb-1 text-blue-700">{formatAmount(entries.filter(e => e.category === 'sale' && e.type === 'credit' && e.net_amount !== undefined).reduce((sum, e) => sum + Number(e.net_amount || 0), 0))}</div>
+                <div className="text-[11px] text-blue-900/80 text-center leading-tight">Farmer's actual earnings from sales<br/>(after commission, from entries on this page)</div>
+              </div>
+              {/* Overall Balance Card */}
+              <div className="rounded-lg bg-purple-50 p-3 flex flex-col items-center shadow-sm border border-purple-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-purple-700 font-semibold text-sm">Overall Balance</span>
+                  <span className="inline-block bg-purple-200 text-purple-900 text-[10px] px-2 py-0.5 rounded-full font-bold">Total</span>
+                </div>
+                <div className="font-mono text-lg font-bold mb-1 text-purple-700">{(overallBalance && typeof overallBalance === 'object' && overallBalance.balance != null) ? formatAmount(overallBalance.balance) : 'N/A'}</div>
+                <div className="text-[11px] text-purple-900/80 text-center leading-tight">Total balance from all transactions<br/>(from API)</div>
+              </div>
+            </div>
+            {/* Desktop summary cards */}
+            <div className="hidden md:flex">
+              <div className="grid grid-cols-3 gap-2 mt-2 w-full">
+                {/* Balance Card (per-page) */}
                 <div className="rounded-lg bg-green-50 p-3 flex flex-col items-center shadow-sm border border-green-100">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-green-700 font-semibold text-sm">Balance</span>
-                    <span className="inline-block bg-green-200 text-green-900 text-[10px] px-2 py-0.5 rounded-full font-bold">Available</span>
+                    <span className="inline-block bg-green-200 text-green-900 text-[10px] px-2 py-0.5 rounded-full font-bold">Page</span>
                   </div>
                   <div className={`font-mono text-lg font-bold mb-1 ${(() => {
                     const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
                     const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-                    const netBalance = totalCredits - totalDebits;
-                    return netBalance > 0 ? 'text-green-600' : netBalance < 0 ? 'text-red-600' : 'text-gray-600';
+                    const balance = totalCredits - totalDebits;
+                    return balance > 0 ? 'text-green-600' : balance < 0 ? 'text-red-600' : 'text-gray-600';
                   })()}`}>{(() => {
                     const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
                     const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-                    return formatAmount(totalCredits - totalDebits);
+                    const balance = totalCredits - totalDebits;
+                    return formatAmount(balance);
                   })()}</div>
-                  <div className="text-[11px] text-green-900/80 text-center leading-tight">Amount available to withdraw<br/>(earnings - withdrawals)</div>
+                  <div className="text-[11px] text-green-900/80 text-center leading-tight">Amount available to withdraw<br/>(from entries on this page)</div>
                 </div>
                 {/* Total Earning Card */}
                 <div className="rounded-lg bg-blue-50 p-3 flex flex-col items-center shadow-sm border border-blue-100">
@@ -288,7 +319,16 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                     <span className="inline-block bg-blue-200 text-blue-900 text-[10px] px-2 py-0.5 rounded-full font-bold">From Sales</span>
                   </div>
                   <div className="font-mono text-lg font-bold mb-1 text-blue-700">{formatAmount(entries.filter(e => e.category === 'sale' && e.type === 'credit' && e.net_amount !== undefined).reduce((sum, e) => sum + Number(e.net_amount || 0), 0))}</div>
-                  <div className="text-[11px] text-blue-900/80 text-center leading-tight">Farmer's actual earnings from sales<br/>(after commission)</div>
+                  <div className="text-[11px] text-blue-900/80 text-center leading-tight">Farmer's actual earnings from sales<br/>(after commission, from entries on this page)</div>
+                </div>
+                {/* Overall Balance Card */}
+                <div className="rounded-lg bg-purple-50 p-3 flex flex-col items-center shadow-sm border border-purple-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-purple-700 font-semibold text-sm">Overall Balance</span>
+                    <span className="inline-block bg-purple-200 text-purple-900 text-[10px] px-2 py-0.5 rounded-full font-bold">Total</span>
+                  </div>
+                  <div className="font-mono text-lg font-bold mb-1 text-purple-700">{(overallBalance && typeof overallBalance === 'object' && overallBalance.balance != null) ? formatAmount(overallBalance.balance) : 'N/A'}</div>
+                  <div className="text-[11px] text-purple-900/80 text-center leading-tight">Total balance from all transactions<br/>(from API)</div>
                 </div>
               </div>
             </div>
