@@ -13,10 +13,11 @@ interface LedgerFormProps {
 
 const LedgerForm: React.FC<LedgerFormProps> = ({ onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
-    type: 'debit',
-    category: 'sale',
+    type: 'credit', // Default to credit
+    category: 'sale', // Default category for credit
     amount: '',
-    notes: ''
+    notes: '',
+    entryDate: new Date().toISOString().split('T')[0] // Default to today
   });
   const { user } = useAuth();
   const [selectedFarmer, setSelectedFarmer] = useState<User | null>(null);
@@ -24,14 +25,36 @@ const LedgerForm: React.FC<LedgerFormProps> = ({ onSuccess, onCancel }) => {
   const [error, setError] = useState<string | null>(null);
 
   const ledgerTypes = ['credit', 'debit'];
-  const ledgerCategories = ['sale', 'expense', 'withdrawal', 'other'];
+
+  // Dynamic categories based on type
+  const getCategoriesForType = (type: string) => {
+    if (type === 'credit') {
+      return ['sale', 'deposit', 'other'];
+    } else {
+      return ['expense', 'withdrawal', 'loan', 'other'];
+    }
+  };
+
+  const ledgerCategories = getCategoriesForType(formData.type);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: value
+      };
+
+      // If type changes, reset category to first valid option for new type
+      if (name === 'type') {
+        const newCategories = getCategoriesForType(value);
+        if (!newCategories.includes(prev.category)) {
+          newData.category = newCategories[0];
+        }
+      }
+
+      return newData;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,9 +87,10 @@ const LedgerForm: React.FC<LedgerFormProps> = ({ onSuccess, onCancel }) => {
         category: formData.category,
         amount: parseFloat(formData.amount),
         notes: formData.notes,
-        created_by: user?.id
+        created_by: user?.id,
+        entry_date: formData.entryDate
       });
-      setFormData({ type: 'debit', category: 'sale', amount: '', notes: '' });
+      setFormData({ type: 'credit', category: 'sale', amount: '', notes: '', entryDate: new Date().toISOString().split('T')[0] });
       setSelectedFarmer(null);
       onSuccess?.();
     } catch (err) {
@@ -132,7 +156,20 @@ const LedgerForm: React.FC<LedgerFormProps> = ({ onSuccess, onCancel }) => {
       </div>
 
       <div>
-        <label className="block text-sm font-semibold mb-2">Amount (₹)</label>
+        <label className="block text-sm font-semibold mb-2">Entry Date <span className="text-red-500">*</span></label>
+        <input
+          type="date"
+          name="entryDate"
+          value={formData.entryDate}
+          onChange={handleChange}
+          max={new Date().toISOString().split('T')[0]} // Prevent future dates
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          required
+        />
+        <p className="text-xs text-gray-500 mt-1">Select the date when this transaction occurred</p>
+      </div>
+
+      <div>
         <input
           type="number"
           name="amount"

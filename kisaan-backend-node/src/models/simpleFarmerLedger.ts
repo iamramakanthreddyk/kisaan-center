@@ -33,6 +33,7 @@ export interface SimpleFarmerLedgerAttributes {
   type: LedgerType;
   category: LedgerCategory;
   notes?: string;
+  transaction_date?: Date; // Add transaction date field
   created_at?: Date;
 
   created_by: number;
@@ -54,6 +55,7 @@ export class SimpleFarmerLedger extends Model<SimpleFarmerLedgerAttributes, Simp
   public type!: LedgerType;
   public category!: LedgerCategory;
   public notes?: string;
+  public transaction_date?: Date; // Add transaction date field
   public created_at?: Date;
   public created_by!: number;
   public commission_amount?: number;
@@ -88,6 +90,10 @@ SimpleFarmerLedger.init({
   },
   notes: {
     type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  transaction_date: {
+    type: DataTypes.DATE,
     allowNull: true,
   },
   created_at: {

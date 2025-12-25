@@ -19,6 +19,7 @@ interface LedgerEntry {
   type: string;
   category: string;
   notes?: string;
+  transaction_date?: string; // Add transaction_date field
   created_at?: string;
   created_by: number;
 }
@@ -158,7 +159,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                     <div><span className="font-medium">Category:</span> <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{entry.category.toUpperCase()}</span></div>
                     <div><span className="font-medium">Credit:</span> <span className="font-mono">{entry.type === 'credit' ? formatAmount(entry.amount) : '-'}</span></div>
                     <div><span className="font-medium">Debit:</span> <span className="font-mono">{entry.type === 'credit' && entry.category === 'sale' ? formatAmount(entry.commission_amount || 0) : entry.type === 'debit' ? formatAmount(entry.amount) : '-'}</span></div>
-                    <div><span className="font-medium">Date:</span> {entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</div>
+                    <div><span className="font-medium">Date:</span> {(entry.transaction_date || entry.created_at) ? new Date(entry.transaction_date || entry.created_at!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</div>
                   </div>
                   <div className="mt-2 text-xs text-gray-500">
                     <span className="font-medium">Notes:</span> {entry.notes || <span className="text-gray-400 italic">No notes</span>}
@@ -224,7 +225,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                   </div>
                   <div className="flex-shrink-0 w-28 text-right font-mono font-medium mr-4">{entry.type === 'credit' ? formatAmount(entry.amount) : '-'}</div>
                   <div className="flex-shrink-0 w-32 text-right font-mono font-medium mr-4">{entry.type === 'credit' && entry.category === 'sale' ? formatAmount(entry.commission_amount || 0) : entry.type === 'debit' ? formatAmount(entry.amount) : '-'}</div>
-                  <div className="flex-shrink-0 w-32 mr-4 text-gray-600">{entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</div>
+                  <div className="flex-shrink-0 w-32 mr-4 text-gray-600">{(entry.transaction_date || entry.created_at) ? new Date(entry.transaction_date || entry.created_at!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</div>
                   <div className="flex-grow min-w-[120px] text-xs text-gray-500 mt-1 md:mt-0">{entry.notes ? (<><span className="font-medium">Notes:</span> {entry.notes}</>) : <span className="text-gray-400 italic">No notes</span>}</div>
                 </div>
               ))}
@@ -285,7 +286,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                 <td style={{border: '1px solid #000', padding: '4px'}}>{entry.category.toUpperCase()}</td>
                 <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right'}}>{entry.type === 'credit' ? formatAmount(entry.amount) : '-'}</td>
                 <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right'}}>{entry.type === 'credit' && entry.category === 'sale' ? formatAmount(entry.commission_amount || 0) : entry.type === 'debit' ? formatAmount(entry.amount) : '-'}</td>
-                <td style={{border: '1px solid #000', padding: '4px'}}>{entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</td>
+                <td style={{border: '1px solid #000', padding: '4px'}}>{(entry.transaction_date || entry.created_at) ? new Date(entry.transaction_date || entry.created_at!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</td>
                 <td style={{border: '1px solid #000', padding: '4px'}}>{entry.notes || ''}</td>
               </tr>
             ))}

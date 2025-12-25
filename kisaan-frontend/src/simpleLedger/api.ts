@@ -35,6 +35,7 @@ export async function createLedgerEntry(data: {
   amount: number;
   notes?: string;
   created_by?: number;
+  entry_date?: string;
 }) {
   return apiClient.post('/simple-ledger', data);
 }

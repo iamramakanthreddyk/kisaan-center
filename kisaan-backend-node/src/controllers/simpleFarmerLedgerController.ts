@@ -154,7 +154,25 @@ export async function createEntry(req: Request, res: Response) {
     payload.type = payload.type || 'income'; // Default type
     payload.created_by = payload.created_by || 1; // Default created_by
     
-    const entry = await SimpleFarmerLedger.create(payload);
+    // Handle backdating: if entry_date is provided, use it for transaction_date
+    const createData: any = { ...payload };
+    if (req.body.entry_date) {
+      // Convert the entry_date to a proper Date object
+      const entryDate = new Date(req.body.entry_date);
+      if (!isNaN(entryDate.getTime())) {
+        // Ensure the date is not in the future
+        const now = new Date();
+        if (entryDate <= now) {
+          createData.transaction_date = entryDate;
+        } else {
+          return res.status(400).json({ error: 'Entry date cannot be in the future' });
+        }
+      } else {
+        return res.status(400).json({ error: 'Invalid entry date format' });
+      }
+    }
+    
+    const entry = await SimpleFarmerLedger.create(createData);
     res.status(201).json(entry);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -166,14 +184,15 @@ export async function createEntry(req: Request, res: Response) {
 export async function listEntries(req: Request, res: Response) {
   try {
     const { shop_id, farmer_id, from, to, category } = req.query;
-    const where: Record<string, unknown> = {};
+    const where: any = {};
     if (shop_id) where.shop_id = Number(shop_id);
     if (farmer_id) where.farmer_id = Number(farmer_id);
     if (category) where.category = category;
 
-    // Improved date filtering (robust UTC handling)
+    // Improved date filtering - check both transaction_date and created_at for backward compatibility
     if (from || to) {
-      where.created_at = {};
+      const dateConditions: any[] = [];
+      
       if (from) {
         // Always treat 'from' as UTC midnight
         let fromDate = new Date(from as string);
@@ -181,8 +200,19 @@ export async function listEntries(req: Request, res: Response) {
           // If only date provided (YYYY-MM-DD), force UTC midnight
           fromDate = new Date(from + 'T00:00:00.000Z');
         }
-        (where.created_at as any)[Op.gte] = fromDate;
+        dateConditions.push({
+          [Op.or]: [
+            { transaction_date: { [Op.gte]: fromDate } },
+            { 
+              [Op.and]: [
+                { transaction_date: null },
+                { created_at: { [Op.gte]: fromDate } }
+              ]
+            }
+          ]
+        });
       }
+      
       if (to) {
         // Always treat 'to' as UTC end of day
         let toDate = new Date(to as string);
@@ -192,7 +222,21 @@ export async function listEntries(req: Request, res: Response) {
         } else {
           toDate.setUTCHours(23, 59, 59, 999);
         }
-        (where.created_at as any)[Op.lte] = toDate;
+        dateConditions.push({
+          [Op.or]: [
+            { transaction_date: { [Op.lte]: toDate } },
+            { 
+              [Op.and]: [
+                { transaction_date: null },
+                { created_at: { [Op.lte]: toDate } }
+              ]
+            }
+          ]
+        });
+      }
+      
+      if (dateConditions.length > 0) {
+        where[Op.and] = dateConditions;
       }
     }
 
@@ -200,7 +244,11 @@ export async function listEntries(req: Request, res: Response) {
     console.log('[SimpleLedger] Filter where:', JSON.stringify(where, null, 2));
     const entries = await SimpleFarmerLedger.findAll({
       where,
-      order: [['created_at', 'DESC']],
+      order: [
+        // Sort by transaction_date first (for backdated entries), then by created_at
+        [Sequelize.literal('COALESCE(transaction_date, created_at)'), 'DESC'],
+        ['created_at', 'DESC']
+      ],
       limit: 1000 // Prevent excessive results
     });
     console.log(`[SimpleLedger] Entries found: ${entries.length}`);
@@ -214,6 +262,7 @@ export async function listEntries(req: Request, res: Response) {
       type: entry.type,
       category: entry.category,
       notes: entry.notes,
+      transaction_date: entry.transaction_date?.toISOString() || entry.created_at?.toISOString(), // Use transaction_date if available, fallback to created_at
       created_at: entry.created_at?.toISOString(),
       created_by: Number(entry.created_by),
       commission_amount: entry.commission_amount ? Number(entry.commission_amount) : undefined,

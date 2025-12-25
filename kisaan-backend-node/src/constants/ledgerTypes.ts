@@ -4,6 +4,6 @@ export const LEDGER_TYPES = {
   DEBIT: 'debit',
 } as const;
 
-export type LedgerType = typeof LEDGER_TYPES[keyof typeof LEDGER_TYPES];
+export type LedgerType = 'credit' | 'debit';
 
-export const LEDGER_TYPE_VALUES = Object.values(LEDGER_TYPES);
+export const LEDGER_TYPE_VALUES = ['credit', 'debit'] as const;

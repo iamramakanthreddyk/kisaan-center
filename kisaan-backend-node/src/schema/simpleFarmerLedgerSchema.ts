@@ -12,4 +12,5 @@ export const simpleFarmerLedgerSchema = yup.object({
   created_by: yup.number().required(),
   commission_amount: yup.number().optional(),
   net_amount: yup.number().optional(),
+  entry_date: yup.string().optional(), // Allow custom entry date
 });

@@ -97,6 +97,38 @@ async function runMigration() {
       ADD COLUMN IF NOT EXISTS created_by BIGINT
     `);
 
+    // Create the balance snapshots table
+    console.log('Creating kisaan_balance_snapshots table...');
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS kisaan_balance_snapshots (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        balance_type VARCHAR(20) NOT NULL CHECK (balance_type IN ('farmer', 'buyer')),
+        previous_balance DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+        amount_change DECIMAL(12, 2) NOT NULL,
+        new_balance DECIMAL(12, 2) NOT NULL,
+        transaction_type VARCHAR(50) NOT NULL,
+        reference_id BIGINT,
+        reference_type VARCHAR(50),
+        description TEXT,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_balance_snapshot_user FOREIGN KEY (user_id) REFERENCES kisaan_users(id) ON DELETE RESTRICT
+      )
+    `);
+
+    // Create indexes for balance snapshots table
+    console.log('Creating indexes on kisaan_balance_snapshots...');
+    await sequelize.query(`
+      CREATE INDEX IF NOT EXISTS idx_balance_snapshot_user ON kisaan_balance_snapshots(user_id)
+    `);
+    await sequelize.query(`
+      CREATE INDEX IF NOT EXISTS idx_balance_snapshot_created_at ON kisaan_balance_snapshots(created_at DESC)
+    `);
+    await sequelize.query(`
+      CREATE INDEX IF NOT EXISTS idx_balance_snapshot_type ON kisaan_balance_snapshots(balance_type)
+    `);
+
     console.log('✅ Migration completed successfully!');
 
   } catch (e) {

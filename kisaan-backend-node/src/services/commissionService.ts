@@ -23,12 +23,12 @@ export class CommissionService {
     });
 
     return {
-      id: shop.id.toString(),
-      shop_id: shop.id.toString(),
-      rate: data.rate.toString(),
+      id: Number(shop.id),
+      shop_id: Number(shop.id),
+      rate: Number(data.rate),
       type: data.type,
-      created_at: shop.created_at?.toISOString() || new Date().toISOString(),
-      updated_at: shop.updated_at?.toISOString() || new Date().toISOString()
+      created_at: shop.created_at || new Date(),
+      updated_at: shop.updated_at || new Date()
     };
   }
 
@@ -38,12 +38,12 @@ export class CommissionService {
     });
 
     return shops.map(shop => ({
-      id: shop.id.toString(),
-      shop_id: shop.id.toString(),
-      rate: shop.commission_rate?.toString() || '0.00',
-      type: 'percentage',
-      created_at: shop.created_at?.toISOString() || new Date().toISOString(),
-      updated_at: shop.updated_at?.toISOString() || new Date().toISOString()
+      id: Number(shop.id),
+      shop_id: Number(shop.id),
+      rate: Number(shop.commission_rate) || 0,
+      type: 'percentage' as const,
+      created_at: shop.created_at || new Date(),
+      updated_at: shop.updated_at || new Date()
     }));
   }
 
@@ -53,12 +53,12 @@ export class CommissionService {
 
     // Return shop's commission rate in the same format
     return [{
-      id: shop.id.toString(),
-      shop_id: shop.id.toString(),
-      rate: shop.commission_rate?.toString() || '0.00',
-      type: 'percentage',
-      created_at: shop.created_at?.toISOString() || new Date().toISOString(),
-      updated_at: shop.updated_at?.toISOString() || new Date().toISOString()
+      id: Number(shop.id),
+      shop_id: Number(shop.id),
+      rate: Number(shop.commission_rate) || 0,
+      type: 'percentage' as const,
+      created_at: shop.created_at || new Date(),
+      updated_at: shop.updated_at || new Date()
     }];
   }
 
@@ -80,12 +80,12 @@ export class CommissionService {
     });
 
     return {
-      id: shop.id.toString(),
-      shop_id: shop.id.toString(),
-      rate: (data.rate || shop.commission_rate)?.toString() || '0.00',
-      type: 'percentage',
-      created_at: shop.created_at?.toISOString() || new Date().toISOString(),
-      updated_at: shop.updated_at?.toISOString() || new Date().toISOString()
+      id: Number(shop.id),
+      shop_id: Number(shop.id),
+      rate: Number(data.rate || shop.commission_rate) || 0,
+      type: 'percentage' as const,
+      created_at: shop.created_at || new Date(),
+      updated_at: shop.updated_at || new Date()
     };
   }
 }
