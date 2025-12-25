@@ -4,7 +4,6 @@ import { Request, Response } from 'express';
 // import { sequelize } from '../models/index';
 import { ShopService } from '../services/shopService';
 import { AuthenticatedRequest } from '../middlewares/auth';
-import { CommissionService } from '../services/commissionService';
 import { success, failureCode, created, standardDelete } from '../shared/http/respond';
 import { ErrorCodes } from '../shared/errors/errorCodes';
 // import { logger } from '../shared/logging/logger';
@@ -13,11 +12,9 @@ import { parseId } from '../shared/utils/parse';
 // Returns all users with role 'owner' who do not have a shop assigned
 export class ShopController {
   private shopService: ShopService;
-  private commissionService: CommissionService;
 
   constructor() {
     this.shopService = new ShopService();
-    this.commissionService = new CommissionService();
   }
   async getAvailableOwners(req: Request, res: Response) {
     try {
@@ -33,21 +30,6 @@ export class ShopController {
   async createShop(req: AuthenticatedRequest, res: Response) {
     try {
   const shop = await this.shopService.createShop(req.body, (req as AuthenticatedRequest).user);
-
-      // Insert 10% percentage commission for the created shop
-      try {
-        if (shop.id) {
-          const commissionService = new CommissionService();
-          await commissionService.createCommission({
-            shop_id: shop.id,
-            rate: 10,
-            type: 'percentage',
-          }, (req as AuthenticatedRequest).user?.id || 0);
-        }
-      } catch (commissionError: unknown) {
-        // Log but do not fail the primary shop creation flow
-        req.log?.error({ err: commissionError, shopId: shop.id }, 'shop:create commission creation failed');
-      }
 
       return created(res, shop, { message: 'Shop created successfully' });
     } catch (error: unknown) {

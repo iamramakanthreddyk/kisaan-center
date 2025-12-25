@@ -74,7 +74,7 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
               map[key].debit += t;
             }
           }
-          setSummary({ totalCredit, totalDebit, netBalance: totalCredit - totalDebit });
+          setSummary({ totalCredit, totalDebit: totalDebit + totalCredit * 0.1, netBalance: totalCredit - (totalDebit + totalCredit * 0.1) });
           // Convert map to sorted array (latest period first)
           const arr = Object.keys(map).map(k => ({ period: k, credit: map[k].credit, debit: map[k].debit }));
           arr.sort((a, b) => b.period.localeCompare(a.period));
@@ -265,8 +265,8 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
                       <tr key={b.period} className="border-t">
                         <td className="px-2 py-2">{b.period}</td>
                         <td className="px-2 py-2 text-right text-green-600">{formatAmount(b.credit)}</td>
-                        <td className="px-2 py-2 text-right text-red-600">{formatAmount(b.debit)}</td>
-                        <td className="px-2 py-2 text-right">{formatAmount(b.credit - b.debit)}</td>
+                        <td className="px-2 py-2 text-right text-red-600">{formatAmount(b.debit + b.credit * 0.1)}</td>
+                        <td className="px-2 py-2 text-right">{formatAmount(b.credit - (b.debit + b.credit * 0.1))}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -279,11 +279,11 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
                   <div key={b.period} className="p-3 border rounded-lg bg-white">
                     <div className="flex items-center justify-between">
                       <div className="text-sm font-medium">{b.period}</div>
-                      <div className="text-sm font-semibold">{formatAmount(b.credit - b.debit)}</div>
+                      <div className="text-sm font-semibold">{formatAmount(b.credit - (b.debit + b.credit * 0.1))}</div>
                     </div>
                     <div className="mt-1 text-xs text-gray-500 flex items-center justify-between">
                       <div className="text-green-600">Credit: {formatAmount(b.credit)}</div>
-                      <div className="text-red-600">Debit: {formatAmount(b.debit)}</div>
+                      <div className="text-red-600">Debit: {formatAmount(b.debit + b.credit * 0.1)}</div>
                     </div>
                   </div>
                 ))}

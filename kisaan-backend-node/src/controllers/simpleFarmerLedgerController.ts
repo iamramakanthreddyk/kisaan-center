@@ -85,7 +85,7 @@ interface ShopRow {
 }
 
 interface OwnerRow {
-  commission_rate: number | null;
+  custom_commission_rate: number | null;
 }
 
 interface LedgerPayload {
@@ -124,8 +124,8 @@ export async function createEntry(req: Request, res: Response) {
         const shopRate = shopRow && shopRow[0] ? Number(shopRow[0].commission_rate) : null;
         const ownerId = shopRow && shopRow[0] ? shopRow[0].owner_id : null;
         if (ownerId) {
-          const ownerRow: OwnerRow[] = (await SimpleFarmerLedger.sequelize!.query('SELECT commission_rate FROM kisaan_users WHERE id = ?', { replacements: [ownerId], type: QueryTypes.SELECT })) as OwnerRow[];
-          const ownerRate = ownerRow && ownerRow[0] ? Number(ownerRow[0].commission_rate) : null;
+          const ownerRow: OwnerRow[] = (await SimpleFarmerLedger.sequelize!.query('SELECT custom_commission_rate FROM kisaan_users WHERE id = ?', { replacements: [ownerId], type: QueryTypes.SELECT })) as OwnerRow[];
+          const ownerRate = ownerRow && ownerRow[0] ? Number(ownerRow[0].custom_commission_rate) : null;
           if (ownerRate != null) {
             rateUsed = ownerRate;
             source = 'owner';

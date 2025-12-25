@@ -156,10 +156,8 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                   </div>
                   <div className="flex flex-wrap text-sm text-gray-600 gap-x-4 gap-y-1">
                     <div><span className="font-medium">Category:</span> <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{entry.category.toUpperCase()}</span></div>
-                    <div><span className="font-medium">Amount:</span> <span className="font-mono">{formatAmount(entry.amount)}</span></div>
-                    {entry.category === 'sale' && entry.net_amount !== undefined && (
-                      <div><span className="font-medium">Net Amount:</span> <span className="font-mono">{formatAmount(entry.net_amount)}</span></div>
-                    )}
+                    <div><span className="font-medium">Credit:</span> <span className="font-mono">{entry.type === 'credit' ? formatAmount(entry.amount) : '-'}</span></div>
+                    <div><span className="font-medium">Debit:</span> <span className="font-mono">{entry.type === 'credit' && entry.category === 'sale' ? formatAmount(entry.commission_amount || 0) : entry.type === 'debit' ? formatAmount(entry.amount) : '-'}</span></div>
                     <div><span className="font-medium">Date:</span> {entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</div>
                   </div>
                   <div className="mt-2 text-xs text-gray-500">
@@ -167,6 +165,38 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                   </div>
                 </div>
               ))}
+              {/* Mobile summary row */}
+              {entries.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {/* Balance Card */}
+                  <div className="rounded-lg bg-green-50 p-3 flex flex-col items-center shadow-sm border border-green-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-green-700 font-semibold text-sm">Balance</span>
+                      <span className="inline-block bg-green-200 text-green-900 text-[10px] px-2 py-0.5 rounded-full font-bold">Available</span>
+                    </div>
+                    <div className={`font-mono text-lg font-bold mb-1 ${(() => {
+                      const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                      const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                      const netBalance = totalCredits - totalDebits;
+                      return netBalance > 0 ? 'text-green-600' : netBalance < 0 ? 'text-red-600' : 'text-gray-600';
+                    })()}`}>{(() => {
+                      const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                      const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                      return formatAmount(totalCredits - totalDebits);
+                    })()}</div>
+                    <div className="text-[11px] text-green-900/80 text-center leading-tight">Amount available to withdraw<br/>(credits - debits)</div>
+                  </div>
+                  {/* Total Earning Card */}
+                  <div className="rounded-lg bg-blue-50 p-3 flex flex-col items-center shadow-sm border border-blue-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-blue-700 font-semibold text-sm">Total Earning</span>
+                      <span className="inline-block bg-blue-200 text-blue-900 text-[10px] px-2 py-0.5 rounded-full font-bold">From Sales</span>
+                    </div>
+                    <div className="font-mono text-lg font-bold mb-1 text-blue-700">{formatAmount(entries.filter(e => e.category === 'sale' && e.type === 'credit' && e.net_amount !== undefined).reduce((sum, e) => sum + Number(e.net_amount || 0), 0))}</div>
+                    <div className="text-[11px] text-blue-900/80 text-center leading-tight">Farmer's actual earnings from sales<br/>(after commission)</div>
+                  </div>
+                </div>
+              )}
             </div>
             {/* Desktop: Responsive Card List layout (fills width) */}
             <div className="hidden md:flex flex-col gap-3 w-full">
@@ -175,8 +205,8 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                 <div className="flex-shrink-0 w-24 mr-4">Type</div>
                 <div className="flex-shrink-0 w-40 mr-4">Farmer</div>
                 <div className="flex-shrink-0 w-20 mr-4">Category</div>
-                <div className="flex-shrink-0 w-28 text-right mr-4">Amount</div>
-                <div className="flex-shrink-0 w-32 text-right mr-4">Total Earning</div>
+                <div className="flex-shrink-0 w-28 text-right mr-4" title="Amount credited to the account">Credit <span className="text-blue-400" title="Amount credited to the account">?</span></div>
+                <div className="flex-shrink-0 w-32 text-right mr-4" title="Amount debited from the account (commission/withdrawals)">Debit <span className="text-blue-400" title="Amount debited from the account (commission/withdrawals)">?</span></div>
                 <div className="flex-shrink-0 w-32 mr-4">Date</div>
                 <div className="flex-grow min-w-[120px]">Notes</div>
               </div>
@@ -192,28 +222,41 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                   <div className="flex-shrink-0 w-20 mr-4">
                     <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">{entry.category.toUpperCase()}</span>
                   </div>
-                  <div className="flex-shrink-0 w-28 text-right font-mono font-medium mr-4">{formatAmount(entry.amount)}</div>
-                  <div className="flex-shrink-0 w-32 text-right font-mono font-medium mr-4">{entry.category === 'sale' && entry.net_amount !== undefined ? formatAmount(entry.net_amount) : '-'}</div>
+                  <div className="flex-shrink-0 w-28 text-right font-mono font-medium mr-4">{entry.type === 'credit' ? formatAmount(entry.amount) : '-'}</div>
+                  <div className="flex-shrink-0 w-32 text-right font-mono font-medium mr-4">{entry.type === 'credit' && entry.category === 'sale' ? formatAmount(entry.commission_amount || 0) : entry.type === 'debit' ? formatAmount(entry.amount) : '-'}</div>
                   <div className="flex-shrink-0 w-32 mr-4 text-gray-600">{entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</div>
                   <div className="flex-grow min-w-[120px] text-xs text-gray-500 mt-1 md:mt-0">{entry.notes ? (<><span className="font-medium">Notes:</span> {entry.notes}</>) : <span className="text-gray-400 italic">No notes</span>}</div>
                 </div>
               ))}
-              {/* Summary row below the list */}
-              <div className="border rounded-lg p-3 bg-blue-50 font-bold flex flex-row flex-wrap items-center w-full mt-2">
-                <div className="flex-shrink-0 w-24 mr-4">
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
-                    Balance
-                  </span>
+              {/* Summary cards below the list */}
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {/* Balance Card */}
+                <div className="rounded-lg bg-green-50 p-3 flex flex-col items-center shadow-sm border border-green-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-green-700 font-semibold text-sm">Balance</span>
+                    <span className="inline-block bg-green-200 text-green-900 text-[10px] px-2 py-0.5 rounded-full font-bold">Available</span>
+                  </div>
+                  <div className={`font-mono text-lg font-bold mb-1 ${(() => {
+                    const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                    const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                    const netBalance = totalCredits - totalDebits;
+                    return netBalance > 0 ? 'text-green-600' : netBalance < 0 ? 'text-red-600' : 'text-gray-600';
+                  })()}`}>{(() => {
+                    const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                    const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                    return formatAmount(totalCredits - totalDebits);
+                  })()}</div>
+                  <div className="text-[11px] text-green-900/80 text-center leading-tight">Amount available to withdraw<br/>(earnings - withdrawals)</div>
                 </div>
-                <div className="flex-shrink-0 w-40 mr-4">Net Balance</div>
-                <div className="flex-shrink-0 w-20 mr-4" />
-                <div className={`flex-shrink-0 w-28 text-right font-mono mr-4 ${(() => {
-                  const netBalance = entries.reduce((sum, e) => e.type === 'credit' ? sum + Number(e.amount || 0) : sum - Number(e.amount || 0), 0);
-                  return netBalance > 0 ? 'text-green-600' : netBalance < 0 ? 'text-red-600' : 'text-gray-600';
-                })()}`}>{formatAmount(entries.reduce((sum, e) => e.type === 'credit' ? sum + Number(e.amount || 0) : sum - Number(e.amount || 0), 0))}</div>
-                <div className="flex-shrink-0 w-32 text-right font-mono mr-4">{formatAmount(entries.filter(e => e.category === 'sale' && e.net_amount !== undefined).reduce((sum, e) => sum + Number(e.net_amount || 0), 0))}</div>
-                <div className="flex-shrink-0 w-32 mr-4" />
-                <div className="flex-grow min-w-[120px]" />
+                {/* Total Earning Card */}
+                <div className="rounded-lg bg-blue-50 p-3 flex flex-col items-center shadow-sm border border-blue-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-blue-700 font-semibold text-sm">Total Earning</span>
+                    <span className="inline-block bg-blue-200 text-blue-900 text-[10px] px-2 py-0.5 rounded-full font-bold">From Sales</span>
+                  </div>
+                  <div className="font-mono text-lg font-bold mb-1 text-blue-700">{formatAmount(entries.filter(e => e.category === 'sale' && e.type === 'credit' && e.net_amount !== undefined).reduce((sum, e) => sum + Number(e.net_amount || 0), 0))}</div>
+                  <div className="text-[11px] text-blue-900/80 text-center leading-tight">Farmer's actual earnings from sales<br/>(after commission)</div>
+                </div>
               </div>
             </div>
           </>
@@ -228,8 +271,8 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
               <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Type</th>
               <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Farmer</th>
               <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Category</th>
-              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0', textAlign: 'right'}}>Amount</th>
-              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0', textAlign: 'right'}}>Total Earning</th>
+              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0', textAlign: 'right'}}>Credit</th>
+              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0', textAlign: 'right'}}>Debit</th>
               <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Date</th>
               <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Notes</th>
             </tr>
@@ -240,16 +283,20 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                 <td style={{border: '1px solid #000', padding: '4px'}}>{entry.type.toUpperCase()}</td>
                 <td style={{border: '1px solid #000', padding: '4px'}}>{getFarmerName(entry.farmer_id)}</td>
                 <td style={{border: '1px solid #000', padding: '4px'}}>{entry.category.toUpperCase()}</td>
-                <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right'}}>{formatAmount(entry.amount)}</td>
-                <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right'}}>{entry.category === 'sale' && entry.net_amount !== undefined ? formatAmount(entry.net_amount) : '-'}</td>
+                <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right'}}>{entry.type === 'credit' ? formatAmount(entry.amount) : '-'}</td>
+                <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right'}}>{entry.type === 'credit' && entry.category === 'sale' ? formatAmount(entry.commission_amount || 0) : entry.type === 'debit' ? formatAmount(entry.amount) : '-'}</td>
                 <td style={{border: '1px solid #000', padding: '4px'}}>{entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</td>
                 <td style={{border: '1px solid #000', padding: '4px'}}>{entry.notes || ''}</td>
               </tr>
             ))}
             <tr>
-              <td colSpan={3} style={{border: '1px solid #000', padding: '4px', fontWeight: 'bold'}}>Net Balance</td>
-              <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right', fontWeight: 'bold'}}>{formatAmount(entries.reduce((sum, e) => e.type === 'credit' ? sum + Number(e.amount || 0) : sum - Number(e.amount || 0), 0))}</td>
-              <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right', fontWeight: 'bold'}}>{formatAmount(entries.filter(e => e.category === 'sale' && e.net_amount !== undefined).reduce((sum, e) => sum + Number(e.net_amount || 0), 0))}</td>
+              <td colSpan={3} style={{border: '1px solid #000', padding: '4px', fontWeight: 'bold'}}>Balance</td>
+              <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right', fontWeight: 'bold'}}>{(() => {
+                const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                return formatAmount(totalCredits - totalDebits);
+              })()}</td>
+              <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right', fontWeight: 'bold'}}>{formatAmount(entries.filter(e => e.category === 'sale' && e.type === 'credit' && e.net_amount !== undefined).reduce((sum, e) => sum + Number(e.net_amount || 0), 0))}</td>
               <td colSpan={2} style={{border: '1px solid #000', padding: '4px'}}></td>
             </tr>
           </tbody>
