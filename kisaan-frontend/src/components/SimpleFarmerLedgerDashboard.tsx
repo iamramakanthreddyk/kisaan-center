@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { TrendingUp, TrendingDown, Wallet, Printer, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Printer, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { simpleLedgerApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -46,6 +46,7 @@ export const SimpleFarmerLedgerDashboard: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   // Load period summary data
   const loadPeriodData = useCallback(async (period?: 'daily' | 'weekly' | 'monthly') => {
@@ -181,17 +182,26 @@ export const SimpleFarmerLedgerDashboard: React.FC = () => {
       {/* Header */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl sm:text-2xl flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          <CardTitle className="text-xl sm:text-2xl flex items-center justify-between gap-2">
             <span>📊 Farmer Ledger Dashboard</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => loadPeriodData(selectedPeriod)}
-              disabled={periodLoading}
-              className="mt-2 sm:mt-0"
-            >
-              <RefreshCw className={`h-4 w-4 ${periodLoading ? 'animate-spin' : ''}`} />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadPeriodData(selectedPeriod)}
+                disabled={periodLoading}
+              >
+                <RefreshCw className={`h-4 w-4 ${periodLoading ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                disabled={!periodData || periodLoading}
+              >
+                <Printer className="h-4 w-4" />
+              </Button>
+            </div>
           </CardTitle>
           <p className="text-muted-foreground text-sm sm:text-base">
             View your financial summary and period-wise breakdown
@@ -202,51 +212,92 @@ export const SimpleFarmerLedgerDashboard: React.FC = () => {
       {/* Period Selection and Print Controls */}
       <Card>
         <CardContent className="pt-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Period:</label>
-                <select
-                  value={selectedPeriod}
-                  onChange={(e) => setSelectedPeriod(e.target.value as 'daily' | 'weekly' | 'monthly')}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-                >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">From:</label>
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">To:</label>
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-3">
+            {/* Mobile Filter Toggle */}
+            <div className="sm:hidden">
               <Button
-                variant="outline"
-                onClick={handlePrint}
-                disabled={!periodData || periodLoading}
-                size="sm"
-                className="min-w-[100px] sm:min-w-[120px]"
+                variant="ghost"
+                onClick={() => setFiltersExpanded(!filtersExpanded)}
+                className="w-full justify-between p-3 h-auto"
               >
-                <Printer className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Print Report</span>
-                <span className="sm:hidden">Print</span>
+                <span className="font-medium">Filters</span>
+                {filtersExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
+            </div>
+
+            {/* Filter Controls */}
+            <div className={`space-y-4 ${filtersExpanded ? 'block' : 'hidden sm:flex'}`}>
+              {/* Mobile Layout */}
+              <div className="block sm:hidden space-y-3">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium block">Period:</label>
+                  <select
+                    value={selectedPeriod}
+                    onChange={(e) => setSelectedPeriod(e.target.value as 'daily' | 'weekly' | 'monthly')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium block">From:</label>
+                    <input
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium block">To:</label>
+                    <input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop Layout */}
+              <div className="hidden sm:flex flex-row items-center gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Period:</label>
+                    <select
+                      value={selectedPeriod}
+                      onChange={(e) => setSelectedPeriod(e.target.value as 'daily' | 'weekly' | 'monthly')}
+                      className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">From:</label>
+                    <input
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">To:</label>
+                    <input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           {periodError && (
