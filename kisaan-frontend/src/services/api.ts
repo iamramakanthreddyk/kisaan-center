@@ -761,15 +761,38 @@ export const simpleLedgerApi = {
     from?: string;
     to?: string;
     category?: string;
-  }): Promise<LedgerSummary[]> => {
+  }): Promise<{
+    period: Array<{
+      period: string;
+      credit: string | number;
+      debit: string | number;
+      commission: string | number;
+      balance: string | number;
+    }>;
+    overall: {
+      credit: string | number;
+      debit: string | number;
+      commission: string | number;
+      balance: string | number;
+    };
+  }> => {
     const qs = buildQueryString(params);
-    const response = await apiClient.get<LedgerSummary[] | ApiResponse<LedgerSummary[]>>(`/simple-ledger/summary${qs}`);
-    
-    // Handle both direct array response and wrapped response
-    if (Array.isArray(response)) {
-      return response;
-    }
-    return (response as ApiResponse<LedgerSummary[]>).data || [];
+    const response = await apiClient.get<{
+      period: Array<{
+        period: string;
+        credit: string | number;
+        debit: string | number;
+        commission: string | number;
+        balance: string | number;
+      }>;
+      overall: {
+        credit: string | number;
+        debit: string | number;
+        commission: string | number;
+        balance: string | number;
+      };
+    }>(`/simple-ledger/summary${qs}`);
+    return response;
   },
 
   // Get farmer balance

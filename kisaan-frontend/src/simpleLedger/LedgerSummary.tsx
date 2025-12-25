@@ -165,12 +165,14 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-green-600" />
-                Total Credit
+                {farmerId ? 'Farmer Credit' : 'Total Credit'}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-green-600">{formatAmount(summary.totalCredit)}</div>
-              <p className="text-xs text-gray-500 mt-1">Amount received</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {farmerId ? 'Amount received from this farmer' : 'Amount received from all farmers'}
+              </p>
             </CardContent>
           </Card>
         )}
@@ -180,12 +182,14 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
               <TrendingDown className="h-4 w-4 text-red-600" />
-              Total Debit
+              {farmerId ? 'Farmer Debit' : 'Total Debit'}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-red-600">{formatAmount(summary.totalDebit)}</div>
-            <p className="text-xs text-gray-500 mt-1">Amount paid</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {farmerId ? 'Amount paid to this farmer' : 'Amount paid to all farmers'}
+            </p>
           </CardContent>
         </Card>
 
@@ -194,7 +198,7 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" />
-              Net Balance
+              {farmerId ? 'Farmer Balance' : 'All Farmers Balance'}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -204,7 +208,10 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
               {formatAmount(summary.netBalance)}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {summary.netBalance >= 0 ? 'Amount due to farmer' : 'Amount due from farmer'}
+              {farmerId 
+                ? (summary.netBalance >= 0 ? 'Amount due to this farmer' : 'Amount due from this farmer')
+                : (summary.netBalance >= 0 ? 'Total amount due to all farmers' : 'Total amount due from all farmers')
+              }
             </p>
           </CardContent>
         </Card>
@@ -213,7 +220,9 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
     <div className="mt-6">
       <Card>
         <CardHeader>
-          <CardTitle>Period Breakdown (Weekly)</CardTitle>
+          <CardTitle>
+            {farmerId ? 'Farmer Transaction Breakdown' : 'All Farmers Transaction Breakdown'} (Weekly)
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {breakdown.length === 0 ? (

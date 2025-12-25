@@ -402,6 +402,7 @@ export interface LedgerEntry {
   type: string;
   category: string;
   notes?: string;
+  transaction_date?: string;
   created_at?: string;
   created_by: number;
   commission_amount?: number;
