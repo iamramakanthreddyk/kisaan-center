@@ -25,7 +25,6 @@ interface LedgerSummaryProps {
 }
 
 const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, to, category, hideOwnerCommission, showOnlyOwnerCommission, summaryData, loading, error }) => {
-  const [period, setPeriod] = useState<'weekly' | 'monthly'>('weekly');
   const [summary, setSummary] = useState<SummaryData>({
     totalCredit: 0,
     totalDebit: 0,
@@ -111,7 +110,7 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
         <div className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Period Breakdown ({period})</CardTitle>
+              <CardTitle>Period Breakdown (Weekly)</CardTitle>
             </CardHeader>
             <CardContent>
               {hasBreakdown ? (
@@ -158,13 +157,6 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
   // Hide owner commission from main summary if requested
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-sm text-gray-600">View period:</div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setPeriod('weekly')} className={`px-3 py-1 rounded ${period === 'weekly' ? 'bg-primary text-white' : 'bg-gray-100'}`}>Weekly</button>
-          <button onClick={() => setPeriod('monthly')} className={`px-3 py-1 rounded ${period === 'monthly' ? 'bg-primary text-white' : 'bg-gray-100'}`}>Monthly</button>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {/* Total Credit */}
@@ -221,7 +213,7 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
     <div className="mt-6">
       <Card>
         <CardHeader>
-          <CardTitle>Period Breakdown ({period})</CardTitle>
+          <CardTitle>Period Breakdown (Weekly)</CardTitle>
         </CardHeader>
         <CardContent>
           {breakdown.length === 0 ? (

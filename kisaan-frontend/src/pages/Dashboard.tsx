@@ -11,7 +11,7 @@ export default function Dashboard() {
   // Redirect owners and superadmins to their dedicated dashboards immediately
   useEffect(() => {
     if (user?.role === 'owner') {
-      navigate('/owner', { replace: true });
+      navigate('/simple-ledger', { replace: true });
       return;
     }
     if (user?.role === 'superadmin') {
@@ -32,7 +32,7 @@ export default function Dashboard() {
 
   // For farmer role, show SimpleFarmerLedgerDashboard
   if (user.role === 'farmer') {
-    return <SimpleFarmerLedgerDashboard farmerId={user.id} />;
+    return <SimpleFarmerLedgerDashboard />;
   }
   // For other non-owner roles, show simple message
   return (

@@ -187,13 +187,13 @@ export function Sidebar() {
       {/* Sidebar - ensure z-50 when mobile open */}
       <div
         className={cn(
-          "flex flex-col bg-white border-r border-gray-200 transition-all duration-300 overflow-hidden",
+          "flex flex-col bg-white border-r border-gray-200 transition-all duration-300",
           "fixed left-0 top-16",
           isCollapsed ? "w-16" : "w-64",
-          isMobileOpen ? "z-50 translate-x-0 h-[calc(100vh-4rem)]" : "z-40 -translate-x-full md:translate-x-0 h-[calc(100vh-4rem)]"
+          isMobileOpen ? "z-50 translate-x-0 h-[calc(100vh-4rem)] overflow-y-auto" : "z-40 -translate-x-full md:translate-x-0 h-[calc(100vh-4rem)] overflow-hidden"
         )}
       >
-        <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto overflow-x-hidden">
+        <nav className="flex-1 space-y-1 px-3 py-4 overflow-x-hidden">
           {navigation.map((item) => {
             const active = isActive(location.pathname, item);
             return (

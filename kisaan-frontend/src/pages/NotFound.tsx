@@ -27,7 +27,7 @@ export default function NotFound() {
     if (isAuthenticated && user) {
       const redirectTimer = setTimeout(() => {
         if (user.role === 'owner') {
-          navigate('/owner', { replace: true });
+          navigate('/simple-ledger', { replace: true });
         } else if (user.role === 'superadmin') {
           navigate('/superadmin', { replace: true });
         } else {
