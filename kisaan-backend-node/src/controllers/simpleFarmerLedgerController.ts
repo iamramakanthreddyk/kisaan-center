@@ -293,12 +293,16 @@ export async function getFarmerBalance(req: Request, res: Response) {
     const farmerIdNum = farmer_id ? Number(farmer_id) : undefined;
     const whereClause = farmerIdNum ? { shop_id: shopIdNum, farmer_id: farmerIdNum } : { shop_id: shopIdNum };
     const entries = await SimpleFarmerLedger.findAll({ where: whereClause });
-    let credit = 0, debit = 0;
+    let credit = 0, debit = 0, commission = 0;
     for (const e of entries) {
-      if (e.type === 'credit') credit += Number(e.amount);
-      else debit += Number(e.amount);
+      if (e.type === 'credit') {
+        credit += Number(e.amount);
+        commission += Number(e.commission_amount || 0);
+      } else {
+        debit += Number(e.amount);
+      }
     }
-    res.json({ farmer_id: farmerIdNum, shop_id: shopIdNum, credit, debit, balance: credit - debit });
+    res.json({ farmer_id: farmerIdNum, shop_id: shopIdNum, credit, debit, commission, balance: credit - debit - commission });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: message });

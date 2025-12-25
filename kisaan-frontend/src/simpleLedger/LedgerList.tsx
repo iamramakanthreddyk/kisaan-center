@@ -258,12 +258,14 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                 <div className={`font-mono text-lg font-bold mb-1 ${(() => {
                   const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
                   const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-                  const balance = totalCredits - totalDebits;
+                  const totalCommission = entries.filter(e => e.type === 'credit' && e.commission_amount).reduce((sum, e) => sum + Number(e.commission_amount || 0), 0);
+                  const balance = totalCredits - totalDebits - totalCommission;
                   return balance > 0 ? 'text-green-600' : balance < 0 ? 'text-red-600' : 'text-gray-600';
                 })()}`}>{(() => {
                   const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
                   const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-                  const balance = totalCredits - totalDebits;
+                  const totalCommission = entries.filter(e => e.type === 'credit' && e.commission_amount).reduce((sum, e) => sum + Number(e.commission_amount || 0), 0);
+                  const balance = totalCredits - totalDebits - totalCommission;
                   return formatAmount(balance);
                 })()}</div>
                 <div className="text-[11px] text-green-900/80 text-center leading-tight">Amount available to withdraw<br/>(from entries on this page)</div>
@@ -283,7 +285,23 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                   <span className="text-purple-700 font-semibold text-sm">Overall Balance</span>
                   <span className="inline-block bg-purple-200 text-purple-900 text-[10px] px-2 py-0.5 rounded-full font-bold">Total</span>
                 </div>
-                <div className="font-mono text-lg font-bold mb-1 text-purple-700">{(overallBalance && typeof overallBalance === 'object' && overallBalance.balance != null) ? formatAmount(overallBalance.balance) : 'N/A'}</div>
+                <div className="font-mono text-lg font-bold mb-1 text-purple-700">{
+                  (() => {
+                    // If overallBalance is present and has entries, recalculate with commission deducted
+                    if (entries && entries.length > 0) {
+                      const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                      const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+                      const totalCommission = entries.filter(e => e.type === 'credit' && e.commission_amount).reduce((sum, e) => sum + Number(e.commission_amount || 0), 0);
+                      const balance = totalCredits - totalDebits - totalCommission;
+                      return formatAmount(balance);
+                    }
+                    // fallback to API value if present
+                    if (overallBalance && typeof overallBalance === 'object' && overallBalance.balance != null) {
+                      return formatAmount(overallBalance.balance);
+                    }
+                    return 'N/A';
+                  })()
+                }</div>
                 <div className="text-[11px] text-purple-900/80 text-center leading-tight">Total balance from all transactions<br/>(from API)</div>
               </div>
             </div>
@@ -299,12 +317,14 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                   <div className={`font-mono text-lg font-bold mb-1 ${(() => {
                     const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
                     const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-                    const balance = totalCredits - totalDebits;
+                    const totalCommission = entries.filter(e => e.type === 'credit' && e.commission_amount).reduce((sum, e) => sum + Number(e.commission_amount || 0), 0);
+                    const balance = totalCredits - totalDebits - totalCommission;
                     return balance > 0 ? 'text-green-600' : balance < 0 ? 'text-red-600' : 'text-gray-600';
                   })()}`}>{(() => {
                     const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
                     const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-                    const balance = totalCredits - totalDebits;
+                    const totalCommission = entries.filter(e => e.type === 'credit' && e.commission_amount).reduce((sum, e) => sum + Number(e.commission_amount || 0), 0);
+                    const balance = totalCredits - totalDebits - totalCommission;
                     return formatAmount(balance);
                   })()}</div>
                   <div className="text-[11px] text-green-900/80 text-center leading-tight">Amount available to withdraw<br/>(from entries on this page)</div>
