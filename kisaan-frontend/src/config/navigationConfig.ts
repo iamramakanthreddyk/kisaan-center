@@ -38,15 +38,15 @@ export interface AppNavItem {
 // NOTE: Keep list sorted by order then label for consistency.
 export const NAV_ITEMS: AppNavItem[] = [
   // Owner
-  { key: 'owner-dashboard', label: 'Overview', href: '/owner', icon: LayoutDashboard, roles: ['owner'], exact: true, order: 10 },
-  { key: 'simple-transactions', label: '⚡ Quick Sale', href: '/simple-transactions', icon: Zap, roles: ['owner', 'employee'], order: 15, quick: true },
-  { key: 'owner-transactions', label: 'Transaction History', href: '/transactions', icon: ArrowRightLeft, roles: ['owner'], order: 20, quick: true },
+  // { key: 'owner-dashboard', label: 'Overview', href: '/owner', icon: LayoutDashboard, roles: ['owner'], exact: true, order: 10 },
+  // { key: 'simple-transactions', label: '⚡ Quick Sale', href: '/simple-transactions', icon: Zap, roles: ['owner', 'employee'], order: 15, quick: true },
+  // { key: 'owner-transactions', label: 'Transaction History', href: '/transactions', icon: ArrowRightLeft, roles: ['owner'], order: 20, quick: true },
   { key: 'owner-users', label: 'Team Members', href: '/users', icon: UsersRound, roles: ['owner'], order: 30 },
-  { key: 'owner-payments', label: 'Payment Management', href: '/payments', icon: CreditCard, roles: ['owner'], order: 40, quick: true },
-  { key: 'owner-balance', label: 'Account Balance', href: '/balance', icon: Wallet, roles: ['owner'], order: 50 },
-  { key: 'owner-reports', label: 'Analytics & Reports', href: '/reports', icon: BarChart4, roles: ['owner'], order: 60 },
-  { key: 'owner-expenses', label: 'Expense Tracking', href: '/expenses', icon: ReceiptText, roles: ['owner'], order: 65 },
-  { key: 'owner-products', label: 'Product Catalog', href: '/products', icon: ShoppingBasket, roles: ['owner'], order: 70, quick: true },
+  // { key: 'owner-payments', label: 'Payment Management', href: '/payments', icon: CreditCard, roles: ['owner'], order: 40, quick: true },
+  // { key: 'owner-balance', label: 'Account Balance', href: '/balance', icon: Wallet, roles: ['owner'], order: 50 },
+  // { key: 'owner-reports', label: 'Analytics & Reports', href: '/reports', icon: BarChart4, roles: ['owner'], order: 60 },
+  // { key: 'owner-expenses', label: 'Expense Tracking', href: '/expenses', icon: ReceiptText, roles: ['owner'], order: 65 },
+  // { key: 'owner-products', label: 'Product Catalog', href: '/products', icon: ShoppingBasket, roles: ['owner'], order: 70, quick: true },
   { key: 'owner-simple-ledger', label: '📊 Farmer Accounts', href: '/simple-ledger', icon: BookOpen, roles: ['owner'], order: 12, quick: true },
   { key: 'owner-settings', label: 'Shop Settings', href: '/settings', icon: Settings2, roles: ['owner'], order: 80 },
 

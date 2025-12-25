@@ -66,11 +66,8 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     (async () => {
       try {
         const balanceRes = await fetchLedgerBalance(shopId, farmerId ?? undefined); // Pass farmerId if set
-        console.log('Fetched balance:', balanceRes);
         setOverallBalance(balanceRes);
-        console.log('Setting overallBalance to:', balanceRes);
       } catch (error) {
-        console.error('Failed to fetch overall balance:', error);
         // Keep overallBalance null so display uses per-page calculation after entries load
       }
     })();
