@@ -1,18 +1,3 @@
-// Fetch owner commission summary (owner only)
-export async function fetchOwnerCommissionSummary(
-  shopId: number,
-  period?: 'weekly' | 'monthly',
-  from?: string,
-  to?: string
-) {
-  const params = new URLSearchParams();
-  params.append('shop_id', String(shopId));
-  if (period) params.append('period', period);
-  if (from) params.append('from', from);
-  if (to) params.append('to', to);
-  const qs = `?${params.toString()}`;
-  return apiClient.get(`/simple-ledger/owner-commission${qs}`);
-}
 // API utility for simple ledger (uses centralized apiClient)
 import { apiClient } from '../services/apiClient';
 
@@ -101,13 +86,3 @@ export async function exportLedgerCsv(shopId: number, farmerId?: number, from?: 
   return apiClient.fetchBlob(`/simple-ledger/export${qs}`);
 }
 
-export async function fetchLedgerBalance(
-  shopId: number,
-  farmerId?: number
-): Promise<{ farmer_id?: number; shop_id: number; credit: number; debit: number; balance: number }> {
-  const params = new URLSearchParams();
-  params.append('shop_id', String(shopId));
-  if (farmerId != null) params.append('farmer_id', String(farmerId));
-  const qs = `?${params.toString()}`;
-  return apiClient.get(`/simple-ledger/balance${qs}`);
-}

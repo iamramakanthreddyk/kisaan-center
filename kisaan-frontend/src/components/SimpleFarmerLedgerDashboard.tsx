@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import LedgerSummary from '../simpleLedger/LedgerSummary';
+import { fetchLedgerSummary } from '../simpleLedger/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,6 +24,31 @@ function getShopId(user: any) {
 }
 
 export const SimpleFarmerLedgerDashboard: React.FC = () => {
+    // Summary state (lifted up)
+    const [summaryData, setSummaryData] = useState<any>(null);
+    const [summaryLoading, setSummaryLoading] = useState(false);
+    const [summaryError, setSummaryError] = useState<string | null>(null);
+
+    // Memoized fetch for summary, only when filters change
+    const loadSummary = useCallback(async (period: 'weekly' | 'monthly' = 'weekly') => {
+      if (!shopId) return;
+      setSummaryLoading(true);
+      setSummaryError(null);
+      try {
+        const data = await fetchLedgerSummary(shopId, period, farmerId, fromDate || undefined, toDate || undefined);
+        setSummaryData(data);
+      } catch (e) {
+        setSummaryError(e instanceof Error ? e.message : 'Failed to fetch summary');
+        setSummaryData(null);
+      } finally {
+        setSummaryLoading(false);
+      }
+    }, [shopId, farmerId, fromDate, toDate]);
+
+    // Fetch summary when filters change (not on every tab/period change)
+    useEffect(() => {
+      loadSummary();
+    }, [loadSummary]);
   const { user } = useAuth();
   const farmerId = getFarmerId(user);
   const shopId = getShopId(user);
@@ -234,6 +261,23 @@ export const SimpleFarmerLedgerDashboard: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-2 sm:p-4 space-y-4">
+      {/* Unified Ledger Summary - only fetches when filters change, not on every tab change */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Ledger Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LedgerSummary
+            shopId={shopId}
+            farmerId={farmerId}
+            from={fromDate || undefined}
+            to={toDate || undefined}
+            summaryData={summaryData}
+            loading={summaryLoading}
+            error={summaryError}
+          />
+        </CardContent>
+      </Card>
       {/* Header */}
       <Card>
         <CardHeader>

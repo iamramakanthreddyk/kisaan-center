@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { fetchLedgerEntries, fetchLedgerBalance } from './api';
+import { fetchLedgerEntries, fetchLedgerSummary } from './api';
 import { useTransactionStore } from '../store/transactionStore';
 import { usersApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -30,9 +30,10 @@ interface LedgerListProps {
   from?: string;
   to?: string;
   category?: string;
+  summaryData?: any;
 }
 
-const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerId, from, to, category }) => {
+const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerId, from, to, category, summaryData }) => {
   const { user } = useAuth();
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [total, setTotal] = useState<number>(0);
@@ -40,11 +41,18 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
   const [pageSize] = useState<number>(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [overallBalance, setOverallBalance] = useState<any>(null);
+  const [overallBalance, setOverallBalance] = useState<any>(summaryData?.overall || null);
 
   const shopId = user?.shop_id ? Number(user.shop_id) : 1;
   const getUsersForShop = useTransactionStore(state => state.getUsers);
   const setUsersForShop = useTransactionStore(state => state.setUsers);
+
+  // Update balance when summaryData changes
+  useEffect(() => {
+    if (summaryData?.overall) {
+      setOverallBalance(summaryData.overall);
+    }
+  }, [summaryData]);
 
   useEffect(() => {
     // Ensure we have users cached for this shop so the farmer_id can be resolved to names
@@ -62,15 +70,8 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
       })();
     }
 
-    // Fetch overall shop balance for all users
-    (async () => {
-      try {
-        const balanceRes = await fetchLedgerBalance(shopId, farmerId ?? undefined); // Pass farmerId if set
-        setOverallBalance(balanceRes);
-      } catch (error) {
-        // Keep overallBalance null so display uses per-page calculation after entries load
-      }
-    })();
+    // Remove redundant fetch - use cached summaryData from parent instead
+    // (was: fetching summary API separately which is now done in SimpleLedger.tsx)
 
     const loadEntries = async (pageToLoad = page) => {
       setLoading(true);

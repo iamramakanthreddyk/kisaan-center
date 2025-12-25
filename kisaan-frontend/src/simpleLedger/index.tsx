@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import LedgerList from './LedgerList';
 import LedgerForm from './LedgerForm';
 import LedgerSummary from './LedgerSummary';
@@ -9,7 +9,7 @@ import { BookOpen, Plus, Download, Printer, Filter, Calendar, ChevronDown, Chevr
 import { useAuth } from '../context/AuthContext';
 import { UserSearchDropdown } from '../components/ui/UserSearchDropdown';
 import type { User } from '../types';
-import { exportLedgerCsv } from './api';
+import { exportLedgerCsv, fetchLedgerSummary } from './api';
 
 const SimpleLedger: React.FC = () => {
   const { user, hasRole } = useAuth();
@@ -22,6 +22,31 @@ const SimpleLedger: React.FC = () => {
   const [toDate, setToDate] = useState<string | undefined>(undefined);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Centralized summary cache - only fetch once when filters change
+  const [summaryData, setSummaryData] = useState<any>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  
+  // Memoized fetch function - only recreated when dependencies change
+  const loadSummary = useCallback(async () => {
+    setSummaryLoading(true);
+    setSummaryError(null);
+    try {
+      const data = await fetchLedgerSummary(shopId, 'weekly', selectedFarmer ?? undefined, fromDate, toDate, selectedCategory || undefined);
+      setSummaryData(data);
+    } catch (e) {
+      setSummaryError(e instanceof Error ? e.message : 'Failed to fetch summary');
+      setSummaryData(null);
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [shopId, selectedFarmer, fromDate, toDate, selectedCategory]);
+  
+  // Fetch summary only when filters change
+  useEffect(() => {
+    loadSummary();
+  }, [loadSummary]);
 
   const handleEntryAdded = () => {
     setShowForm(false);
@@ -260,6 +285,7 @@ const SimpleLedger: React.FC = () => {
               from={fromDate}
               to={toDate}
               category={selectedCategory || undefined}
+              summaryData={summaryData}
             />
           </div>
         </TabsContent>
@@ -273,6 +299,9 @@ const SimpleLedger: React.FC = () => {
             category={selectedCategory || undefined}
             shopId={shopId}
             hideOwnerCommission={true}
+            summaryData={summaryData}
+            loading={summaryLoading}
+            error={summaryError}
           />
         </TabsContent>
         {/* Owner Commission Tab (owner only) */}
@@ -285,6 +314,9 @@ const SimpleLedger: React.FC = () => {
               category={selectedCategory || undefined}
               farmerId={selectedFarmer ?? undefined}
               showOnlyOwnerCommission={true}
+              summaryData={summaryData}
+              loading={summaryLoading}
+              error={summaryError}
             />
           </TabsContent>
         )}

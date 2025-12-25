@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { TrendingUp, TrendingDown, BarChart3, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { fetchLedgerSummary, fetchOwnerCommissionSummary } from './api';
+import { fetchLedgerSummary } from './api';
 import { formatAmount } from '../utils/format';
 
 interface SummaryData {
@@ -19,75 +19,47 @@ interface LedgerSummaryProps {
   category?: string;
   hideOwnerCommission?: boolean;
   showOnlyOwnerCommission?: boolean;
+  summaryData?: any;
+  loading?: boolean;
+  error?: string | null;
 }
 
-const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, to, category, hideOwnerCommission, showOnlyOwnerCommission }) => {
+const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, to, category, hideOwnerCommission, showOnlyOwnerCommission, summaryData, loading, error }) => {
+  const [period, setPeriod] = useState<'weekly' | 'monthly'>('weekly');
   const [summary, setSummary] = useState<SummaryData>({
     totalCredit: 0,
     totalDebit: 0,
     netBalance: 0
   });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [period, setPeriod] = useState<'weekly' | 'monthly'>('weekly');
   const [breakdown, setBreakdown] = useState<Array<{ period: string; credit: number; debit: number }>>([]);
 
   useEffect(() => {
-    const loadSummary = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        if (showOnlyOwnerCommission) {
-          // Fetch owner commission summary
-          const data = await fetchOwnerCommissionSummary(shopId, period, from, to);
-          let total = 0;
-          if (Array.isArray(data) && data.length > 0) {
-            // If grouped by period, sum all; else, use first
-            if (data[0].total_commission !== undefined) {
-              total = data.reduce((sum, row) => sum + Number(row.total_commission || 0), 0);
-            } else if (data[0].total !== undefined) {
-              total = data.reduce((sum, row) => sum + Number(row.total || 0), 0);
-            }
-          }
-          setSummary({ totalCredit: total, totalDebit: 0, netBalance: total });
-          setBreakdown([]);
-        } else {
-          const data = await fetchLedgerSummary(shopId, period, farmerId, from, to, category);
-          // Expecting an array of rows: [{ period, type, total }, ...]
-          let rows: any[] = [];
-          if (Array.isArray(data)) rows = data;
-          else if (data && Array.isArray((data as { data?: unknown[] }).data)) rows = (data as { data?: unknown[] }).data ?? [];
-          else rows = [];
-          let totalCredit = 0;
-          let totalDebit = 0;
-          // Build a map per period
-          const map: Record<string, { credit: number; debit: number }> = {};
-          for (const r of rows ?? []) {
-            const t = typeof r.total === 'string' ? parseFloat(r.total) : Number(r.total || 0);
-            const key = r.period || 'unknown';
-            if (!map[key]) map[key] = { credit: 0, debit: 0 };
-            if ((r.type || '').toString().toLowerCase() === 'credit') {
-              totalCredit += t;
-              map[key].credit += t;
-            } else {
-              totalDebit += t;
-              map[key].debit += t;
-            }
-          }
-          setSummary({ totalCredit, totalDebit: totalDebit + totalCredit * 0.1, netBalance: totalCredit - (totalDebit + totalCredit * 0.1) });
-          // Convert map to sorted array (latest period first)
-          const arr = Object.keys(map).map(k => ({ period: k, credit: map[k].credit, debit: map[k].debit }));
-          arr.sort((a, b) => b.period.localeCompare(a.period));
-          setBreakdown(arr);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch summary');
-      } finally {
-        setLoading(false);
+    if (!summaryData) {
+      setSummary({ totalCredit: 0, totalDebit: 0, netBalance: 0 });
+      setBreakdown([]);
+      return;
+    }
+    if (showOnlyOwnerCommission) {
+      let total = 0;
+      if (Array.isArray(summaryData.period) && summaryData.period.length > 0) {
+        total = summaryData.period.reduce((sum: number, row: any) => sum + Number(row.commission || 0), 0);
+        setBreakdown(summaryData.period.map((row: any) => ({ period: row.period, total_commission: Number(row.commission || 0) })));
+      } else {
+        // If period is empty, use overall commission
+        total = Number(summaryData.overall?.commission || 0);
+        setBreakdown([]);
       }
-    };
-    loadSummary();
-  }, [shopId, farmerId, from, to, category, period, showOnlyOwnerCommission]);
+      setSummary({ totalCredit: total, totalDebit: 0, netBalance: total });
+    } else {
+      const overall = summaryData.overall || { credit: 0, debit: 0, commission: 0, balance: 0 };
+      setSummary({ totalCredit: Number(overall.credit || 0), totalDebit: Number(overall.debit || 0), netBalance: Number(overall.balance || 0) });
+      if (Array.isArray(summaryData.period) && summaryData.period.length > 0) {
+        setBreakdown(summaryData.period.map((row: any) => ({ period: row.period, credit: Number(row.credit || 0), debit: Number(row.debit || 0) })));
+      } else {
+        setBreakdown([]);
+      }
+    }
+  }, [summaryData, showOnlyOwnerCommission]);
 
   if (loading) {
     return (
@@ -114,6 +86,10 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
   // If only owner commission should be shown
   if (showOnlyOwnerCommission) {
     // Owner commission summary and breakdown (no separate filters)
+    const hasBreakdown = Array.isArray(breakdown) && breakdown.length > 0;
+    const commissionValue = hasBreakdown
+      ? summary.totalCredit
+      : Number(summaryData?.overall?.commission || 0);
     return (
       <div className="max-w-2xl mx-auto">
         <Card>
@@ -124,8 +100,11 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold text-yellow-700 mb-2">{formatAmount(summary.totalCredit)}</div>
-            <div className="text-xs text-gray-500">This is the total commission earned by the shop (owner) for the selected period.</div>
+            <div className="text-4xl font-bold text-yellow-700 mb-2">{formatAmount(commissionValue)}</div>
+            <div className="text-xs text-gray-500">
+              This is the total commission earned by the shop (owner)
+              {hasBreakdown ? ' for the selected period.' : ' (overall, no period breakdown available).'}
+            </div>
           </CardContent>
         </Card>
         {/* Period breakdown for owner commission */}
@@ -135,9 +114,7 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
               <CardTitle>Period Breakdown ({period})</CardTitle>
             </CardHeader>
             <CardContent>
-              {Array.isArray(breakdown) && breakdown.length === 0 ? (
-                <div className="text-sm text-gray-500">No data for selected period</div>
-              ) : (
+              {hasBreakdown ? (
                 <>
                   <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-sm">
@@ -148,7 +125,7 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
                         </tr>
                       </thead>
                       <tbody>
-                        {Array.isArray(breakdown) && breakdown.map((b: any) => (
+                        {breakdown.map((b: any) => (
                           <tr key={b.period} className="border-t">
                             <td className="px-2 py-2">{b.period}</td>
                             <td className="px-2 py-2 text-right text-yellow-700">{formatAmount(b.total_commission)}</td>
@@ -158,7 +135,7 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
                     </table>
                   </div>
                   <div className="md:hidden space-y-2">
-                    {Array.isArray(breakdown) && breakdown.map((b: any) => (
+                    {breakdown.map((b: any) => (
                       <div key={b.period} className="p-3 border rounded-lg bg-white">
                         <div className="flex items-center justify-between">
                           <div className="text-sm font-medium">{b.period}</div>
@@ -168,6 +145,8 @@ const LedgerSummary: React.FC<LedgerSummaryProps> = ({ shopId, farmerId, from, t
                     ))}
                   </div>
                 </>
+              ) : (
+                <div className="text-sm text-gray-500">No data for selected period</div>
               )}
             </CardContent>
           </Card>

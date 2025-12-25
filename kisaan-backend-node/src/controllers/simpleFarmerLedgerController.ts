@@ -102,76 +102,79 @@ interface LedgerPayload {
 }
 
 // Create a new ledger entry
+// Helper to resolve commission rate
+async function resolveCommissionRate(farmerId: number, shopId: number): Promise<number> {
+  // Precedence: farmer -> shop owner -> shop -> 0
+  // 1. Farmer custom rate
+  const farmerRow = await SimpleFarmerLedger.sequelize!.query(
+    'SELECT custom_commission_rate FROM kisaan_users WHERE id = ?',
+    { replacements: [farmerId], type: QueryTypes.SELECT }
+  ) as unknown as Array<{ custom_commission_rate?: number }>;
+  const farmerRate = farmerRow?.[0]?.custom_commission_rate;
+  if (farmerRate !== undefined && farmerRate !== null) return Number(farmerRate);
+
+  // 2. Shop commission rate and owner
+  const shopRow = await SimpleFarmerLedger.sequelize!.query(
+    'SELECT commission_rate, owner_id FROM kisaan_shops WHERE id = ?',
+    { replacements: [shopId], type: QueryTypes.SELECT }
+  ) as unknown as Array<{ commission_rate?: number, owner_id?: number }>;
+  const shopRate = shopRow?.[0]?.commission_rate;
+  const ownerId = shopRow?.[0]?.owner_id;
+  if (ownerId) {
+    const ownerRow = await SimpleFarmerLedger.sequelize!.query(
+      'SELECT custom_commission_rate FROM kisaan_users WHERE id = ?',
+      { replacements: [ownerId], type: QueryTypes.SELECT }
+    ) as unknown as Array<{ custom_commission_rate?: number }>;
+    const ownerRate = ownerRow?.[0]?.custom_commission_rate;
+    if (ownerRate !== undefined && ownerRate !== null) return Number(ownerRate);
+  }
+  if (shopRate !== undefined && shopRate !== null) return Number(shopRate);
+  return 0;
+}
+
 export async function createEntry(req: Request, res: Response) {
   try {
     await simpleFarmerLedgerSchema.validate(req.body);
-    // Compute commission_amount and net_amount using farmer custom rate or shop commission
     const payload: LedgerPayload = { ...req.body };
     const farmerId = Number(payload.farmer_id);
     const shopId = Number(payload.shop_id);
-    // Resolve commission rate precedence: farmer -> shop owner -> shop -> 0
+
+    // Get commission rate
     let rateUsed = 0;
-    let source = 'none';
     try {
-      const farmerRow: FarmerRow[] = (await SimpleFarmerLedger.sequelize!.query('SELECT custom_commission_rate FROM kisaan_users WHERE id = ?', { replacements: [farmerId], type: QueryTypes.SELECT })) as FarmerRow[];
-      const farmerRate = farmerRow && farmerRow[0] ? Number(farmerRow[0].custom_commission_rate) : null;
-      if (farmerRate != null) {
-        rateUsed = farmerRate;
-        source = 'farmer';
-      } else {
-        // Try to fetch shop commission rate and owner commission rate
-        const shopRow: ShopRow[] = (await SimpleFarmerLedger.sequelize!.query('SELECT commission_rate, owner_id FROM kisaan_shops WHERE id = ?', { replacements: [shopId], type: QueryTypes.SELECT })) as ShopRow[];
-        const shopRate = shopRow && shopRow[0] ? Number(shopRow[0].commission_rate) : null;
-        const ownerId = shopRow && shopRow[0] ? shopRow[0].owner_id : null;
-        if (ownerId) {
-          const ownerRow: OwnerRow[] = (await SimpleFarmerLedger.sequelize!.query('SELECT custom_commission_rate FROM kisaan_users WHERE id = ?', { replacements: [ownerId], type: QueryTypes.SELECT })) as OwnerRow[];
-          const ownerRate = ownerRow && ownerRow[0] ? Number(ownerRow[0].custom_commission_rate) : null;
-          if (ownerRate != null) {
-            rateUsed = ownerRate;
-            source = 'owner';
-          }
-        }
-        if (source === 'none' && shopRate != null) {
-          rateUsed = shopRate;
-          source = 'shop';
-        }
-      }
+      rateUsed = await resolveCommissionRate(farmerId, shopId);
     } catch (e) {
-      // fallback to zero rate
       rateUsed = 0;
-      source = 'none';
     }
 
+    // Calculate commission and net amount
+    const amount = Number(payload.amount || 0);
     if (payload.type === 'credit') {
-      payload.commission_amount = +(Number(payload.amount || 0) * (Number(rateUsed) / 100)).toFixed(2);
-      payload.net_amount = +(Number(payload.amount || 0) - payload.commission_amount).toFixed(2);
+      payload.commission_amount = +(amount * (rateUsed / 100)).toFixed(2);
+      payload.net_amount = +(amount - payload.commission_amount).toFixed(2);
     } else {
       payload.commission_amount = 0;
-      payload.net_amount = Number(payload.amount || 0);
+      payload.net_amount = amount;
     }
-    
+
     // Add required fields
-    payload.type = payload.type || 'income'; // Default type
-    payload.created_by = payload.created_by || 1; // Default created_by
-    
+    payload.type = payload.type || 'income';
+    payload.created_by = payload.created_by || 1;
+
     // Handle backdating: if entry_date is provided, use it for transaction_date
     const createData: any = { ...payload };
     if (req.body.entry_date) {
-      // Convert the entry_date to a proper Date object
       const entryDate = new Date(req.body.entry_date);
-      if (!isNaN(entryDate.getTime())) {
-        // Ensure the date is not in the future
-        const now = new Date();
-        if (entryDate <= now) {
-          createData.transaction_date = entryDate;
-        } else {
-          return res.status(400).json({ error: 'Entry date cannot be in the future' });
-        }
-      } else {
+      if (isNaN(entryDate.getTime())) {
         return res.status(400).json({ error: 'Invalid entry date format' });
       }
+      const now = new Date();
+      if (entryDate > now) {
+        return res.status(400).json({ error: 'Entry date cannot be in the future' });
+      }
+      createData.transaction_date = entryDate;
     }
-    
+
     const entry = await SimpleFarmerLedger.create(createData);
     res.status(201).json(entry);
   } catch (err) {
@@ -309,7 +312,7 @@ export async function getFarmerBalance(req: Request, res: Response) {
   }
 }
 
-// Get summary (weekly/monthly)
+// Unified summary endpoint: returns period breakdowns and overall totals (credit, debit, commission, balance)
 export async function getSummary(req: Request, res: Response) {
   try {
     const { shop_id, farmer_id, period, from, to } = req.query;
@@ -328,7 +331,6 @@ export async function getSummary(req: Request, res: Response) {
     }
     if (from) {
       whereClause += ` AND created_at >= $${paramIndex}`;
-      // Always treat 'from' as UTC midnight
       let fromDate = from;
       if ((from as string).length === 10) {
         fromDate = from + 'T00:00:00.000Z';
@@ -338,7 +340,6 @@ export async function getSummary(req: Request, res: Response) {
     }
     if (to) {
       whereClause += ` AND created_at <= $${paramIndex}`;
-      // Always treat 'to' as UTC end of day
       let toDate = to;
       if ((to as string).length === 10) {
         toDate = to + 'T23:59:59.999Z';
@@ -347,22 +348,49 @@ export async function getSummary(req: Request, res: Response) {
       paramIndex++;
     }
 
-    const groupBy = period === 'monthly' ? "to_char(created_at, 'YYYY-MM')" : "to_char(created_at, 'YYYY-\"W\"IW')";
+    // 1. Period breakdown (if period param is set)
+    let periodResults: any[] = [];
+    if (period) {
+      const groupBy = period === 'monthly' ? "to_char(created_at, 'YYYY-MM')" : "to_char(created_at, 'YYYY-\"W\"IW')";
+      periodResults = await SimpleFarmerLedger.sequelize!.query(
+        `SELECT ${groupBy} as period,
+                SUM(CASE WHEN type = 'credit' THEN amount ELSE 0 END) as credit,
+                SUM(CASE WHEN type = 'debit' THEN amount ELSE 0 END) as debit,
+                SUM(COALESCE(commission_amount,0)) as commission,
+                SUM(CASE WHEN type = 'credit' THEN amount ELSE 0 END) - SUM(CASE WHEN type = 'debit' THEN amount ELSE 0 END) - SUM(COALESCE(commission_amount,0)) as balance
+         FROM kisaan_ledger
+         WHERE ${whereClause}
+         GROUP BY period
+         ORDER BY period DESC`,
+        {
+          bind: bindParams,
+          type: 'SELECT'
+        }
+      );
+    }
 
-    const results = await SimpleFarmerLedger.sequelize!.query(
-      `SELECT ${groupBy} as period, type, SUM(amount) as total
+    // 2. Overall totals (single row)
+    const overallTotals = await SimpleFarmerLedger.sequelize!.query(
+      `SELECT 
+          SUM(CASE WHEN type = 'credit' THEN amount ELSE 0 END) as credit,
+          SUM(CASE WHEN type = 'debit' THEN amount ELSE 0 END) as debit,
+          SUM(COALESCE(commission_amount,0)) as commission,
+          SUM(CASE WHEN type = 'credit' THEN amount ELSE 0 END) - SUM(CASE WHEN type = 'debit' THEN amount ELSE 0 END) - SUM(COALESCE(commission_amount,0)) as balance
        FROM kisaan_ledger
-       WHERE ${whereClause}
-       GROUP BY period, type
-       ORDER BY period DESC`,
+       WHERE ${whereClause}`,
       {
         bind: bindParams,
         type: 'SELECT'
       }
     );
 
-    res.json(results);
+    res.json({
+      period: periodResults,
+      overall: overallTotals[0] || { credit: 0, debit: 0, commission: 0, balance: 0 }
+    });
   } catch (err) {
+    // Log the error for debugging
+    console.error('Error in getSummary:', err);
     const message = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: message });
   }
@@ -418,23 +446,23 @@ export async function updateEntry(req: Request, res: Response) {
     // Resolve commission rate precedence: farmer -> shop owner -> shop -> 0
     let rateUsed = 0;
     try {
-      const farmerRow: any[] = (await SimpleFarmerLedger.sequelize!.query('SELECT custom_commission_rate FROM kisaan_users WHERE id = ?', { replacements: [farmerId], type: QueryTypes.SELECT })) as any[];
-      const farmerRate = farmerRow && farmerRow[0] ? Number(farmerRow[0].custom_commission_rate) : null;
-      if (farmerRate != null) {
-        rateUsed = farmerRate;
+      const farmerRow = await SimpleFarmerLedger.sequelize!.query('SELECT custom_commission_rate FROM kisaan_users WHERE id = ?', { replacements: [farmerId], type: QueryTypes.SELECT }) as unknown as Array<{ custom_commission_rate?: number }>;
+      const farmerRate = farmerRow?.[0]?.custom_commission_rate;
+      if (farmerRate !== undefined && farmerRate !== null) {
+        rateUsed = Number(farmerRate);
       } else {
-        const shopRow: any[] = (await SimpleFarmerLedger.sequelize!.query('SELECT commission_rate, owner_id FROM kisaan_shops WHERE id = ?', { replacements: [shopId], type: QueryTypes.SELECT })) as any[];
-        const shopRate = shopRow && shopRow[0] ? Number(shopRow[0].commission_rate) : null;
-        const ownerId = shopRow && shopRow[0] ? shopRow[0].owner_id : null;
+        const shopRow = await SimpleFarmerLedger.sequelize!.query('SELECT commission_rate, owner_id FROM kisaan_shops WHERE id = ?', { replacements: [shopId], type: QueryTypes.SELECT }) as unknown as Array<{ commission_rate?: number, owner_id?: number }>;
+        const shopRate = shopRow?.[0]?.commission_rate;
+        const ownerId = shopRow?.[0]?.owner_id;
         if (ownerId) {
-          const ownerRow: any[] = (await SimpleFarmerLedger.sequelize!.query('SELECT commission_rate FROM kisaan_users WHERE id = ?', { replacements: [ownerId], type: QueryTypes.SELECT })) as any[];
-          const ownerRate = ownerRow && ownerRow[0] ? Number(ownerRow[0].commission_rate) : null;
-          if (ownerRate != null) {
-            rateUsed = ownerRate;
+          const ownerRow = await SimpleFarmerLedger.sequelize!.query('SELECT custom_commission_rate FROM kisaan_users WHERE id = ?', { replacements: [ownerId], type: QueryTypes.SELECT }) as unknown as Array<{ custom_commission_rate?: number }>;
+          const ownerRate = ownerRow?.[0]?.custom_commission_rate;
+          if (ownerRate !== undefined && ownerRate !== null) {
+            rateUsed = Number(ownerRate);
           }
         }
-        if (rateUsed === 0 && shopRate != null) {
-          rateUsed = shopRate;
+        if (rateUsed === 0 && shopRate !== undefined && shopRate !== null) {
+          rateUsed = Number(shopRate);
         }
       }
     } catch (e) {
