@@ -757,7 +757,7 @@ export const simpleLedgerApi = {
   getSummary: async (params?: {
     shop_id?: string;
     farmer_id?: string;
-    period?: 'weekly' | 'monthly';
+    period?: 'daily' | 'weekly' | 'monthly';
     from?: string;
     to?: string;
     category?: string;

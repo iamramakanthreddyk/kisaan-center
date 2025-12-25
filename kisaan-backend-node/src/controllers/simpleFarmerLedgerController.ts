@@ -320,6 +320,9 @@ export async function getSummary(req: Request, res: Response) {
     const shopIdNum = Number(shop_id);
     const farmerIdNum = farmer_id ? Number(farmer_id) : undefined;
 
+    // Default period to daily if not specified
+    const defaultPeriod = period || 'daily';
+
     // Build WHERE clause and bind params
     let whereClause = 'shop_id = $1';
     const bindParams: any[] = [shopIdNum];
@@ -329,45 +332,49 @@ export async function getSummary(req: Request, res: Response) {
       bindParams.push(farmerIdNum);
       paramIndex++;
     }
-    if (from) {
-      whereClause += ` AND created_at >= $${paramIndex}`;
-      let fromDate = from;
-      if ((from as string).length === 10) {
-        fromDate = from + 'T00:00:00.000Z';
+    
+    // Improved date filtering - check both transaction_date and created_at for backward compatibility
+    if (from || to) {
+      if (from) {
+        whereClause += ` AND (transaction_date >= $${paramIndex} OR (transaction_date IS NULL AND created_at >= $${paramIndex}))`;
+        let fromDate = from;
+        if ((from as string).length === 10) {
+          fromDate = from + 'T00:00:00.000Z';
+        }
+        bindParams.push(fromDate);
+        paramIndex++;
       }
-      bindParams.push(fromDate);
-      paramIndex++;
-    }
-    if (to) {
-      whereClause += ` AND created_at <= $${paramIndex}`;
-      let toDate = to;
-      if ((to as string).length === 10) {
-        toDate = to + 'T23:59:59.999Z';
+      if (to) {
+        whereClause += ` AND (transaction_date <= $${paramIndex} OR (transaction_date IS NULL AND created_at <= $${paramIndex}))`;
+        let toDate = to;
+        if ((to as string).length === 10) {
+          toDate = to + 'T23:59:59.999Z';
+        }
+        bindParams.push(toDate);
+        paramIndex++;
       }
-      bindParams.push(toDate);
-      paramIndex++;
     }
 
-    // 1. Period breakdown (if period param is set)
+    // 1. Period breakdown (always, default to daily)
     let periodResults: any[] = [];
-    if (period) {
-      const groupBy = period === 'monthly' ? "to_char(created_at, 'YYYY-MM')" : "to_char(created_at, 'YYYY-\"W\"IW')";
-      periodResults = await SimpleFarmerLedger.sequelize!.query(
-        `SELECT ${groupBy} as period,
-                SUM(CASE WHEN type = 'credit' THEN amount ELSE 0 END) as credit,
-                SUM(CASE WHEN type = 'debit' THEN amount ELSE 0 END) as debit,
-                SUM(COALESCE(commission_amount,0)) as commission,
-                SUM(CASE WHEN type = 'credit' THEN amount ELSE 0 END) - SUM(CASE WHEN type = 'debit' THEN amount ELSE 0 END) - SUM(COALESCE(commission_amount,0)) as balance
-         FROM kisaan_ledger
-         WHERE ${whereClause}
-         GROUP BY period
-         ORDER BY period DESC`,
+    const groupBy = defaultPeriod === 'monthly' ? "to_char(COALESCE(transaction_date, created_at), 'YYYY-MM')" : 
+                   defaultPeriod === 'daily' ? "to_char(COALESCE(transaction_date, created_at), 'YYYY-MM-DD')" : 
+                   "to_char(COALESCE(transaction_date, created_at), 'YYYY-\"W\"IW')"; // weekly default;
+    periodResults = await SimpleFarmerLedger.sequelize!.query(
+      `SELECT ${groupBy} as period,
+              SUM(CASE WHEN type = 'credit' THEN amount ELSE 0 END) as credit,
+              SUM(CASE WHEN type = 'debit' THEN amount ELSE 0 END) as debit,
+              SUM(COALESCE(commission_amount,0)) as commission,
+              SUM(CASE WHEN type = 'credit' THEN amount ELSE 0 END) - SUM(CASE WHEN type = 'debit' THEN amount ELSE 0 END) - SUM(COALESCE(commission_amount,0)) as balance
+       FROM kisaan_ledger
+       WHERE ${whereClause}
+       GROUP BY period
+       ORDER BY period DESC`,
         {
           bind: bindParams,
           type: 'SELECT'
         }
       );
-    }
 
     // 2. Overall totals (single row)
     const overallTotals = await SimpleFarmerLedger.sequelize!.query(

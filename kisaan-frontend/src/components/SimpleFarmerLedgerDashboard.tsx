@@ -43,21 +43,31 @@ export const SimpleFarmerLedgerDashboard: React.FC = () => {
   const [periodError, setPeriodError] = useState<string | null>(null);
 
   // Period filter state
-  const [selectedPeriod, setSelectedPeriod] = useState<'weekly' | 'monthly'>('weekly');
+  const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [fromDate, setFromDate] = useState<string>('');
+  const [toDate, setToDate] = useState<string>('');
 
   // Load period summary data
-  const loadPeriodData = useCallback(async (period: 'weekly' | 'monthly' = 'weekly') => {
+  const loadPeriodData = useCallback(async (period?: 'daily' | 'weekly' | 'monthly') => {
+    const periodToUse = period || selectedPeriod;
     setPeriodLoading(true);
     setPeriodError(null);
     try {
       if (!farmerId || !shopId) return;
 
       // Use the summary endpoint with period parameter
-      const data = await simpleLedgerApi.getSummary({
+      const params: any = {
         shop_id: String(shopId),
         farmer_id: String(farmerId),
-        period: period
-      });
+        period: periodToUse
+      };
+
+      if (fromDate) params.from = fromDate;
+      if (toDate) params.to = toDate;
+
+      console.log('API params:', params); // Debug log
+
+      const data = await simpleLedgerApi.getSummary(params);
 
       // The response is already the correct structure
       setPeriodData(data);
@@ -68,14 +78,14 @@ export const SimpleFarmerLedgerDashboard: React.FC = () => {
     } finally {
       setPeriodLoading(false);
     }
-  }, [farmerId, shopId]);
+  }, [farmerId, shopId, selectedPeriod, fromDate, toDate]);
 
-  // Load period data when component mounts or period changes
+  // Load period data when component mounts or filters change
   useEffect(() => {
     if (farmerId && shopId) {
       loadPeriodData(selectedPeriod);
     }
-  }, [farmerId, shopId, selectedPeriod, loadPeriodData]);
+  }, [farmerId, shopId, selectedPeriod, fromDate, toDate, loadPeriodData]);
 
 
   // Print functionality
@@ -83,7 +93,7 @@ export const SimpleFarmerLedgerDashboard: React.FC = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const periodType = selectedPeriod === 'weekly' ? 'Weekly' : 'Monthly';
+    const periodType = selectedPeriod === 'daily' ? 'Daily' : selectedPeriod === 'weekly' ? 'Weekly' : 'Monthly';
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -198,12 +208,31 @@ export const SimpleFarmerLedgerDashboard: React.FC = () => {
                 <label className="text-sm font-medium">Period:</label>
                 <select
                   value={selectedPeriod}
-                  onChange={(e) => setSelectedPeriod(e.target.value as 'weekly' | 'monthly')}
+                  onChange={(e) => setSelectedPeriod(e.target.value as 'daily' | 'weekly' | 'monthly')}
                   className="px-3 py-1 border border-gray-300 rounded-md text-sm"
                 >
+                  <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
                   <option value="monthly">Monthly</option>
                 </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">From:</label>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">To:</label>
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                />
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -291,7 +320,7 @@ export const SimpleFarmerLedgerDashboard: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm sm:text-lg font-semibold py-2 sm:py-3">
-            {selectedPeriod === 'weekly' ? 'Weekly' : 'Monthly'} Breakdown
+            {selectedPeriod === 'daily' ? 'Daily' : selectedPeriod === 'weekly' ? 'Weekly' : 'Monthly'} Breakdown
           </CardTitle>
         </CardHeader>
         <CardContent>
