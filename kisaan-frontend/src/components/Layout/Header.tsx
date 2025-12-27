@@ -130,17 +130,6 @@ const Header = () => {
             )
           ) : (
             <>
-              <nav className="hidden lg:flex items-center space-x-8 text-sm font-medium">
-                <a href="/#features" className="text-foreground/70 hover:text-foreground transition-colors hover:underline underline-offset-4" onClick={e => handleNav(e, 'features')}>
-                  Features
-                </a>
-                <a href="/#about" className="text-foreground/70 hover:text-foreground transition-colors hover:underline underline-offset-4" onClick={e => handleNav(e, 'about')}>
-                  About Us
-                </a>
-                <a href="/#contact" className="text-foreground/70 hover:text-foreground transition-colors hover:underline underline-offset-4" onClick={e => handleNav(e, 'contact')}>
-                  Contact
-                </a>
-              </nav>
               <div className="flex items-center space-x-3">
                 <Button
                   variant="ghost"

@@ -36,6 +36,7 @@ import OwnerSettings from './pages/OwnerSettings';
 import { Toaster } from './components/ui/toaster';
 import SimpleLedger from './simpleLedger';
 import TransactionManagementOptimized from './pages/TransactionManagementOptimized';
+import DemoPage from './pages/DemoPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) => {
@@ -89,8 +90,9 @@ const AppRoutes = () => {
         {/* /auth used previously for combined auth page — route to canonical /login to avoid signup-only submission */}
         <Route path="/auth" element={<Navigate to="/login" replace />} />
         
-        {/* Public pricing page */}
+        {/* Public pages */}
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/demo" element={<DemoPage />} />
         
         <Route path="/dashboard" element={
           <ProtectedRoute>
