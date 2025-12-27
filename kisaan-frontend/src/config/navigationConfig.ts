@@ -41,7 +41,7 @@ export const NAV_ITEMS: AppNavItem[] = [
   // { key: 'owner-dashboard', label: 'Overview', href: '/owner', icon: LayoutDashboard, roles: ['owner'], exact: true, order: 10 },
   // { key: 'simple-transactions', label: '⚡ Quick Sale', href: '/simple-transactions', icon: Zap, roles: ['owner', 'employee'], order: 15, quick: true },
   // { key: 'owner-transactions', label: 'Transaction History', href: '/transactions', icon: ArrowRightLeft, roles: ['owner'], order: 20, quick: true },
-  { key: 'owner-users', label: 'Team Members', href: '/users', icon: UsersRound, roles: ['owner'], order: 30 },
+  { key: 'owner-users', label: 'Farmers', href: '/users', icon: UsersRound, roles: ['owner'], order: 30 },
   // { key: 'owner-payments', label: 'Payment Management', href: '/payments', icon: CreditCard, roles: ['owner'], order: 40, quick: true },
   // { key: 'owner-balance', label: 'Account Balance', href: '/balance', icon: Wallet, roles: ['owner'], order: 50 },
   // { key: 'owner-reports', label: 'Analytics & Reports', href: '/reports', icon: BarChart4, roles: ['owner'], order: 60 },
