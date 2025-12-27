@@ -66,7 +66,6 @@ export const FarmerLedgerDashboard: React.FC = () => {
       // Call API with correct function signature (shopId, period, farmerId, from, to)
       // Note: API only supports 'weekly' | 'monthly', so 'daily' becomes undefined (overall)
       const apiPeriod = periodToUse === 'daily' ? undefined : periodToUse;
-      console.log('Calling API with:', { shopId, period: apiPeriod, farmerId, fromDate, toDate }); // Debug log
 
       const data = await simpleLedgerApi.getSummary(shopId, apiPeriod, farmerId, fromDate || undefined, toDate || undefined);
 
