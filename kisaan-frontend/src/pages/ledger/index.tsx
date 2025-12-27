@@ -2,10 +2,11 @@ import React, { useState, useCallback, useEffect } from 'react';
 import LedgerList from './LedgerList';
 import LedgerForm from './LedgerForm';
 import LedgerSummary from './LedgerSummary';
+import CashFlowChart from '../../components/CashFlowChart';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Button } from '../../components/ui/button';
-import { BookOpen, Plus, Filter, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { BookOpen, Plus, Filter, Calendar, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { UserSearchDropdown } from '../../components/ui/UserSearchDropdown';
 import { useUsers } from '../../context/useUsers';
@@ -35,6 +36,7 @@ const SimpleLedger: React.FC = () => {
   const [fromDate, setFromDate] = useState<string | undefined>(undefined);
   const [toDate, setToDate] = useState<string | undefined>(undefined);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [showChart, setShowChart] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   
   // Centralized summary cache - only fetch once when filters change
@@ -49,7 +51,7 @@ const SimpleLedger: React.FC = () => {
     try {
       // For farmers, always use their own id
       const farmerIdParam = user?.role === 'farmer' ? Number(user.id) : selectedFarmer ?? undefined;
-      const data = await fetchLedgerSummary(shopId, undefined, farmerIdParam, fromDate, toDate, selectedCategory || undefined) as SummaryData;
+      const data = await fetchLedgerSummary(shopId, 'weekly', farmerIdParam, fromDate, toDate, selectedCategory || undefined) as SummaryData;
       setSummaryData(data);
     } catch (e) {
       setSummaryError(e instanceof Error ? e.message : 'Failed to fetch summary');
@@ -289,17 +291,51 @@ const SimpleLedger: React.FC = () => {
 
         {/* Summary Tab (hide owner commission) */}
         <TabsContent value="summary" className="mt-3 sm:mt-6">
-          <LedgerSummary
-            farmerId={selectedFarmer ?? undefined}
-            from={fromDate}
-            to={toDate}
-            category={selectedCategory || undefined}
-            shopId={shopId}
-            hideOwnerCommission={true}
-            summaryData={summaryData}
-            loading={summaryLoading}
-            error={summaryError}
-          />
+          <div className="space-y-6">
+            {/* Cash Flow Chart - Collapsible */}
+            {summaryData?.period && Array.isArray(summaryData.period) && summaryData.period.length > 0 && (
+              <Card className="border-blue-200">
+                <CardHeader className="pb-3">
+                  <Button
+                    onClick={() => setShowChart(!showChart)}
+                    variant="ghost"
+                    className="w-full justify-between p-0 h-auto hover:bg-transparent"
+                  >
+                    <CardTitle className="flex items-center gap-2 text-left">
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                      Transaction Trends Chart
+                    </CardTitle>
+                    {showChart ? (
+                      <ChevronUp className="h-4 w-4 text-gray-500" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                    )}
+                  </Button>
+                </CardHeader>
+                {showChart && (
+                  <CardContent className="pt-0">
+                    <CashFlowChart
+                      periodData={summaryData.period}
+                      periodType="weekly"
+                    />
+                  </CardContent>
+                )}
+              </Card>
+            )}
+
+            {/* Regular Summary */}
+            <LedgerSummary
+              farmerId={selectedFarmer ?? undefined}
+              from={fromDate}
+              to={toDate}
+              category={selectedCategory || undefined}
+              shopId={shopId}
+              hideOwnerCommission={true}
+              summaryData={summaryData}
+              loading={summaryLoading}
+              error={summaryError}
+            />
+          </div>
         </TabsContent>
         {/* Owner Commission Tab (owner only) */}
         {hasRole('owner') && (

@@ -38,7 +38,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
-  const [pageSize] = useState<number>(10);
+  const [pageSize] = useState<number>(5);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [overallBalance, setOverallBalance] = useState<any>(summaryData?.overall || null);
