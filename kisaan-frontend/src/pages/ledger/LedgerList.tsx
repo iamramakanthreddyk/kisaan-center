@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { AlertCircle, Inbox, TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronRight, Download, FileText, Printer } from 'lucide-react';
 import { formatAmount } from '../../utils/format';
 import { exportLedgerToCsv, exportLedgerToPdf } from '../../components/shared/ledger/ExportUtils';
+import { printLedgerReport } from '../../components/shared/ledger/PrintUtils';
 
 interface LedgerEntry {
   id: number;
@@ -42,6 +43,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [overallBalance, setOverallBalance] = useState<any>(summaryData?.overall || null);
+  const [printData, setPrintData] = useState<LedgerEntry[]>([]);
 
   const shopId = user?.shop_id ? Number(user.shop_id) : 1;
 
@@ -139,6 +141,41 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     handleLoadPage(page + 1);
   };
 
+  const handlePrintAll = async () => {
+    // Fetch all entries with large page size and overall balance
+    try {
+      const [entriesPayload, summaryData] = await Promise.all([
+        fetchLedgerEntries(shopId, farmerId ?? undefined, from ?? undefined, to ?? undefined, category ?? undefined, 1, 10000),
+        fetchLedgerSummary(shopId, undefined, farmerId ?? undefined, from ?? undefined, to ?? undefined)
+      ]);
+      
+      const allEntries = entriesPayload.entries || [];
+      const overall = summaryData?.overall;
+
+      // Use printLedgerReport utility with transaction details and overall balance
+      printLedgerReport(
+        {
+          overall: overall,
+          entries: allEntries
+        },
+        {
+          title: 'Ledger Entries Report',
+          dateRange: from && to ? `${from} to ${to}` : from ? `From ${from}` : to ? `Until ${to}` : 'All Dates',
+          categoryInfo: category ? category : 'All Categories',
+          farmerName: farmerId ? `Farmer #${farmerId}` : 'All Farmers',
+          showEntries: true,
+          showSummary: true,
+          showPeriodBreakdown: false,
+          isOwner: user?.role === 'owner'
+        },
+        allUsers
+      );
+    } catch (e) {
+      console.error('Error fetching all entries for print:', e);
+      alert('Error generating print report. Please try again.');
+    }
+  };
+
   const handleExportCSV = () => {
     exportLedgerToCsv({
       shopId,
@@ -161,8 +198,9 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
   };
 
   return (
-    <Card className="border-gray-200">
-      <CardHeader>
+    <>
+      <Card className="border-gray-200 no-print">
+        <CardHeader>
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             📝 Account Entries
@@ -193,9 +231,9 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                   <FileText className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => window.print()}
+                  onClick={handlePrintAll}
                   className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200"
-                  title="Print"
+                  title="Print All"
                 >
                   <Printer className="h-4 w-4" />
                 </button>
@@ -218,11 +256,11 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                   Export PDF
                 </button>
                 <button
-                  onClick={() => window.print()}
+                  onClick={handlePrintAll}
                   className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
                 >
                   <Printer className="h-4 w-4" />
-                  Print
+                  Print All
                 </button>
               </div>
             </div>
@@ -525,47 +563,6 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
           </>
         )}
       </CardContent>
-      {/* Print-only table */}
-      <div className="hidden print-table">
-        <h2 style={{textAlign: 'center', marginBottom: '20px'}}>Farmer Accounts Ledger</h2>
-        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-          <thead>
-            <tr>
-              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Type</th>
-              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Farmer</th>
-              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Category</th>
-              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0', textAlign: 'right'}}>Credit</th>
-              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0', textAlign: 'right'}}>Debit</th>
-              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Date</th>
-              <th style={{border: '1px solid #000', padding: '4px', background: '#f0f0f0'}}>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((entry) => (
-              <tr key={entry.id}>
-                <td style={{border: '1px solid #000', padding: '4px'}}>{entry.type.toUpperCase()}</td>
-                <td style={{border: '1px solid #000', padding: '4px'}}>{getFarmerName(entry.farmer_id)}</td>
-                <td style={{border: '1px solid #000', padding: '4px'}}>{entry.category.toUpperCase()}</td>
-                <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right'}}>{entry.type === 'credit' ? formatAmount(entry.amount) : '-'}</td>
-                <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right'}}>{entry.type === 'credit' && entry.category === 'sale' ? formatAmount(entry.commission_amount || 0) : entry.type === 'debit' ? formatAmount(entry.amount) : '-'}</td>
-                <td style={{border: '1px solid #000', padding: '4px'}}>{(entry.transaction_date || entry.created_at) ? new Date(entry.transaction_date || entry.created_at!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</td>
-                <td style={{border: '1px solid #000', padding: '4px'}}>{entry.notes || ''}</td>
-              </tr>
-            ))}
-            {/* end of entries list */}
-            <tr>
-              <td colSpan={3} style={{border: '1px solid #000', padding: '4px', fontWeight: 'bold'}}>Balance</td>
-              <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right', fontWeight: 'bold'}}>{(() => {
-                const totalCredits = entries.filter(e => e.type === 'credit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-                const totalDebits = entries.filter(e => e.type === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-                return formatAmount(totalCredits - totalDebits);
-              })()}</td>
-              <td style={{border: '1px solid #000', padding: '4px', textAlign: 'right', fontWeight: 'bold'}}>{formatAmount(entries.filter(e => e.category === 'sale' && e.type === 'credit' && e.net_amount !== undefined).reduce((sum, e) => sum + Number(e.net_amount || 0), 0))}</td>
-              <td colSpan={2} style={{border: '1px solid #000', padding: '4px'}}></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
       {/* Pagination controls (shared mobile & desktop) */}
       <div className="px-4 py-3 flex items-center justify-between gap-4 bg-gray-50 rounded-lg border mx-4 mb-4">
         {/* Mobile: Simple page/total display */}
@@ -630,6 +627,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
         </div>
       </div>
     </Card>
+    </>
   );
 };
 

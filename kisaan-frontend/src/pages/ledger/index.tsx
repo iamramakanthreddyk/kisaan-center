@@ -84,9 +84,21 @@ const SimpleLedger: React.FC = () => {
     <div className="w-full max-w-7xl mx-auto px-1 sm:px-2 md:px-4 lg:px-6 xl:px-8 pb-4 space-y-2 sm:space-y-4 md:space-y-6">
       <style>
         {`
+          @media screen {
+            .print-table { display: none !important; }
+          }
           @media print {
             .no-print { display: none !important; }
             @page { margin: 0.5in; }
+            body { margin: 0; padding: 0; }
+            .print-table { display: block !important; }
+            .print-table h2 { display: block !important; }
+            .print-table table { width: 100% !important; border-collapse: collapse !important; }
+            .print-table thead { display: table-header-group !important; }
+            .print-table tbody { display: table-row-group !important; }
+            .print-table tr { display: table-row !important; page-break-inside: avoid !important; }
+            .print-table td { display: table-cell !important; }
+            .print-table th { display: table-cell !important; }
           }
         `}
       </style>
@@ -131,7 +143,7 @@ const SimpleLedger: React.FC = () => {
         </Button>
 
         {showFilters && (
-          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm mt-2 overflow-hidden">
+          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm mt-2 overflow-hidden no-print">
             <CardHeader className="pb-3 sm:pb-4 border-b border-blue-100 bg-white/60 rounded-t-xl p-3 sm:p-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2 sm:gap-3">
@@ -247,6 +259,7 @@ const SimpleLedger: React.FC = () => {
         {/* Entries Tab */}
         <TabsContent value="entries" className="mt-3 sm:mt-6">
           <div className="space-y-3 sm:space-y-4">
+            <div className="no-print">
             {!showForm && (
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
                 <div className="text-xs sm:text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
@@ -277,6 +290,7 @@ const SimpleLedger: React.FC = () => {
                 </CardContent>
               </Card>
             )}
+            </div>
 
             <LedgerList
               refreshTrigger={refreshTrigger}
@@ -290,11 +304,11 @@ const SimpleLedger: React.FC = () => {
         </TabsContent>
 
         {/* Summary Tab (hide owner commission) */}
-        <TabsContent value="summary" className="mt-3 sm:mt-6">
+        <TabsContent value="summary" className="mt-3 sm:mt-6 no-print">
           <div className="space-y-6">
             {/* Cash Flow Chart - Collapsible */}
             {summaryData?.period && Array.isArray(summaryData.period) && summaryData.period.length > 0 && (
-              <Card className="border-blue-200">
+              <Card className="border-blue-200 no-print">
                 <CardHeader className="pb-3">
                   <Button
                     onClick={() => setShowChart(!showChart)}
@@ -323,23 +337,38 @@ const SimpleLedger: React.FC = () => {
               </Card>
             )}
 
+            {/* Print-only Summary */}
+            <div className="hidden print:block">
+              <LedgerSummary
+                farmerId={selectedFarmer ?? undefined}
+                from={fromDate}
+                to={toDate}
+                category={selectedCategory || undefined}
+                shopId={shopId}
+                hideOwnerCommission={true}
+                summaryData={summaryData}
+              />
+            </div>
+
             {/* Regular Summary */}
+            <div className="no-print">
             <LedgerSummary
               farmerId={selectedFarmer ?? undefined}
               from={fromDate}
               to={toDate}
               category={selectedCategory || undefined}
               shopId={shopId}
-              hideOwnerCommission={true}
+              hideOwnerCommission={false}
               summaryData={summaryData}
               loading={summaryLoading}
               error={summaryError}
             />
+            </div>
           </div>
         </TabsContent>
         {/* Owner Commission Tab (owner only) */}
         {hasRole('owner') && (
-          <TabsContent value="commission" className="mt-3 sm:mt-6">
+          <TabsContent value="commission" className="mt-3 sm:mt-6 no-print">
             <LedgerSummary
               shopId={shopId}
               from={fromDate}
