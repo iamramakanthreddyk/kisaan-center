@@ -91,7 +91,6 @@ export const FarmerLedgerDashboard: React.FC = () => {
 
   // Print functionality
   const handlePrint = () => {
-    console.log('Print Data:', { overall: periodData?.overall, period: periodData?.period });
     const periodType = selectedPeriod === 'daily' ? 'Overall' : selectedPeriod === 'weekly' ? 'Weekly' : 'Monthly';
 
     printLedgerReport(
