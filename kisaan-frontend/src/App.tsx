@@ -103,7 +103,7 @@ const AppRoutes = () => {
         {/* Owner Routes */}
         <Route path="/owner" element={
           <ProtectedRoute allowedRoles={['owner']}>
-            <OwnerDashboardNew  key="owner-dashboard"/>
+            <SimpleLedger />
           </ProtectedRoute>
         } />
         <Route path="/transactions" element={

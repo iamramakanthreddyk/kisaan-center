@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { fetchLedgerEntries, fetchLedgerSummary } from './api';
-import { useTransactionStore } from '../store/transactionStore';
-import { usersApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useUsers } from '../context/useUsers';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { AlertCircle, Inbox, TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -35,6 +34,7 @@ interface LedgerListProps {
 
 const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerId, from, to, category, summaryData }) => {
   const { user } = useAuth();
+  const { allUsers } = useUsers();
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
@@ -44,8 +44,6 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
   const [overallBalance, setOverallBalance] = useState<any>(summaryData?.overall || null);
 
   const shopId = user?.shop_id ? Number(user.shop_id) : 1;
-  const getUsersForShop = useTransactionStore(state => state.getUsers);
-  const setUsersForShop = useTransactionStore(state => state.setUsers);
 
   // Update balance when summaryData changes
   useEffect(() => {
@@ -55,24 +53,6 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
   }, [summaryData]);
 
   useEffect(() => {
-    // Ensure we have users cached for this shop so the farmer_id can be resolved to names
-    const shopKey = String(shopId);
-    const cached = getUsersForShop(shopKey);
-    if (!cached || cached.length === 0) {
-      (async () => {
-        try {
-          const res = await usersApi.getAll({ shop_id: shopId });
-          const users = res.data || [];
-          setUsersForShop(shopKey, users as User[]);
-        } catch {
-          // ignore - names will fallback to id
-        }
-      })();
-    }
-
-    // Remove redundant fetch - use cached summaryData from parent instead
-    // (was: fetching summary API separately which is now done in SimpleLedger.tsx)
-
     const loadEntries = async (pageToLoad = page) => {
       setLoading(true);
       setError(null);
@@ -91,12 +71,24 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     loadEntries(1);
   }, [shopId, farmerId, from, to, category, refreshTrigger]);
 
-  const getFarmerName = (farmerId: number): string => {
-    const shopKey = String(shopId);
-    const users = getUsersForShop(shopKey) || [];
-    const farmer = users.find(u => u.id === farmerId);
-    return farmer ? `${farmer.firstname || ''} ${farmer.username}`.trim() : `Farmer #${farmerId}`;
-  };
+  // Memoize shop users to prevent unnecessary re-renders
+  const shopUsers = useMemo(() => allUsers.filter(u => Number(u.shop_id) === shopId), [allUsers, shopId]);
+
+  const getFarmerName = useCallback((farmerId: number): string => {
+    // Use memoized shopUsers to prevent infinite re-renders
+    const farmer = shopUsers.find(u => Number(u.id) === farmerId);
+    if (farmer) {
+      // Priority: firstname first, then username, then ID
+      if (farmer.firstname && farmer.firstname.trim()) {
+        return farmer.firstname.trim();
+      } else if (farmer.username && farmer.username.trim()) {
+        return farmer.username.trim();
+      } else {
+        return `Farmer #${farmerId}`;
+      }
+    }
+    return `Farmer #${farmerId}`;
+  }, [shopUsers]);
 
   const getTypeIcon = (type: string) => {
     switch (type.toLowerCase()) {

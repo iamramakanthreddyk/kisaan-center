@@ -50,6 +50,7 @@ export class UserRepository extends BaseRepository<User, UserEntity> {
       email: entity.email,
       role: entity.role,
       shop_id: entity.shop_id,
+      firstname: entity.firstname,
       contact: entity.contact,
       balance: entity.balance,
       status: entity.status,
@@ -74,11 +75,9 @@ export class UserRepository extends BaseRepository<User, UserEntity> {
    * Find users by shop
    */
   async findByShop(shopId: number): Promise<UserEntity[]> {
-    console.log('[USER_REPO] findByShop', { shopId });
     const models = await this.model.findAll({
       where: { shop_id: shopId }
     });
-    console.log('[USER_REPO] findByShop results', { count: models.length, ids: models.map(m => m.id) });
     return models.map((model: User) => this.toDomainEntity(model));
   }
 
