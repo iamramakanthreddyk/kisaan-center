@@ -2,7 +2,7 @@ import { getUserDisplayName } from '../utils/userDisplayName';
 import { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { SimpleFarmerLedgerDashboard } from '../components/SimpleFarmerLedgerDashboard';
+import { FarmerLedgerDashboard } from '../components/FarmerLedgerDashboard';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -30,9 +30,9 @@ export default function Dashboard() {
     );
   }
 
-  // For farmer role, show SimpleFarmerLedgerDashboard
+  // For farmer role, show FarmerLedgerDashboard
   if (user.role === 'farmer') {
-    return <SimpleFarmerLedgerDashboard />;
+    return <FarmerLedgerDashboard />;
   }
   // For other non-owner roles, show simple message
   return (

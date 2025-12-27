@@ -1,5 +1,5 @@
 // API utility for simple ledger (uses centralized apiClient)
-import { apiClient } from '../services/apiClient';
+import { apiClient } from '../../services/apiClient';
 
 export type LedgerEntriesResponse = {
   entries: Array<{
@@ -62,7 +62,21 @@ export async function fetchLedgerSummary(
   from?: string,
   to?: string,
   category?: string
-) {
+): Promise<{
+  period: Array<{
+    period: string;
+    credit: string | number;
+    debit: string | number;
+    commission: string | number;
+    balance: string | number;
+  }>;
+  overall: {
+    credit: string | number;
+    debit: string | number;
+    commission: string | number;
+    balance: string | number;
+  };
+}> {
   const params = new URLSearchParams();
   params.append('shop_id', String(shopId));
   if (period) params.append('period', period);

@@ -34,7 +34,7 @@ import { AppLayout } from './components/Layout/AppLayout';
 import { useAuth } from './context/AuthContext';
 import OwnerSettings from './pages/OwnerSettings';
 import { Toaster } from './components/ui/toaster';
-import SimpleLedger from './simpleLedger';
+import SimpleLedger from './pages/ledger/index';
 import TransactionManagementOptimized from './pages/TransactionManagementOptimized';
 import DemoPage from './pages/DemoPage';
 

@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { fetchLedgerEntries, fetchLedgerSummary } from './api';
-import { useAuth } from '../context/AuthContext';
-import { useUsers } from '../context/useUsers';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { AlertCircle, Inbox, TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { User } from '../types';
-import { formatAmount } from '../utils/format';
+import { useAuth } from '../../context/AuthContext';
+import { useUsers } from '../../context/useUsers';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { AlertCircle, Inbox, TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronRight, Download, FileText, Printer } from 'lucide-react';
+import { formatAmount } from '../../utils/format';
+import { exportLedgerToCsv, exportLedgerToPdf } from '../../components/shared/ledger/ExportUtils';
 
 interface LedgerEntry {
   id: number;
@@ -139,17 +139,95 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     handleLoadPage(page + 1);
   };
 
+  const handleExportCSV = () => {
+    exportLedgerToCsv({
+      shopId,
+      farmerId,
+      from,
+      to,
+      category,
+      filename: `ledger-entries-${new Date().toISOString().split('T')[0]}.csv`
+    });
+  };
+
+  const handleExportPDF = () => {
+    exportLedgerToPdf({
+      shopId,
+      farmerId,
+      from,
+      to,
+      category
+    });
+  };
+
   return (
     <Card className="border-gray-200">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          📝 Account Entries
-          {entries.length > 0 && (
-            <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-              {entries.length} entries
-            </span>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            📝 Account Entries
+            {entries.length > 0 && (
+              <span className="text-xs md:text-sm font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                {entries.length} entries
+              </span>
+            )}
+          </CardTitle>
+
+          {/* Export/PDF buttons - compact on mobile, full on desktop */}
+          {!loading && !error && entries.length > 0 && (
+            <div className="flex items-center gap-1 self-end md:self-auto print:hidden">
+              {/* Mobile: Icon only buttons in one row */}
+              <div className="flex md:hidden gap-1">
+                <button
+                  onClick={handleExportCSV}
+                  className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200"
+                  title="Export CSV"
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={handleExportPDF}
+                  className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200"
+                  title="Export PDF"
+                >
+                  <FileText className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200"
+                  title="Print"
+                >
+                  <Printer className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Desktop: Buttons with text */}
+              <div className="hidden md:flex gap-2">
+                <button
+                  onClick={handleExportCSV}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
+                >
+                  <Download className="h-4 w-4" />
+                  Export CSV
+                </button>
+                <button
+                  onClick={handleExportPDF}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
+                >
+                  <FileText className="h-4 w-4" />
+                  Export PDF
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print
+                </button>
+              </div>
+            </div>
           )}
-        </CardTitle>
+        </div>
       </CardHeader>
       <CardContent>
         {loading && (
@@ -185,54 +263,156 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
           <>
             {/* Mobile: Card/List layout */}
             <div className="flex flex-col gap-3 md:hidden">
-              {entries.map((entry) => (
-                <div key={entry.id} className="border rounded-lg p-3 bg-white shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="font-semibold text-gray-800">{getFarmerName(entry.farmer_id)}</div>
-                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(entry.type)}`}>{getTypeIcon(entry.type)}{entry.type.toUpperCase()}</div>
+              {entries.map((entry) => {
+                const isCreditType = entry.type === 'credit';
+                const creditAmount = isCreditType ? Number(entry.amount || 0) : 0;
+                const debitAmount = (isCreditType && entry.category === 'sale') ? Number(entry.commission_amount || 0) : entry.type === 'debit' ? Number(entry.amount || 0) : 0;
+                const balance = creditAmount - debitAmount;
+                const categoryColor = {
+                  'sale': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                  'expense': 'bg-orange-50 text-orange-700 border-orange-200',
+                  'withdrawal': 'bg-purple-50 text-purple-700 border-purple-200',
+                  'other': 'bg-slate-50 text-slate-700 border-slate-200'
+                }[entry.category.toLowerCase()] || 'bg-blue-50 text-blue-700 border-blue-200';
+                
+                return (
+                  <div key={entry.id} className={`rounded-lg p-2.5 shadow-sm border-2 transition-all duration-200 ${
+                    isCreditType 
+                      ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200' 
+                      : 'bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200'
+                  }`}>
+                    {/* Header: Farmer name and type badge */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-gray-900 text-xs truncate">{getFarmerName(entry.farmer_id)}</div>
+                      </div>
+                      <div className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ml-1 flex-shrink-0 ${
+                        isCreditType
+                          ? 'bg-white text-green-700 border border-green-200'
+                          : 'bg-white text-blue-700 border border-blue-200'
+                      }`}>
+                        {getTypeIcon(entry.type)}
+                        {entry.type === 'credit' ? 'CR' : 'DB'}
+                      </div>
+                    </div>
+
+                    {/* Category and Date in one line */}
+                    <div className="flex items-center justify-between text-[11px] mb-2 gap-1">
+                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold border flex-shrink-0 ${categoryColor}`}>
+                        {entry.category.charAt(0).toUpperCase()}
+                      </span>
+                      <span className="text-gray-600 flex-shrink-0">
+                        {(entry.transaction_date || entry.created_at) ? new Date(entry.transaction_date || entry.created_at!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'N/A'}
+                      </span>
+                    </div>
+
+                    {/* Amount display in compact format */}
+                    <div className="grid grid-cols-2 gap-1.5 p-2 bg-white/60 rounded border border-white/40 text-[11px]">
+                      <div>
+                        <div className="font-semibold text-gray-600 text-[9px]">Cr</div>
+                        <div className="font-bold text-green-700">{isCreditType ? formatAmount(entry.amount) : '—'}</div>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-600 text-[9px]">Db</div>
+                        <div className="font-bold text-red-700">{debitAmount > 0 ? formatAmount(debitAmount) : '—'}</div>
+                      </div>
+                    </div>
+
+                    {/* Notes - show only if exists */}
+                    {entry.notes && <div className="mt-1.5 pt-1.5 border-t border-white/50">
+                      <div className="text-[10px] text-gray-700 italic line-clamp-2">{entry.notes}</div>
+                    </div>}
                   </div>
-                  <div className="flex flex-wrap text-sm text-gray-600 gap-x-4 gap-y-1">
-                    <div><span className="font-medium">Category:</span> <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{entry.category.toUpperCase()}</span></div>
-                    <div><span className="font-medium">Credit:</span> <span className="font-mono">{entry.type === 'credit' ? formatAmount(entry.amount) : '-'}</span></div>
-                    <div><span className="font-medium">Debit:</span> <span className="font-mono">{entry.type === 'credit' && entry.category === 'sale' ? formatAmount(entry.commission_amount || 0) : entry.type === 'debit' ? formatAmount(entry.amount) : '-'}</span></div>
-                    <div><span className="font-medium">Date:</span> {(entry.transaction_date || entry.created_at) ? new Date(entry.transaction_date || entry.created_at!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</div>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500">
-                    <span className="font-medium">Notes:</span> {entry.notes || <span className="text-gray-400 italic">No notes</span>}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {/* Desktop: Responsive Card List layout (fills width) */}
             <div className="hidden md:flex flex-col gap-3 w-full">
               {/* Header row for column titles */}
-              <div className="px-3 py-2 bg-gray-50 rounded-lg font-semibold text-xs text-gray-600 flex flex-row flex-wrap items-center w-full border">
+              <div className="px-4 py-3 bg-gradient-to-r from-slate-100 to-slate-50 rounded-xl font-bold text-xs text-slate-700 flex flex-row items-center w-full border border-slate-200 shadow-sm uppercase tracking-wider">
                 <div className="flex-shrink-0 w-24 mr-4">Type</div>
                 <div className="flex-shrink-0 w-40 mr-4">Farmer</div>
                 <div className="flex-shrink-0 w-20 mr-4">Category</div>
-                <div className="flex-shrink-0 w-28 text-right mr-4" title="Amount credited to the account">Credit <span className="text-blue-400" title="Amount credited to the account">?</span></div>
-                <div className="flex-shrink-0 w-32 text-right mr-4" title="Amount debited from the account (commission/withdrawals)">Debit <span className="text-blue-400" title="Amount debited from the account (commission/withdrawals)">?</span></div>
-                <div className="flex-shrink-0 w-32 mr-4">Date</div>
-                <div className="flex-grow min-w-[120px]">Notes</div>
+                <div className="flex-shrink-0 w-28 text-right mr-4" title="Amount credited to the account">💰 Credit</div>
+                <div className="flex-shrink-0 w-32 text-right mr-4" title="Amount debited from the account (commission/withdrawals)">📊 Debit</div>
+                <div className="flex-shrink-0 w-32 mr-4">📅 Date</div>
+                <div className="flex-grow min-w-[120px]">📝 Notes</div>
               </div>
-              {entries.map((entry) => (
-                <div key={entry.id} className="border rounded-lg p-3 bg-white shadow-sm flex flex-row flex-wrap items-center w-full">
-                  {/* Credit/Debit tag on the left */}
-                  <div className="flex-shrink-0 w-24 mr-4">
-                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${getTypeColor(entry.type)}`}>
-                      {getTypeIcon(entry.type)}{entry.type.toUpperCase()}
-                    </span>
+              {entries.map((entry) => {
+                const isCreditType = entry.type === 'credit';
+                const creditAmount = isCreditType ? Number(entry.amount || 0) : 0;
+                const debitAmount = (isCreditType && entry.category === 'sale') ? Number(entry.commission_amount || 0) : entry.type === 'debit' ? Number(entry.amount || 0) : 0;
+                const categoryColor = {
+                  'sale': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                  'expense': 'bg-orange-50 text-orange-700 border-orange-200',
+                  'withdrawal': 'bg-purple-50 text-purple-700 border-purple-200',
+                  'other': 'bg-slate-50 text-slate-700 border-slate-200'
+                }[entry.category.toLowerCase()] || 'bg-blue-50 text-blue-700 border-blue-200';
+                
+                return (
+                  <div key={entry.id} className={`rounded-xl p-4 flex flex-row items-center w-full shadow-sm border-2 transition-all duration-200 hover:shadow-md ${
+                    isCreditType
+                      ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 hover:border-green-300'
+                      : 'bg-gradient-to-r from-red-50 to-orange-50 border-red-200 hover:border-red-300'
+                  }`}>
+                    {/* Type badge */}
+                    <div className="flex-shrink-0 w-24 mr-4">
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold shadow-sm ${
+                        isCreditType
+                          ? 'bg-white text-green-700 border border-green-200'
+                          : 'bg-white text-blue-700 border border-blue-200'
+                      }`}>
+                        {getTypeIcon(entry.type)}
+                        {entry.type === 'credit' ? '↑' : '↓'}
+                      </span>
+                    </div>
+                    
+                    {/* Farmer name */}
+                    <div className="flex-shrink-0 w-40 mr-4 font-bold text-gray-900">{getFarmerName(entry.farmer_id)}</div>
+                    
+                    {/* Category badge */}
+                    <div className="flex-shrink-0 w-20 mr-4">
+                      <span className={`inline-block px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${categoryColor}`}>
+                        {entry.category.charAt(0).toUpperCase() + entry.category.slice(1)}
+                      </span>
+                    </div>
+                    
+                    {/* Credit amount */}
+                    <div className="flex-shrink-0 w-28 text-right mr-4">
+                      <div className={`font-mono font-bold text-sm ${
+                        isCreditType ? 'text-green-700' : 'text-gray-400'
+                      }`}>
+                        {isCreditType ? formatAmount(entry.amount) : '—'}
+                      </div>
+                    </div>
+                    
+                    {/* Debit amount */}
+                    <div className="flex-shrink-0 w-32 text-right mr-4">
+                      <div className={`font-mono font-bold text-sm ${
+                        debitAmount > 0 ? 'text-red-700' : 'text-gray-400'
+                      }`}>
+                        {debitAmount > 0 ? formatAmount(debitAmount) : '—'}
+                      </div>
+                    </div>
+                    
+                    {/* Date */}
+                    <div className="flex-shrink-0 w-32 mr-4">
+                      <div className="text-sm font-medium text-gray-700">
+                        {(entry.transaction_date || entry.created_at) ? new Date(entry.transaction_date || entry.created_at!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                      </div>
+                    </div>
+                    
+                    {/* Notes */}
+                    <div className="flex-grow min-w-[120px]">
+                      {entry.notes ? (
+                        <div className="text-xs text-gray-700 bg-white/50 rounded px-2.5 py-1.5 italic border border-white/60">{entry.notes}</div>
+                      ) : (
+                        <div className="text-xs text-gray-400 italic">No notes</div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-shrink-0 w-40 mr-4 font-semibold text-gray-800">{getFarmerName(entry.farmer_id)}</div>
-                  <div className="flex-shrink-0 w-20 mr-4">
-                    <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">{entry.category.toUpperCase()}</span>
-                  </div>
-                  <div className="flex-shrink-0 w-28 text-right font-mono font-medium mr-4">{entry.type === 'credit' ? formatAmount(entry.amount) : '-'}</div>
-                  <div className="flex-shrink-0 w-32 text-right font-mono font-medium mr-4">{entry.type === 'credit' && entry.category === 'sale' ? formatAmount(entry.commission_amount || 0) : entry.type === 'debit' ? formatAmount(entry.amount) : '-'}</div>
-                  <div className="flex-shrink-0 w-32 mr-4 text-gray-600">{(entry.transaction_date || entry.created_at) ? new Date(entry.transaction_date || entry.created_at!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</div>
-                  <div className="flex-grow min-w-[120px] text-xs text-gray-500 mt-1 md:mt-0">{entry.notes ? (<><span className="font-medium">Notes:</span> {entry.notes}</>) : <span className="text-gray-400 italic">No notes</span>}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}
@@ -387,13 +567,22 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
         </table>
       </div>
       {/* Pagination controls (shared mobile & desktop) */}
-      <div className="px-2 py-2 flex items-center justify-between gap-2 bg-gray-50 rounded-lg border">
-        <div className="text-xs text-gray-600 font-medium">
-          Showing {(page-1)*pageSize + 1} - {Math.min(total, page*pageSize)} of {total} entries
+      <div className="px-4 py-3 flex items-center justify-between gap-4 bg-gray-50 rounded-lg border mx-4 mb-4">
+        {/* Mobile: Simple page/total display */}
+        <div className="md:hidden text-sm text-gray-600 font-medium">
+          Page {page} of {Math.ceil(total / pageSize)}
         </div>
+
+        {/* Desktop: Full pagination controls */}
+        <div className="hidden md:flex items-center gap-2 flex-1">
+          <div className="text-sm text-gray-600 font-medium">
+            Showing {(page-1)*pageSize + 1} - {Math.min(total, page*pageSize)} of {total} entries
+          </div>
+        </div>
+
         <div className="flex items-center gap-2">
           <button
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-md font-medium text-xs transition-all duration-200 min-h-[40px] touch-manipulation shadow-sm ${
+            className={`flex items-center gap-1 px-3 py-2 rounded-md font-medium text-sm transition-all duration-200 min-h-[44px] touch-manipulation shadow-sm ${
               page <= 1
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-md hover:shadow-lg'
@@ -401,14 +590,33 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
             onClick={handlePrev}
             disabled={page <= 1}
           >
-            <ChevronLeft className="h-3 w-3" />
-            Prev
+            <ChevronLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Prev</span>
           </button>
-          <div className="bg-white px-2 py-1.5 rounded-md border font-semibold text-gray-700 shadow-sm text-xs">
-            Page {page}
+
+          {/* Desktop: Page numbers */}
+          <div className="hidden md:flex items-center gap-1">
+            {Array.from({ length: Math.min(5, Math.ceil(total / pageSize)) }, (_, i) => {
+              const pageNum = Math.max(1, Math.min(Math.ceil(total / pageSize) - 4, page - 2)) + i;
+              if (pageNum > Math.ceil(total / pageSize)) return null;
+              return (
+                <button
+                  key={pageNum}
+                  className={`px-3 py-2 rounded-md font-medium text-sm transition-all duration-200 min-h-[44px] shadow-sm ${
+                    pageNum === page
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                  }`}
+                  onClick={() => handleLoadPage(pageNum)}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
           </div>
+
           <button
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-md font-medium text-xs transition-all duration-200 min-h-[40px] touch-manipulation shadow-sm ${
+            className={`flex items-center gap-1 px-3 py-2 rounded-md font-medium text-sm transition-all duration-200 min-h-[44px] touch-manipulation shadow-sm ${
               page >= Math.ceil(total / pageSize)
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-md hover:shadow-lg'
@@ -416,8 +624,8 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
             onClick={handleNext}
             disabled={page >= Math.ceil(total / pageSize)}
           >
-            Next
-            <ChevronRight className="h-3 w-3" />
+            <span className="hidden sm:inline">Next</span>
+            <ChevronRight className="h-4 w-4" />
           </button>
         </div>
       </div>

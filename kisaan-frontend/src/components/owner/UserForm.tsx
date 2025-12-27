@@ -184,78 +184,102 @@ export const UserForm: React.FC<UserFormProps> = ({ onSuccess, onCancel, editUse
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <UserPlus className="h-5 w-5" />
-          {editUser ? 'Edit User' : 'Create New User'}
+    <Card className="w-full shadow-xl border-0 bg-white/95 backdrop-blur-sm">
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 p-4 sm:p-6">
+        <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <UserPlus className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+          </div>
+          <span className="text-blue-900">
+            {editUser ? '✏️ Edit User' : '👤 Create New User'}
+          </span>
         </CardTitle>
+        {editUser && (
+          <p className="text-sm text-gray-600 mt-2">
+            Update user information for {getUserDisplayName(editUser)}
+          </p>
+        )}
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <CardContent className="p-4 sm:p-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* First Name (for auto-generating username) */}
           <div className="space-y-2">
-            <Label htmlFor="firstname">First Name *</Label>
+            <Label htmlFor="firstname" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <span className="text-red-500">*</span>
+              First Name
+            </Label>
             <Input
               id="firstname"
               value={formData.firstname}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 const firstname = e.target.value;
-                setFormData(prev => ({ 
-                  ...prev, 
+                setFormData(prev => ({
+                  ...prev,
                   firstname
                 }));
               }}
               placeholder="Enter first name"
               required
+              className="text-sm"
             />
             <div className="text-xs text-gray-500">Enter the user's first name. Username will be auto-generated.</div>
           </div>
 
           {formError && (
-            <div className="text-red-600 text-sm font-medium mb-2">{formError}</div>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-red-500">⚠️</span>
+                <span className="text-red-700 text-sm font-medium">{formError}</span>
+              </div>
+            </div>
           )}
           {/* Role Selection - Based on current user role */}
           <div className="space-y-2">
-            <Label htmlFor="role">Role *</Label>
+            <Label htmlFor="role" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <span className="text-red-500">*</span>
+              Role
+            </Label>
             {editUser ? (
               <Input
                 id="role"
-                value={formData.role === 'owner' ? 'Owner' : formData.role.charAt(0).toUpperCase() + formData.role.slice(1)}
+                value={formData.role === 'owner' ? '👑 Owner' : formData.role === 'superadmin' ? '⚡ Superadmin' : formData.role === 'farmer' ? '🌾 Farmer' : '🛒 Buyer'}
                 disabled
                 readOnly
-                className="bg-gray-100 cursor-not-allowed"
+                className="bg-gray-100 cursor-not-allowed text-sm"
               />
             ) : (
-              <Select 
-                value={formData.role} 
+              <Select
+                value={formData.role}
                 onValueChange={(value: 'superadmin' | 'owner' | 'farmer' | 'buyer') => setFormData(prev => ({ ...prev, role: value }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-sm">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
                   {currentUser?.role === 'superadmin' && (
                     <>
-                      <SelectItem value="superadmin">Superadmin</SelectItem>
-                      <SelectItem value="owner">Owner</SelectItem>
+                      <SelectItem value="superadmin">⚡ Superadmin</SelectItem>
+                      <SelectItem value="owner">👑 Owner</SelectItem>
                     </>
                   )}
                   {currentUser?.role === 'owner' && (
                     <>
-                      <SelectItem value="farmer">Farmer</SelectItem>
-                      <SelectItem value="buyer">Buyer</SelectItem>
+                      <SelectItem value="farmer">🌾 Farmer</SelectItem>
+                      <SelectItem value="buyer">🛒 Buyer</SelectItem>
                     </>
                   )}
                 </SelectContent>
               </Select>
             )}
+            <div className="text-xs text-gray-500">Select the user's role in the system.</div>
           </div>
 
           {/* Username - Only for superadmin */}
           {currentUser?.role === 'superadmin' && (
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-sm font-medium text-gray-700">
+                Username
+              </Label>
               <Input
                 id="username"
                 value={formData.username || ''}
@@ -263,14 +287,18 @@ export const UserForm: React.FC<UserFormProps> = ({ onSuccess, onCancel, editUse
                   setFormData(prev => ({ ...prev, username: e.target.value }));
                 }}
                 placeholder="Leave empty for auto-generation"
+                className="text-sm"
               />
-              <div className="text-xs text-gray-500">Leave empty to auto-generate from first name</div>
+              <div className="text-xs text-gray-500">Leave empty to auto-generate from first name.</div>
             </div>
           )}
 
           {/* Email - Enhanced for superadmin */}
           <div className="space-y-2">
-            <Label htmlFor="email">Email {currentUser?.role === 'superadmin' ? '*' : ''}</Label>
+            <Label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              {currentUser?.role === 'superadmin' && <span className="text-red-500">*</span>}
+              Email
+            </Label>
             <Input
               id="email"
               type="email"
@@ -280,15 +308,19 @@ export const UserForm: React.FC<UserFormProps> = ({ onSuccess, onCancel, editUse
               }}
               placeholder="Enter email address"
               required={currentUser?.role === 'superadmin'}
+              className="text-sm"
             />
             {currentUser?.role !== 'superadmin' && (
-              <div className="text-xs text-gray-500">Default email will be used for farmers/buyers</div>
+              <div className="text-xs text-gray-500">Default email will be used for farmers/buyers.</div>
             )}
           </div>
 
           {/* Contact */}
           <div className="space-y-2">
-            <Label htmlFor="contact">Contact Number *</Label>
+            <Label htmlFor="contact" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <span className="text-red-500">*</span>
+              Contact Number
+            </Label>
             <div className="text-xs text-gray-500">Required. Enter a valid 10-digit phone number.</div>
             <Input
               id="contact"
@@ -303,6 +335,7 @@ export const UserForm: React.FC<UserFormProps> = ({ onSuccess, onCancel, editUse
               }}
               placeholder="Enter 10-digit contact number"
               required
+              className="text-sm"
             />
             {contactError && <div className="text-xs text-red-600 mt-1">{contactError}</div>}
           </div>
@@ -310,7 +343,9 @@ export const UserForm: React.FC<UserFormProps> = ({ onSuccess, onCancel, editUse
           {/* Password - Optional for superadmin and owner when editing */}
           {(currentUser?.role === 'superadmin' || (currentUser?.role === 'owner' && editUser)) && (
             <div className="space-y-2">
-              <Label htmlFor="password">Password {editUser ? '(leave blank to keep unchanged)' : '*'} </Label>
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                Password {editUser ? '(leave blank to keep unchanged)' : '*'}
+              </Label>
               <Input
                 id="password"
                 type="password"
@@ -320,15 +355,18 @@ export const UserForm: React.FC<UserFormProps> = ({ onSuccess, onCancel, editUse
                 }}
                 placeholder={editUser ? "Leave blank to keep current password" : "Enter password"}
                 required={currentUser?.role === 'superadmin' && !editUser}
+                className="text-sm"
               />
-              <div className="text-xs text-gray-500">{editUser ? "Password is optional. Only fill to change." : "Minimum 6 characters recommended"}</div>
+              <div className="text-xs text-gray-500">{editUser ? "Password is optional. Only fill to change." : "Minimum 6 characters recommended."}</div>
             </div>
           )}
 
           {/* Shop ID - Only for superadmin creating owners */}
           {currentUser?.role === 'superadmin' && formData.role === 'owner' && (
             <div className="space-y-2">
-              <Label htmlFor="shop_id">Shop ID</Label>
+              <Label htmlFor="shop_id" className="text-sm font-medium text-gray-700">
+                Shop ID
+              </Label>
               <Input
                 id="shop_id"
                 type="number"
@@ -337,15 +375,18 @@ export const UserForm: React.FC<UserFormProps> = ({ onSuccess, onCancel, editUse
                   setFormData(prev => ({ ...prev, shop_id: e.target.value ? Number(e.target.value) : undefined }));
                 }}
                 placeholder="Enter shop ID (optional)"
+                className="text-sm"
               />
-              <div className="text-xs text-gray-500">Leave empty if creating shop later</div>
+              <div className="text-xs text-gray-500">Leave empty if creating shop later.</div>
             </div>
           )}
 
           {/* Initial Balance - Only for superadmin */}
           {currentUser?.role === 'superadmin' && (
             <div className="space-y-2">
-              <Label htmlFor="balance">Initial Balance</Label>
+              <Label htmlFor="balance" className="text-sm font-medium text-gray-700">
+                Initial Balance
+              </Label>
               <Input
                 id="balance"
                 type="number"
@@ -356,15 +397,18 @@ export const UserForm: React.FC<UserFormProps> = ({ onSuccess, onCancel, editUse
                   setFormData(prev => ({ ...prev, balance: e.target.value ? Number(e.target.value) : 0 }));
                 }}
                 placeholder="Enter initial balance"
+                className="text-sm"
               />
-              <div className="text-xs text-gray-500">Default is 0.00</div>
+              <div className="text-xs text-gray-500">Default is 0.00.</div>
             </div>
           )}
 
           {/* Commission Rate - For farmers and buyers */}
           {(formData.role === 'farmer' || formData.role === 'buyer') && (
             <div className="space-y-2">
-              <Label htmlFor="custom_commission_rate">Commission Rate (%)</Label>
+              <Label htmlFor="custom_commission_rate" className="text-sm font-medium text-gray-700">
+                Commission Rate (%)
+              </Label>
               <Input
                 id="custom_commission_rate"
                 type="number"
@@ -373,12 +417,13 @@ export const UserForm: React.FC<UserFormProps> = ({ onSuccess, onCancel, editUse
                 max="100"
                 value={formData.custom_commission_rate || ''}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  setFormData(prev => ({ 
-                    ...prev, 
-                    custom_commission_rate: e.target.value ? Number(e.target.value) : undefined 
+                  setFormData(prev => ({
+                    ...prev,
+                    custom_commission_rate: e.target.value ? Number(e.target.value) : undefined
                   }));
                 }}
                 placeholder="e.g., 10"
+                className="text-sm"
               />
               <div className="text-xs text-gray-500">
                 Leave empty to use shop default (10%). Personal commission rate overrides shop rate.
@@ -389,31 +434,34 @@ export const UserForm: React.FC<UserFormProps> = ({ onSuccess, onCancel, editUse
           {/* Status - Only for superadmin */}
           {currentUser?.role === 'superadmin' && (
             <div className="space-y-2">
-              <Label htmlFor="status">Status *</Label>
-              <Select 
-                value={formData.status || 'active'} 
+              <Label htmlFor="status" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <span className="text-red-500">*</span>
+                Status
+              </Label>
+              <Select
+                value={formData.status || 'active'}
                 onValueChange={(value: 'active' | 'inactive') => setFormData(prev => ({ ...prev, status: value }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-sm">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="active">✅ Active</SelectItem>
+                  <SelectItem value="inactive">⏸️ Inactive</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            <Button type="submit" disabled={isLoading} className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            <Button type="submit" disabled={isLoading} className="flex-1 h-11 text-sm font-medium">
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {editUser ? 'Update User' : 'Create User'}
+              {editUser ? '✏️ Update User' : '👤 Create User'}
             </Button>
             {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel}>
-                Cancel
+              <Button type="button" variant="outline" onClick={onCancel} className="h-11 text-sm font-medium">
+                ❌ Cancel
               </Button>
             )}
           </div>

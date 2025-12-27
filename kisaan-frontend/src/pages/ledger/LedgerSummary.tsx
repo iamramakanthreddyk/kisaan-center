@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { TrendingUp, TrendingDown, BarChart3, AlertCircle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { fetchLedgerSummary } from './api';
-import { formatAmount } from '../utils/format';
+import { formatAmount } from '../../utils/format';
 
 interface SummaryData {
   totalCredit: number;

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import type { User } from '../types';
-import { UserSearchDropdown } from '../components/ui/UserSearchDropdown';
-import { Button } from '../components/ui/button';
+import type { User } from '../../types';
+import { UserSearchDropdown } from '../../components/ui/UserSearchDropdown';
+import { Button } from '../../components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { createLedgerEntry } from './api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface LedgerFormProps {
   onSuccess?: () => void;
