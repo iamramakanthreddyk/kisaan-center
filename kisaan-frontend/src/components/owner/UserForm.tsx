@@ -11,6 +11,8 @@ import type { UserCreate, User } from '../../types/api';
 import { useAuth } from '../../context/AuthContext';
 import { toastService } from '../../services/toastService';
 
+import { getUserDisplayName } from '../../utils/userDisplayName';
+
 interface UserFormProps {
   onSuccess?: (user: User) => void;
   onCancel?: () => void;
@@ -30,7 +32,7 @@ export const UserForm: React.FC<UserFormProps> = ({ onSuccess, onCancel, editUse
     password: editUser?.password || (currentUser?.role === 'superadmin' ? '' : 'kisaan@123'),
     email: editUser?.email || (currentUser?.role === 'superadmin' ? '' : 'contact@kisaancenter.com'),
     username: editUser?.username || '',
-    balance: editUser?.balance || 0,
+    // balance: editUser?.balance || 0,
     custom_commission_rate: editUser?.custom_commission_rate || undefined,
     status: editUser?.status || 'active',
   });
@@ -127,7 +129,7 @@ export const UserForm: React.FC<UserFormProps> = ({ onSuccess, onCancel, editUse
           ...formData,
           password: currentUser?.role === 'superadmin' ? formData.password : 'kisaan@123',
           email: currentUser?.role === 'superadmin' ? formData.email : 'contact@kisaancenter.com',
-          balance: formData.balance || 0,
+          // balance: formData.balance || 0,
           shop_id: currentUser?.shop_id
         };
         if (currentUser?.role !== 'superadmin') {
@@ -381,27 +383,7 @@ export const UserForm: React.FC<UserFormProps> = ({ onSuccess, onCancel, editUse
             </div>
           )}
 
-          {/* Initial Balance - Only for superadmin */}
-          {currentUser?.role === 'superadmin' && (
-            <div className="space-y-2">
-              <Label htmlFor="balance" className="text-sm font-medium text-gray-700">
-                Initial Balance
-              </Label>
-              <Input
-                id="balance"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.balance || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  setFormData(prev => ({ ...prev, balance: e.target.value ? Number(e.target.value) : 0 }));
-                }}
-                placeholder="Enter initial balance"
-                className="text-sm"
-              />
-              <div className="text-xs text-gray-500">Default is 0.00.</div>
-            </div>
-          )}
+          {/* Initial Balance removed */}
 
           {/* Commission Rate - For farmers and buyers */}
           {(formData.role === 'farmer' || formData.role === 'buyer') && (

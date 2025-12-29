@@ -4,6 +4,7 @@ import { UserSearchDropdown } from '../../components/ui/UserSearchDropdown';
 import { Button } from '../../components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { createLedgerEntry } from './api';
+import { toastService } from '../../services/toastService';
 import { useAuth } from '../../context/AuthContext';
 
 interface LedgerFormProps {
@@ -90,6 +91,14 @@ const LedgerForm: React.FC<LedgerFormProps> = ({ onSuccess, onCancel }) => {
         created_by: user?.id,
         entry_date: formData.entryDate
       });
+      toastService.success(
+        `Ledger entry added for ${selectedFarmer.username} (ID: ${selectedFarmer.id})`,
+        {
+          title: 'Ledger Entry Added',
+          description: `Type: ${formData.type.charAt(0).toUpperCase() + formData.type.slice(1)}, Category: ${formData.category.charAt(0).toUpperCase() + formData.category.slice(1)}, Amount: ₹${formData.amount}`,
+          duration: 4000
+        }
+      );
       setFormData({ type: 'credit', category: 'sale', amount: '', notes: '', entryDate: new Date().toISOString().split('T')[0] });
       setSelectedFarmer(null);
       onSuccess?.();

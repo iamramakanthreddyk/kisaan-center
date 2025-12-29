@@ -282,7 +282,7 @@ const OwnerUsersPageInner: React.FC = () => {
                       <TableHead className="font-semibold text-blue-900">ID / Status</TableHead>
                       <TableHead className="font-semibold text-blue-900">User Details</TableHead>
                       <TableHead className="font-semibold text-blue-900">Role</TableHead>
-                      <TableHead className="font-semibold text-blue-900">Balance</TableHead>
+                      {/* <TableHead className="font-semibold text-blue-900">Balance</TableHead> */}
                       <TableHead className="font-semibold text-blue-900">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -316,9 +316,9 @@ const OwnerUsersPageInner: React.FC = () => {
                             {user.role === 'farmer' ? '👨‍🌾' : user.role === 'buyer' ? '🛒' : '👤'} {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-medium text-green-600">
+                        {/* <TableCell className="font-medium text-green-600">
                           {formatCurrency(user.balance)}
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
@@ -439,12 +439,14 @@ const OwnerUsersPageInner: React.FC = () => {
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                        {/*
                         <div>
                           <span className="text-gray-500">Balance:</span>
                           <div className="font-semibold text-green-600">
                             {formatCurrency(user.balance)}
                           </div>
                         </div>
+                        */}
                         {user.contact && (
                           <div>
                             <span className="text-gray-500">Contact:</span>
