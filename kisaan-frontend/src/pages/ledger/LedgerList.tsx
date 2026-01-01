@@ -330,14 +330,22 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                           : 'bg-white text-blue-700 border border-blue-200'
                       }`}>
                         {getTypeIcon(entry.type)}
-                        {entry.type === 'credit' ? 'CR' : 'DB'}
+                        {entry.type === 'credit' ? 'Credit' : 'Debit'}
                       </div>
                     </div>
 
                     {/* Category and Date in one line */}
                     <div className="flex items-center justify-between text-[11px] mb-2 gap-1">
                       <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold border flex-shrink-0 ${categoryColor}`}>
-                        {entry.category.charAt(0).toUpperCase()}
+                        {(() => {
+                          switch (entry.category.toLowerCase()) {
+                            case 'sale': return 'Sale';
+                            case 'expense': return 'Expense';
+                            case 'withdrawal': return 'Withdrawal';
+                            case 'other': return 'Other';
+                            default: return entry.category;
+                          }
+                        })()}
                       </span>
                       <span className="text-gray-600 flex-shrink-0">
                         {(entry.transaction_date || entry.created_at) ? new Date(entry.transaction_date || entry.created_at!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'N/A'}
@@ -347,11 +355,11 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                     {/* Amount display in compact format */}
                     <div className="grid grid-cols-2 gap-1.5 p-2 bg-white/60 rounded border border-white/40 text-[11px]">
                       <div>
-                        <div className="font-semibold text-gray-600 text-[9px]">Cr</div>
+                        <div className="font-semibold text-gray-600 text-[9px]">Credit</div>
                         <div className="font-bold text-green-700">{isCreditType ? formatAmount(entry.amount) : '—'}</div>
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-600 text-[9px]">Db</div>
+                        <div className="font-semibold text-gray-600 text-[9px]">Debit</div>
                         <div className="font-bold text-red-700">{debitAmount > 0 ? formatAmount(debitAmount) : '—'}</div>
                       </div>
                     </div>
