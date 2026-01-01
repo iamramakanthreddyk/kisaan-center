@@ -15,13 +15,17 @@ import { useAuth } from '../context/AuthContext';
 import { useIsMobile, useIsSmallMobile } from '../hooks/useMediaQuery';
 
 const SuperadminUsers: React.FC = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(users.length / pageSize));
+  const paginatedUsers = users.slice((page - 1) * pageSize, page * pageSize);
   const [expandedOwners, setExpandedOwners] = useState<{ [shopId: string]: boolean }>({});
   const toggleOwner = (shopId: number | string | undefined) => {
     const key = shopId !== undefined ? String(shopId) : 'unknown';
     setExpandedOwners(prev => ({ ...prev, [key]: !prev[key] }));
   };
   const { user: currentUser } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
   const [owners, setOwners] = useState<User[]>([]);
   const [usersByOwner, setUsersByOwner] = useState<{ [shopId: string]: User[] }>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -251,94 +255,127 @@ const SuperadminUsers: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Card Layout - Hidden on md and larger screens */}
-      <div className="block md:hidden space-y-4">
-        {users.map((user) => (
-          <Card key={user.id} className="overflow-hidden border-l-4 border-l-blue-500 shadow-sm bg-white w-full max-w-full">
-            <CardContent className="p-4 w-full max-w-full">
-              {/* Header with user info and status */}
-              <div className="flex items-start justify-between mb-4 w-full max-w-full">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-xl truncate text-gray-900 w-full max-w-full">{getUserDisplayName(user)}</h3>
-                  <p className="text-xs text-gray-500 font-mono mt-1 truncate w-full max-w-full">ID #{user.id}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1 ml-3 flex-shrink-0">
-                  <Badge className={`${getRoleColor(user.role)} text-xs px-2 py-0.5 rounded`}>{user.role}</Badge>
-                  <Badge className={`${getStatusColor(user.status)} text-xs px-2 py-0.5 rounded`}>{user.status}</Badge>
-                </div>
-              </div>
-              <div className="border-t border-gray-100 my-2"></div>
-              {/* Contact info with icons */}
-              <div className="space-y-2 mb-4 w-full max-w-full">
-                {user.contact && (
-                  <div className="flex items-center gap-2 text-base w-full max-w-full">
-                    <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="font-medium break-all w-full max-w-full">{user.contact}</span>
+      {/* Mobile Card Layout - Hidden on md and larger screens, paginated and compact */}
+      <div className="block md:hidden space-y-3">
+        {/* Show only owners and superadmins in mobile view */}
+        {[...owners, ...users.filter(u => u.role === 'superadmin')].map((ownerOrAdmin) => {
+          const shopKey = ownerOrAdmin.shop_id !== undefined ? String(ownerOrAdmin.shop_id) : 'unknown';
+          const isOwner = ownerOrAdmin.role === 'owner';
+          return (
+            <React.Fragment key={ownerOrAdmin.id}>
+              <Card className="border border-gray-200 hover:border-blue-300 transition-colors">
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${ownerOrAdmin.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} title={ownerOrAdmin.status}></div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-gray-900 truncate text-base">{getUserDisplayName(ownerOrAdmin)}</h3>
+                        <p className="text-xs text-gray-500">ID: #{ownerOrAdmin.id}</p>
+                      </div>
+                    </div>
+                    <Badge className={`${getRoleColor(ownerOrAdmin.role)} text-xs font-medium`}>{ownerOrAdmin.role}</Badge>
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => toggleOwner(shopKey)}
+                        className="ml-2 rounded-full bg-white border border-orange-300 shadow-sm p-1.5 hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all"
+                        aria-label={expandedOwners[shopKey] ? 'Collapse users' : 'Expand users'}
+                        tabIndex={0}
+                      >
+                        {expandedOwners[shopKey] ? (
+                          <ChevronDown className="w-5 h-5 text-orange-500" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-orange-500" />
+                        )}
+                      </button>
+                    )}
                   </div>
-                )}
-                {user.email && (
-                  <div className="flex items-center gap-2 text-base w-full max-w-full">
-                    <AtSign className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="font-medium break-all truncate w-full max-w-[140px]">{user.email}</span>
+                  <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
+                    {ownerOrAdmin.contact && (
+                      <div>
+                        <span className="text-gray-500">Contact:</span>
+                        <div className="font-medium text-gray-900 truncate">{ownerOrAdmin.contact}</div>
+                      </div>
+                    )}
+                    {ownerOrAdmin.email && (
+                      <div>
+                        <span className="text-gray-500">Email:</span>
+                        <div className="font-medium text-gray-900 truncate">{ownerOrAdmin.email}</div>
+                      </div>
+                    )}
                   </div>
-                )}
-                <div className="flex items-center gap-2 text-base w-full max-w-full">
-                  <Wallet className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span className="font-medium">{formatCurrency(user.balance)}</span>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="outline" className="flex-1 flex items-center justify-center gap-1" onClick={() => setEditingUser(ownerOrAdmin)}>
+                      <Edit className="w-4 h-4" />
+                      Edit
+                    </Button>
+                    <Button size="sm" variant="outline" className="flex-1 flex items-center justify-center gap-1 text-blue-600 hover:text-blue-700" onClick={() => setShowPasswordReset(ownerOrAdmin)}>
+                      <Key className="w-4 h-4" />
+                      Reset
+                    </Button>
+                    {/* Hide delete for owners and superadmins */}
+                    {ownerOrAdmin.role !== 'owner' && ownerOrAdmin.role !== 'superadmin' && (
+                      <Button size="sm" variant="outline" className="flex-1 flex items-center justify-center gap-1 text-red-600 hover:text-red-700" onClick={() => handleDeleteUser(ownerOrAdmin.id)}>
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              {/* Expanded users under owner */}
+              {isOwner && expandedOwners[shopKey] && usersByOwner[shopKey] && usersByOwner[shopKey].length > 0 && (
+                <div className="ml-4 mt-2 space-y-2">
+                  {usersByOwner[shopKey].map((user) => (
+                    <Card key={user.id} className="border border-orange-200">
+                      <CardContent className="p-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${user.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} title={user.status}></div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-semibold text-gray-900 truncate text-sm">{getUserDisplayName(user)}</h4>
+                            <p className="text-xs text-gray-500">ID: #{user.id}</p>
+                          </div>
+                          <Badge className={`${getRoleColor(user.role)} text-xs font-medium`}>{user.role}</Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mb-1 text-xs">
+                          {user.contact && (
+                            <div>
+                              <span className="text-gray-500">Contact:</span>
+                              <div className="font-medium text-gray-900 truncate">{user.contact}</div>
+                            </div>
+                          )}
+                          {user.email && (
+                            <div>
+                              <span className="text-gray-500">Email:</span>
+                              <div className="font-medium text-gray-900 truncate">{user.email}</div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="outline" className="flex-1 flex items-center justify-center gap-1" onClick={() => setEditingUser(user)}>
+                            <Edit className="w-4 h-4" />
+                            Edit
+                          </Button>
+                          <Button size="sm" variant="outline" className="flex-1 flex items-center justify-center gap-1 text-blue-600 hover:text-blue-700" onClick={() => setShowPasswordReset(user)}>
+                            <Key className="w-4 h-4" />
+                            Reset
+                          </Button>
+                          {/* Hide delete for owners and superadmins */}
+                          {user.role !== 'owner' && user.role !== 'superadmin' && (
+                            <Button size="sm" variant="outline" className="flex-1 flex items-center justify-center gap-1 text-red-600 hover:text-red-700" onClick={() => handleDeleteUser(user.id)}>
+                              <Trash2 className="w-4 h-4" />
+                              Delete
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-                {user.shop_id && (
-                  <div className="flex items-center gap-2 text-base w-full max-w-full">
-                    <Building className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="font-medium">Shop #{user.shop_id}</span>
-                  </div>
-                )}
-              </div>
-              <div className="border-t border-gray-100 my-2"></div>
-              {/* Action buttons - stacked for mobile */}
-              <div className="grid grid-cols-2 gap-2 pt-2 w-full max-w-full">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="w-full text-xs py-2"
-                  title="View Details"
-                >
-                  <Eye className="w-4 h-4" />
-                  {!isSmallMobile && <span className="ml-1">View</span>}
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => setEditingUser(user)}
-                  className="w-full text-xs py-2"
-                  title="Edit User"
-                >
-                  <Edit className="w-4 h-4" />
-                  {!isSmallMobile && <span className="ml-1">Edit</span>}
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => setShowPasswordReset(user)}
-                  className="w-full text-xs py-2 text-blue-600 hover:text-blue-700"
-                  title="Reset Password"
-                >
-                  <Key className="w-4 h-4" />
-                  {!isSmallMobile && <span className="ml-1">Reset</span>}
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => handleDeleteUser(user.id)}
-                  className="w-full text-xs py-2 text-red-600 hover:text-red-700"
-                  title="Delete User"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  {!isSmallMobile && <span className="ml-1">Delete</span>}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
 
       {/* Filters */}
@@ -437,9 +474,12 @@ const SuperadminUsers: React.FC = () => {
                         <Button size="sm" variant="outline" onClick={() => setShowPasswordReset(user)} className="text-blue-600 hover:text-blue-700" title="Reset Password">
                           <Key className="w-4 h-4" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleDeleteUser(user.id)} className="text-red-600 hover:text-red-700">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {/* Hide delete for owners and superadmins */}
+                        {user.role !== 'owner' && user.role !== 'superadmin' && (
+                          <Button size="sm" variant="outline" onClick={() => handleDeleteUser(user.id)} className="text-red-600 hover:text-red-700">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -511,9 +551,12 @@ const SuperadminUsers: React.FC = () => {
                             <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); setShowPasswordReset(owner); }} className="text-blue-600 hover:text-blue-700" title="Reset Password">
                               <Key className="w-4 h-4" />
                             </Button>
-                            <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); handleDeleteUser(owner.id); }} className="text-red-600 hover:text-red-700">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            {/* Hide delete for owners and superadmins */}
+                            {owner.role !== 'owner' && owner.role !== 'superadmin' && (
+                              <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); handleDeleteUser(owner.id); }} className="text-red-600 hover:text-red-700">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
