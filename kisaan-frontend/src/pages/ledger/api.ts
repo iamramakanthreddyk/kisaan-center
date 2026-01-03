@@ -67,7 +67,9 @@ export async function updateLedgerEntry(id: number, data: {
 }
 
 export async function deleteLedgerEntry(id: number, reason?: string) {
-  return apiClient.delete(`/simple-ledger/${id}`, { data: { reason } });
+  // If your apiClient.delete expects query params, append reason to the URL
+  const url = reason ? `/simple-ledger/${id}?reason=${encodeURIComponent(reason)}` : `/simple-ledger/${id}`;
+  return apiClient.delete(url);
 }
 
 export async function fetchLedgerSummary(
