@@ -1,6 +1,6 @@
 import { User, UserRole } from '../src/models/user';
 import { USER_ROLES } from '../src/shared/constants/index';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 export async function seedSuperadmin() {
   const passwordHash = await bcrypt.hash('superadminpass', 10);

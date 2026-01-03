@@ -2,7 +2,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { execSync } from 'child_process';
 import { Sequelize } from 'sequelize';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 // Load .env (fallback to production style) and allow override via passed ENV_FILE
 const envFile = process.env.ENV_FILE || '.env';

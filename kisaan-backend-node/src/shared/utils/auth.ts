@@ -4,7 +4,7 @@
  */
 
 import * as jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { USER_ROLES, ROLE_PERMISSIONS, PERMISSIONS } from '../constants';
 
@@ -162,13 +162,7 @@ export class PasswordManager {
    */
   async verifyPassword(password: string, hash: string): Promise<boolean> {
     try {
-      // Try with bcrypt first
-      const result = await bcrypt.compare(password, hash);
-      if (result) return true;
-      
-      // If that fails, try with bcryptjs as fallback
-      const bcryptjs = await import('bcryptjs');
-      return await bcryptjs.compare(password, hash);
+      return await bcrypt.compare(password, hash);
     } catch (error) {
       throw new Error('Password verification failed');
     }
