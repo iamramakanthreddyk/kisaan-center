@@ -35,13 +35,17 @@ export interface SimpleFarmerLedgerAttributes {
   notes?: string;
   transaction_date?: Date; // Add transaction date field
   created_at?: Date;
-
   created_by: number;
   commission_amount?: number;
   net_amount?: number;
+  // Soft delete fields
+  is_deleted?: boolean;
+  deleted_at?: Date;
+  deleted_by?: number;
+  deletion_reason?: string;
 }
 
-export interface SimpleFarmerLedgerCreationAttributes extends Optional<SimpleFarmerLedgerAttributes, 'id' | 'created_at' | 'notes'> {}
+export interface SimpleFarmerLedgerCreationAttributes extends Optional<SimpleFarmerLedgerAttributes, 'id' | 'created_at' | 'notes' | 'is_deleted' | 'deleted_at' | 'deleted_by' | 'deletion_reason'> {}
 
 
 
@@ -60,6 +64,11 @@ export class SimpleFarmerLedger extends Model<SimpleFarmerLedgerAttributes, Simp
   public created_by!: number;
   public commission_amount?: number;
   public net_amount?: number;
+  // Soft delete fields
+  public is_deleted?: boolean;
+  public deleted_at?: Date;
+  public deleted_by?: number;
+  public deletion_reason?: string;
 }
 
 SimpleFarmerLedger.init({
@@ -114,8 +123,21 @@ SimpleFarmerLedger.init({
     type: DataTypes.DECIMAL(12,2),
     allowNull: true,
   },
-}, {
-  sequelize,
-  tableName: 'kisaan_ledger',
-  timestamps: false,
-});
+  // Soft delete fields
+  is_deleted: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  deleted_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  deleted_by: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+  },
+  deletion_reason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },

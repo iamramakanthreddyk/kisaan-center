@@ -186,11 +186,16 @@ export async function createEntry(req: Request, res: Response) {
 // List entries (with filters)
 export async function listEntries(req: Request, res: Response) {
   try {
-    const { shop_id, farmer_id, from, to, category, page, page_size } = req.query;
+    const { shop_id, farmer_id, from, to, category, page, page_size, include_deleted } = req.query;
     const where: any = {};
     if (shop_id) where.shop_id = Number(shop_id);
     if (farmer_id) where.farmer_id = Number(farmer_id);
     if (category) where.category = category;
+
+    // Soft delete filter: exclude deleted entries by default, but allow viewing them with include_deleted=true
+    if (include_deleted !== 'true') {
+      where.is_deleted = false;
+    }
 
     // Improved date filtering - check both transaction_date and created_at for backward compatibility
     if (from || to) {
@@ -494,14 +499,37 @@ export async function updateEntry(req: Request, res: Response) {
   }
 }
 
-// Delete entry
+// Soft delete entry (mark as deleted instead of destroying)
 export async function deleteEntry(req: Request, res: Response) {
   try {
     const { id } = req.params;
+    const { reason } = req.body; // Optional deletion reason
+
     const entry = await SimpleFarmerLedger.findByPk(id);
     if (!entry) return res.status(404).json({ error: 'Entry not found' });
-    await entry.destroy();
-    res.json({ success: true });
+
+    // Check if already deleted
+    if (entry.is_deleted) {
+      return res.status(400).json({ error: 'Entry is already deleted' });
+    }
+
+    // Soft delete: mark as deleted instead of destroying
+    await entry.update({
+      is_deleted: true,
+      deleted_at: new Date(),
+      deleted_by: req.user?.id || 1, // Assuming req.user is set by auth middleware
+      deletion_reason: reason || 'Deleted by user'
+    });
+
+    res.json({
+      success: true,
+      message: 'Entry marked as deleted (soft delete)',
+      entry: {
+        id: entry.id,
+        deleted_at: entry.deleted_at,
+        deletion_reason: entry.deletion_reason
+      }
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: message });

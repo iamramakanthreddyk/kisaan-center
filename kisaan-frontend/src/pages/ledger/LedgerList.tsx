@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { fetchLedgerEntries, fetchLedgerSummary } from './api';
+import { fetchLedgerEntries, fetchLedgerSummary, updateLedgerEntry, deleteLedgerEntry } from './api';
 import { useAuth } from '../../context/AuthContext';
 import { useUsers } from '../../context/useUsers';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { AlertCircle, Inbox, TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronRight, Download, FileText, Printer } from 'lucide-react';
+import { AlertCircle, Inbox, TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronRight, Download, FileText, Printer, Edit, Trash2 } from 'lucide-react';
 import { formatAmount } from '../../utils/format';
 import { exportLedgerToCsv, exportLedgerToPdf } from '../../components/shared/ledger/ExportUtils';
 import { printLedgerReport } from '../../components/shared/ledger/PrintUtils';
@@ -22,6 +22,11 @@ interface LedgerEntry {
   transaction_date?: string; // Add transaction_date field
   created_at?: string;
   created_by: number;
+  // Soft delete fields
+  is_deleted?: boolean;
+  deleted_at?: string;
+  deleted_by?: number;
+  deletion_reason?: string;
 }
 
 interface LedgerListProps {
@@ -44,6 +49,16 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
   const [error, setError] = useState<string | null>(null);
   const [overallBalance, setOverallBalance] = useState<any>(summaryData?.overall || null);
   const [printData, setPrintData] = useState<LedgerEntry[]>([]);
+  const [editingEntry, setEditingEntry] = useState<LedgerEntry | null>(null);
+  const [editForm, setEditForm] = useState({
+    farmer_id: '',
+    type: '',
+    category: '',
+    amount: '',
+    notes: '',
+    entry_date: ''
+  });
+  const [editLoading, setEditLoading] = useState(false);
 
   const shopId = user?.shop_id ? Number(user.shop_id) : 1;
 
@@ -197,6 +212,78 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     });
   };
 
+  const handleEditEntry = (entry: LedgerEntry) => {
+    setEditingEntry(entry);
+    setEditForm({
+      farmer_id: String(entry.farmer_id),
+      type: entry.type,
+      category: entry.category,
+      amount: String(entry.amount),
+      notes: entry.notes || '',
+      entry_date: entry.transaction_date ? new Date(entry.transaction_date).toISOString().split('T')[0] : ''
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEntry(null);
+    setEditForm({
+      farmer_id: '',
+      type: '',
+      category: '',
+      amount: '',
+      notes: '',
+      entry_date: ''
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingEntry) return;
+
+    setEditLoading(true);
+    try {
+      const updateData = {
+        farmer_id: Number(editForm.farmer_id),
+        type: editForm.type,
+        category: editForm.category,
+        amount: Number(editForm.amount),
+        notes: editForm.notes || undefined,
+        entry_date: editForm.entry_date || undefined
+      };
+
+      await updateLedgerEntry(editingEntry.id, updateData);
+
+      // Refresh the current page
+      await handleLoadPage(page);
+      handleCancelEdit();
+      alert('Entry updated successfully!');
+    } catch (error) {
+      console.error('Error updating entry:', error);
+      alert('Failed to update entry. Please try again.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDeleteEntry = async (entryId: number) => {
+    const reason = prompt('Please provide a reason for deleting this entry (optional):', '');
+    if (reason === null) return; // User cancelled
+
+    const confirmMessage = 'This entry will be marked as deleted but kept in the system for audit purposes. Are you sure?';
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      await deleteLedgerEntry(entryId, reason || undefined);
+      // Refresh the current page
+      await handleLoadPage(page);
+      alert('Entry has been marked as deleted (soft delete). It can be viewed in audit logs.');
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+      alert('Failed to delete entry. Please try again.');
+    }
+  };
+
   return (
     <>
       <Card className="border-gray-200 no-print">
@@ -315,14 +402,19 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                 
                 return (
                   <div key={entry.id} className={`rounded-lg p-2.5 shadow-sm border-2 transition-all duration-200 ${
-                    isCreditType 
-                      ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200' 
-                      : 'bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200'
+                    entry.is_deleted
+                      ? 'bg-red-50 border-red-200 opacity-60'
+                      : isCreditType 
+                        ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200' 
+                        : 'bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200'
                   }`}>
                     {/* Header: Farmer name and type badge */}
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold text-gray-900 text-xs truncate">{getFarmerName(entry.farmer_id)}</div>
+                        <div className={`font-bold text-gray-900 text-xs truncate ${entry.is_deleted ? 'line-through' : ''}`}>{getFarmerName(entry.farmer_id)}</div>
+                        {entry.is_deleted && (
+                          <div className="text-[9px] text-red-600 font-medium">DELETED</div>
+                        )}
                       </div>
                       <div className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ml-1 flex-shrink-0 ${
                         isCreditType
@@ -368,6 +460,26 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                     {entry.notes && <div className="mt-1.5 pt-1.5 border-t border-white/50">
                       <div className="text-[10px] text-gray-700 italic line-clamp-2">{entry.notes}</div>
                     </div>}
+
+                    {/* Action buttons - only show for non-deleted entries */}
+                    {!entry.is_deleted && (
+                      <div className="mt-2 flex gap-2 pt-2 border-t border-white/50">
+                        <button
+                          onClick={() => handleEditEntry(entry)}
+                          className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-500 text-white text-[10px] rounded hover:bg-blue-600 transition-colors"
+                        >
+                          <Edit className="h-3 w-3" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEntry(entry.id)}
+                          className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-red-500 text-white text-[10px] rounded hover:bg-red-600 transition-colors"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -382,7 +494,8 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                 <div className="flex-shrink-0 w-28 text-right mr-4" title="Amount credited to the account">💰 Credit</div>
                 <div className="flex-shrink-0 w-32 text-right mr-4" title="Amount debited from the account (commission/withdrawals)">📊 Debit</div>
                 <div className="flex-shrink-0 w-32 mr-4">📅 Date</div>
-                <div className="flex-grow min-w-[120px]">📝 Notes</div>
+                <div className="flex-grow min-w-[120px] mr-4">📝 Notes</div>
+                <div className="flex-shrink-0 w-24">Actions</div>
               </div>
               {entries.map((entry) => {
                 const isCreditType = entry.type === 'credit';
@@ -397,16 +510,20 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                 
                 return (
                   <div key={entry.id} className={`rounded-xl p-4 flex flex-row items-center w-full shadow-sm border-2 transition-all duration-200 hover:shadow-md ${
-                    isCreditType
-                      ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 hover:border-green-300'
-                      : 'bg-gradient-to-r from-red-50 to-orange-50 border-red-200 hover:border-red-300'
+                    entry.is_deleted
+                      ? 'bg-red-50 border-red-200 opacity-60'
+                      : isCreditType
+                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 hover:border-green-300'
+                        : 'bg-gradient-to-r from-red-50 to-orange-50 border-red-200 hover:border-red-300'
                   }`}>
                     {/* Type badge */}
                     <div className="flex-shrink-0 w-24 mr-4">
                       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold shadow-sm ${
-                        isCreditType
-                          ? 'bg-white text-green-700 border border-green-200'
-                          : 'bg-white text-blue-700 border border-blue-200'
+                        entry.is_deleted
+                          ? 'bg-red-100 text-red-700'
+                          : isCreditType
+                            ? 'bg-white text-green-700 border border-green-200'
+                            : 'bg-white text-blue-700 border border-blue-200'
                       }`}>
                         {getTypeIcon(entry.type)}
                         {entry.type === 'credit' ? '↑' : '↓'}
@@ -414,7 +531,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                     </div>
                     
                     {/* Farmer name */}
-                    <div className="flex-shrink-0 w-40 mr-4 font-bold text-gray-900">{getFarmerName(entry.farmer_id)}</div>
+                    <div className={`flex-shrink-0 w-40 mr-4 font-bold text-gray-900 ${entry.is_deleted ? 'line-through' : ''}`}>{getFarmerName(entry.farmer_id)}</div>
                     
                     {/* Category badge */}
                     <div className="flex-shrink-0 w-20 mr-4">
@@ -454,6 +571,30 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                         <div className="text-xs text-gray-700 bg-white/50 rounded px-2.5 py-1.5 italic border border-white/60">{entry.notes}</div>
                       ) : (
                         <div className="text-xs text-gray-400 italic">No notes</div>
+                      )}
+                    </div>
+
+                    {/* Actions - only show for non-deleted entries */}
+                    <div className="flex-shrink-0 w-24 flex gap-1">
+                      {!entry.is_deleted ? (
+                        <>
+                          <button
+                            onClick={() => handleEditEntry(entry)}
+                            className="flex items-center justify-center p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                            title="Edit entry"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteEntry(entry.id)}
+                            className="flex items-center justify-center p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                            title="Delete entry"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-xs text-red-600 font-medium self-center">Deleted</span>
                       )}
                     </div>
                   </div>
@@ -635,6 +776,119 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
         </div>
       </div>
     </Card>
+
+    {/* Edit Entry Modal */}
+    {editingEntry && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Edit Ledger Entry</h3>
+
+            <div className="space-y-4">
+              {/* Farmer Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Farmer</label>
+                <select
+                  value={editForm.farmer_id}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, farmer_id: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {shopUsers.map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.firstname || user.username || `Farmer #${user.id}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Type Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <select
+                  value={editForm.type}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, type: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="credit">Credit</option>
+                  <option value="debit">Debit</option>
+                </select>
+              </div>
+
+              {/* Category Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={editForm.category}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="sale">Sale</option>
+                  <option value="deposit">Deposit</option>
+                  <option value="expense">Expense</option>
+                  <option value="withdrawal">Withdrawal</option>
+                  <option value="loan">Loan</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editForm.amount}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, amount: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0.00"
+                />
+              </div>
+
+              {/* Entry Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Entry Date (Optional)</label>
+                <input
+                  type="date"
+                  value={editForm.entry_date}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, entry_date: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                  placeholder="Add notes..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleCancelEdit}
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                disabled={editLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="flex-1 px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                disabled={editLoading}
+              >
+                {editLoading ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
     </>
   );
 };

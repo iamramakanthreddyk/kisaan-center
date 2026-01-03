@@ -55,6 +55,21 @@ export async function createLedgerEntry(data: {
   return apiClient.post('/simple-ledger', data);
 }
 
+export async function updateLedgerEntry(id: number, data: {
+  farmer_id?: number;
+  type?: string;
+  category?: string;
+  amount?: number;
+  notes?: string;
+  entry_date?: string;
+}) {
+  return apiClient.put(`/simple-ledger/${id}`, data);
+}
+
+export async function deleteLedgerEntry(id: number, reason?: string) {
+  return apiClient.delete(`/simple-ledger/${id}`, { data: { reason } });
+}
+
 export async function fetchLedgerSummary(
   shopId: number,
   period?: 'weekly' | 'monthly',
