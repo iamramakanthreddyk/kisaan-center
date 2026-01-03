@@ -37,7 +37,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const token = localStorage.getItem('auth_token');
         if (token) {
-          // Try to refresh user data to validate token
           try {
             const res = await authApi.getCurrentUser();
             if (res.data) {
@@ -46,13 +45,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               localStorage.setItem('auth_user', JSON.stringify(res.data));
             } else {
               // Invalid token
+              console.warn('[AuthContext] Token exists but getCurrentUser returned no data');
               localStorage.removeItem('auth_token');
               localStorage.removeItem('auth_user');
               setUser(null);
               setIsAuthenticated(false);
             }
-          } catch {
+          } catch (err) {
             // Token invalid, clear auth
+            console.warn('[AuthContext] Token validation failed:', err instanceof Error ? err.message : String(err));
             localStorage.removeItem('auth_token');
             localStorage.removeItem('auth_user');
             setUser(null);
@@ -78,13 +79,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const response = await authApi.login({ username, password });
         // Handle the backend response structure: { success: true, data: { token, user } }
         if (response.success && response.data && response.data.token && response.data.user) {
-          setUser(response.data.user);
-          setIsAuthenticated(true);
+          // Store token FIRST before any async operations
           localStorage.setItem('auth_token', response.data.token);
           localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+          
+          // Update state - DO NOT redirect here, let the router handle it
+          setUser(response.data.user);
+          setIsAuthenticated(true);
+          
           // Store shop info in Zustand store for global access
           if (response.data.user.shop_id) {
-            // Set a minimal Shop object; fill with more fields if required by your Shop type
             transactionStore.setShop({
               id: response.data.user.shop_id,
               name: '',
@@ -99,11 +103,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           } else {
             transactionStore.setShop(null);
           }
-          if (response.data.user.role === 'owner') {
-            window.location.href = '/owner';
-          } else if (response.data.user.role === 'superadmin') {
-            window.location.href = '/superadmin';
-          }
+          
+          // Router will automatically redirect based on authenticated state
         } else {
           console.error('Invalid response format. Expected success=true with token and user, got:', response);
           const errorMsg = 'Invalid response format';
@@ -135,14 +136,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await authApi.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
+      // Clear local storage BEFORE calling logout API
+      // This ensures no old token is sent with the logout request
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth_user');
+      
+      // Notify backend about logout (best effort - ignore failures)
+      try {
+        await authApi.logout();
+      } catch (err) {
+        console.error('Logout API call failed, but continuing:', err);
+      }
     } finally {
+      // Clear state
       setUser(null);
       setIsAuthenticated(false);
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
+      // Redirect to login page
       window.location.href = '/login';
     }
   };

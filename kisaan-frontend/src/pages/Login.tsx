@@ -17,7 +17,28 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await login(formData.username, formData.password);
-    if (!error) navigate('/dashboard');
+    // After successful login, navigate based on user role
+    // The login function updates the auth context, so we can check error to know if it succeeded
+    if (!error) {
+      // Small delay to ensure auth state is updated
+      setTimeout(() => {
+        const storedUser = localStorage.getItem('auth_user');
+        if (storedUser) {
+          try {
+            const user = JSON.parse(storedUser);
+            if (user?.role === 'owner') {
+              navigate('/simple-ledger', { replace: true });
+            } else if (user?.role === 'superadmin') {
+              navigate('/superadmin', { replace: true });
+            } else {
+              navigate('/dashboard', { replace: true });
+            }
+          } catch {
+            navigate('/dashboard', { replace: true });
+          }
+        }
+      }, 50);
+    }
   };
 
   return (

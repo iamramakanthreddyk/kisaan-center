@@ -67,11 +67,13 @@ export const authenticateToken = async (
 
     // User existence check only (status field removed in simplified model)
     if (!user) {
+      console.log(`[AUTH] User not found in DB: userId=${decoded.id}`);
       req.user = undefined;
       failureCode(res, 401, ErrorCodes.INVALID_USER, undefined, 'Invalid user');
       return;
     }
 
+    console.log(`[AUTH] Token verified and user found: userId=${user.id}, username=${user.username}`);
     req.user = {
       id: user.id,
       username: user.username,

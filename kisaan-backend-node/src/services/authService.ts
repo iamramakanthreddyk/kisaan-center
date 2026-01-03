@@ -43,7 +43,6 @@ export class AuthService {
 
       // Find user by username
       const user = await this.userRepository.findByUsername(sanitizedUsername);
-      console.log(`[DEBUG] User lookup result: ${!!user}`);
       if (!user) {
         throw new AuthorizationError('Invalid username or password');
       }
@@ -150,6 +149,22 @@ export class AuthService {
         throw error;
       }
       throw new DatabaseError('Failed to hash password', error instanceof Error ? { message: error.message } : undefined);
+    }
+  }
+
+  /**
+   * Logout user - invalidate token
+   */
+  async logout(): Promise<{ success: boolean; message: string }> {
+    try {
+      // In JWT-based auth, logout happens on client by removing token
+      // This is a confirmation endpoint
+      return {
+        success: true,
+        message: 'Logged out successfully. Please remove your token from client storage.'
+      };
+    } catch (error) {
+      throw new DatabaseError('Logout failed', error instanceof Error ? { message: error.message } : undefined);
     }
   }
 
