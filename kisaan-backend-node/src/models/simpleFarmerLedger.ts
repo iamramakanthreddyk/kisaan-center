@@ -141,3 +141,11 @@ SimpleFarmerLedger.init({
     type: DataTypes.TEXT,
     allowNull: true,
   },
+}, {
+  sequelize,
+  modelName: 'SimpleFarmerLedger',
+  tableName: 'kisaan_ledger',
+  timestamps: false,
+});
+
+export default SimpleFarmerLedger;

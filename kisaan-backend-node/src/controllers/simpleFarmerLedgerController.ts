@@ -69,6 +69,7 @@ export async function getOwnerCommissionSummary(req: Request, res: Response) {
  */
 
 import { Request, Response } from 'express';
+import { AuthenticatedRequest } from '../middlewares/auth';
 import { SimpleFarmerLedger } from '../models/simpleFarmerLedger';
 import { simpleFarmerLedgerSchema } from '../schema/simpleFarmerLedgerSchema';
 import { QueryTypes, Sequelize, Op } from 'sequelize';
@@ -500,7 +501,7 @@ export async function updateEntry(req: Request, res: Response) {
 }
 
 // Soft delete entry (mark as deleted instead of destroying)
-export async function deleteEntry(req: Request, res: Response) {
+export async function deleteEntry(req: AuthenticatedRequest, res: Response) {
   try {
     const { id } = req.params;
     const { reason } = req.body; // Optional deletion reason
