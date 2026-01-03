@@ -358,7 +358,7 @@ export const FarmerLedgerDashboard: React.FC = () => {
                           </span>
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="text-gray-600">Balance:</span>
+                          <span className="text-gray-600">Net Earning:</span>
                           <span className={`font-mono font-medium break-words whitespace-pre-wrap max-w-full xs:max-w-[100px] ${Number(period.balance) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                             ₹{Number(period.balance).toLocaleString('en-IN')}
                           </span>
