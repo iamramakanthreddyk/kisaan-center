@@ -162,7 +162,13 @@ export class PasswordManager {
    */
   async verifyPassword(password: string, hash: string): Promise<boolean> {
     try {
-      return await bcrypt.compare(password, hash);
+      // Try with bcrypt first
+      const result = await bcrypt.compare(password, hash);
+      if (result) return true;
+      
+      // If that fails, try with bcryptjs as fallback
+      const bcryptjs = await import('bcryptjs');
+      return await bcryptjs.compare(password, hash);
     } catch (error) {
       throw new Error('Password verification failed');
     }

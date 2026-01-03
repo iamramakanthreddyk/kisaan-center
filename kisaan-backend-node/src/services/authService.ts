@@ -1,5 +1,5 @@
 import { UserRepository } from '../repositories/UserRepository';
-import bcrypt from 'bcryptjs';
+import { PasswordManager } from '../shared/utils/auth';
 import jwt from 'jsonwebtoken';
 import { LoginInput } from '../schemas/auth';
 import { ValidationError, AuthorizationError, DatabaseError } from '../shared/utils/errors';
@@ -21,9 +21,11 @@ export interface LoginResponseDTO {
 
 export class AuthService {
   private userRepository: UserRepository;
+  private passwordManager: PasswordManager;
 
   constructor() {
     this.userRepository = new UserRepository();
+    this.passwordManager = new PasswordManager();
   }
 
   async loginUser({ username, password }: LoginInput): Promise<LoginResponseDTO> {
@@ -41,6 +43,7 @@ export class AuthService {
 
       // Find user by username
       const user = await this.userRepository.findByUsername(sanitizedUsername);
+      console.log(`[DEBUG] User lookup result: ${!!user}`);
       if (!user) {
         throw new AuthorizationError('Invalid username or password');
       }
@@ -51,7 +54,7 @@ export class AuthService {
       }
 
       // Verify password
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      const isPasswordValid = await this.passwordManager.verifyPassword(password, user.password);
       if (!isPasswordValid) {
         throw new AuthorizationError('Invalid username or password');
       }
@@ -141,8 +144,7 @@ export class AuthService {
         throw new ValidationError('Password is required');
       }
 
-      const saltRounds = 10;
-      return await bcrypt.hash(password, saltRounds);
+      return await this.passwordManager.hashPassword(password);
     } catch (error) {
       if (error instanceof ValidationError) {
         throw error;

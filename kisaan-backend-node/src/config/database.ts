@@ -86,10 +86,10 @@ if (finalDbDialect === 'sqlite') {
     logging: isProd ? false : (process.env.SEQ_LOGGING === 'true' ? console.log : false),
     pool: {
       // Conservative pool sizing to avoid exceeding managed DB connection limits
-      max: parseInt(process.env.DB_POOL_MAX || '5', 10),
-      min: parseInt(process.env.DB_POOL_MIN || '0', 10),
-      acquire: parseInt(process.env.DB_POOL_ACQUIRE || '30000', 10),
-      idle: parseInt(process.env.DB_POOL_IDLE || '10000', 10),
+      max: parseInt(process.env.DB_POOL_MAX || '2', 10),
+      min: parseInt(process.env.DB_POOL_MIN || '1', 10),
+      acquire: parseInt(process.env.DB_POOL_ACQUIRE || '60000', 10),
+      idle: parseInt(process.env.DB_POOL_IDLE || '20000', 10),
     },
     ...(sslMode === 'require'
       ? {
@@ -97,6 +97,9 @@ if (finalDbDialect === 'sqlite') {
             ssl: {
               require: true,
               rejectUnauthorized: false,
+              ca: undefined,
+              key: undefined,
+              cert: undefined,
             },
           },
         }
