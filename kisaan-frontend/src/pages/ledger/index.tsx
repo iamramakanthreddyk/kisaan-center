@@ -143,38 +143,36 @@ const SimpleLedger: React.FC = () => {
         </Button>
 
         {showFilters && (
-          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm mt-2 overflow-hidden no-print">
-            <CardHeader className="pb-3 sm:pb-4 border-b border-blue-100 bg-white/60 rounded-t-xl p-3 sm:p-4">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
-                  <CardTitle className="text-sm sm:text-base font-semibold text-blue-900">Filter Options</CardTitle>
-                </div>
-                {hasActiveFilters && (
+          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm mt-2 overflow-visible no-print">
+            {hasActiveFilters && (
+              <CardHeader className="py-1 px-2 border-b border-blue-100 bg-white/60 rounded-t-xl overflow-visible min-h-0">
+                <div className="flex items-center justify-end flex-wrap gap-1">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={clearFilters}
-                    className="text-xs sm:text-sm text-blue-700 hover:underline hover:bg-blue-50 px-2 py-1"
+                    className="text-xs text-blue-700 hover:underline hover:bg-blue-50 px-1 py-0 min-h-0 h-6"
                   >
                     Clear All
                   </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-3 sm:pt-4 pb-3 sm:pb-4 px-3 sm:px-4">
+                </div>
+              </CardHeader>
+            )}
+            <CardContent className="pt-3 sm:pt-4 pb-3 sm:pb-4 px-3 sm:px-4 overflow-visible">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {/* Only show farmer filter if not logged in as farmer */}
                 {user?.role !== 'farmer' && (
-                  <div className="flex flex-col gap-1 sm:gap-2">
+                  <div className="flex flex-col gap-1 sm:gap-2 min-w-0 overflow-visible relative z-20">
                     <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                       👤 Farmer
                     </label>
-                    <UserSearchDropdown
-                      onSelect={(u: User | null) => setSelectedFarmer(u?.id ?? null)}
-                      roleFilter="farmer"
-                      placeholder="Select farmer"
-                    />
+                    <div className="w-full overflow-visible relative z-20">
+                      <UserSearchDropdown
+                        onSelect={(u: User | null) => setSelectedFarmer(u?.id ?? null)}
+                        roleFilter="farmer"
+                        placeholder="Select farmer"
+                      />
+                    </div>
                   </div>
                 )}
                 <div className="flex flex-col gap-1 sm:gap-2">

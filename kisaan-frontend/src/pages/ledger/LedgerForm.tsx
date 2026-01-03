@@ -120,11 +120,13 @@ const LedgerForm: React.FC<LedgerFormProps> = ({ onSuccess, onCancel }) => {
 
       <div>
         <label className="block text-sm font-semibold mb-2">Select Farmer <span className="text-red-500">*</span></label>
-        <UserSearchDropdown
-          onSelect={setSelectedFarmer}
-          roleFilter="farmer"
-          placeholder="Search farmer by name or contact"
-        />
+        <div className="w-full min-w-0">
+          <UserSearchDropdown
+            onSelect={setSelectedFarmer}
+            roleFilter="farmer"
+            placeholder="Search farmer by name or contact"
+          />
+        </div>
         {selectedFarmer && (
           <div className="mt-1 text-green-700 text-xs">Selected: {selectedFarmer.username} (ID: {selectedFarmer.id})</div>
         )}

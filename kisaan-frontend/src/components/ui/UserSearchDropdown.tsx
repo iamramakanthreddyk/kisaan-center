@@ -77,7 +77,7 @@ export const UserSearchDropdown: React.FC<UserSearchDropdownProps> = ({ onSelect
   };
 
   return (
-    <div className="relative w-56">
+    <div className="relative w-full min-w-[180px] md:w-72 lg:w-80">
       <Input
         value={selectedUser ? getUserDisplayWithRoleAndId(selectedUser) : query}
         onChange={e => {
