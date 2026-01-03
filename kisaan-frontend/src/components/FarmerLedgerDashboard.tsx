@@ -246,58 +246,59 @@ export const FarmerLedgerDashboard: React.FC = () => {
 
       {/* Overall Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
+        {/* Mobile-friendly summary cards */}
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-sm">
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-green-700 truncate">Total Credit</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-800 leading-tight">
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-800 leading-tight break-words whitespace-pre-wrap max-w-[120px] xs:max-w-none">
                   ₹{Number(periodData?.overall?.credit || 0).toLocaleString('en-IN')}
                 </p>
               </div>
-              <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-green-600 flex-shrink-0 ml-2" />
+              <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-green-600 flex-shrink-0 xs:ml-2" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 shadow-sm">
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-red-700 truncate">Total Debit</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-red-800 leading-tight">
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-red-800 leading-tight break-words whitespace-pre-wrap max-w-[120px] xs:max-w-none">
                   ₹{Number(periodData?.overall?.debit || 0).toLocaleString('en-IN')}
                 </p>
               </div>
-              <TrendingDown className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-red-600 flex-shrink-0 ml-2" />
+              <TrendingDown className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-red-600 flex-shrink-0 xs:ml-2" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 shadow-sm">
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-orange-700 truncate">Commission</p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-800 leading-tight">
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-800 leading-tight break-words whitespace-pre-wrap max-w-[120px] xs:max-w-none">
                   ₹{Number(periodData?.overall?.commission || 0).toLocaleString('en-IN')}
                 </p>
               </div>
-              <Wallet className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-orange-600 flex-shrink-0 ml-2" />
+              <Wallet className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-orange-600 flex-shrink-0 xs:ml-2" />
             </div>
           </CardContent>
         </Card>
 
         <Card className={`border-2 shadow-sm ${Number(periodData?.overall?.balance || 0) >= 0 ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200' : 'bg-gradient-to-br from-red-50 to-red-100 border-red-200'}`}>
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-gray-700 truncate">Net Balance</p>
-                <p className={`text-lg sm:text-xl lg:text-2xl font-bold leading-tight ${Number(periodData?.overall?.balance || 0) >= 0 ? 'text-emerald-800' : 'text-red-800'}`}>
+                <p className={`text-lg sm:text-xl lg:text-2xl font-bold leading-tight break-words whitespace-pre-wrap max-w-[120px] xs:max-w-none ${Number(periodData?.overall?.balance || 0) >= 0 ? 'text-emerald-800' : 'text-red-800'}`}> 
                   ₹{Number(periodData?.overall?.balance || 0).toLocaleString('en-IN')}
                 </p>
               </div>
-              <Wallet className={`h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 flex-shrink-0 ml-2 ${Number(periodData?.overall?.balance || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
+              <Wallet className={`h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 flex-shrink-0 xs:ml-2 ${Number(periodData?.overall?.balance || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
             </div>
           </CardContent>
         </Card>
@@ -337,28 +338,28 @@ export const FarmerLedgerDashboard: React.FC = () => {
                           {period.period}
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="flex justify-between">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="flex flex-col min-w-0">
                           <span className="text-gray-600">Credit:</span>
-                          <span className="font-mono font-medium text-green-700">
+                          <span className="font-mono font-medium text-green-700 break-words whitespace-pre-wrap max-w-full xs:max-w-[100px]">
                             ₹{Number(period.credit).toLocaleString('en-IN')}
                           </span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex flex-col min-w-0">
                           <span className="text-gray-600">Debit:</span>
-                          <span className="font-mono font-medium text-red-700">
+                          <span className="font-mono font-medium text-red-700 break-words whitespace-pre-wrap max-w-full xs:max-w-[100px]">
                             ₹{Number(period.debit).toLocaleString('en-IN')}
                           </span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex flex-col min-w-0">
                           <span className="text-gray-600">Commission:</span>
-                          <span className="font-mono font-medium text-orange-700">
+                          <span className="font-mono font-medium text-orange-700 break-words whitespace-pre-wrap max-w-full xs:max-w-[100px]">
                             ₹{Number(period.commission).toLocaleString('en-IN')}
                           </span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex flex-col min-w-0">
                           <span className="text-gray-600">Balance:</span>
-                          <span className={`font-mono font-medium ${Number(period.balance) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                          <span className={`font-mono font-medium break-words whitespace-pre-wrap max-w-full xs:max-w-[100px] ${Number(period.balance) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                             ₹{Number(period.balance).toLocaleString('en-IN')}
                           </span>
                         </div>
@@ -384,16 +385,16 @@ export const FarmerLedgerDashboard: React.FC = () => {
                         <TableCell className="font-medium">
                           {period.period}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-green-700">
+                        <TableCell className="text-right font-mono text-green-700 break-words whitespace-pre-wrap max-w-[100px]">
                           ₹{Number(period.credit).toLocaleString('en-IN')}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-red-700">
+                        <TableCell className="text-right font-mono text-red-700 break-words whitespace-pre-wrap max-w-[100px]">
                           ₹{Number(period.debit).toLocaleString('en-IN')}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-orange-700">
+                        <TableCell className="text-right font-mono text-orange-700 break-words whitespace-pre-wrap max-w-[100px]">
                           ₹{Number(period.commission).toLocaleString('en-IN')}
                         </TableCell>
-                        <TableCell className={`text-right font-mono ${Number(period.balance) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                        <TableCell className={`text-right font-mono break-words whitespace-pre-wrap max-w-[100px] ${Number(period.balance) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                           ₹{Number(period.balance).toLocaleString('en-IN')}
                         </TableCell>
                       </TableRow>
