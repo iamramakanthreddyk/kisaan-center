@@ -187,7 +187,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
       );
     } catch (e) {
       console.error('Error fetching all entries for print:', e);
-      alert('Error generating print report. Please try again.');
+      toastService.error('Error generating print report. Please try again.');
     }
   };
 
@@ -257,10 +257,10 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
       // Refresh the current page
       await handleLoadPage(page);
       handleCancelEdit();
-      alert('Entry updated successfully!');
+      toastService.success('Entry updated successfully!');
     } catch (error) {
       console.error('Error updating entry:', error);
-      alert('Failed to update entry. Please try again.');
+      toastService.error('Failed to update entry. Please try again.');
     } finally {
       setEditLoading(false);
     }
@@ -279,10 +279,10 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
       await deleteLedgerEntry(entryId, reason || undefined);
       // Refresh the current page
       await handleLoadPage(page);
-      alert('Entry has been marked as deleted (soft delete). It can be viewed in audit logs.');
+      toastService.success('Entry has been marked as deleted (soft delete). It can be viewed in audit logs.');
     } catch (error) {
       console.error('Error deleting entry:', error);
-      alert('Failed to delete entry. Please try again.');
+      toastService.error('Failed to delete entry. Please try again.');
     }
   };
 
