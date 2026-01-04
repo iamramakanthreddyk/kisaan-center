@@ -12,7 +12,7 @@ const config = {
     process.env.VITE_API_URL ||
     process.env.API_BASE_URL ||
     process.env.API_BASE ||
-    'https://kisaancenter-backend.whiteisland-e1233153.northeurope.azurecontainerapps.io/api'
+    'https://kisaan-center-production.up.railway.app/api'
   )
 };
 

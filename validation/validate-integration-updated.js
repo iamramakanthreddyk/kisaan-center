@@ -1,5 +1,5 @@
 // Updated integration validation script with correct balance endpoint
-const API_BASE = 'https://kisaancenter-backend.whiteisland-e1233153.northeurope.azurecontainerapps.io/api';
+const API_BASE = 'https://kisaan-center-production.up.railway.app/api';
 
 // ...removed log...
 // ...removed log...

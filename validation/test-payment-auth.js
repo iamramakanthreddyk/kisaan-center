@@ -1,5 +1,5 @@
 // Quick test for payment endpoint authentication
-const API_BASE = 'https://kisaancenter-backend.whiteisland-e1233153.northeurope.azurecontainerapps.io/api';
+const API_BASE = 'https://kisaan-center-production.up.railway.app/api';
 
 console.log('🔍 Testing Payment Endpoint Authentication Fix');
 console.log('===============================================');
