@@ -247,7 +247,8 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
         category: editForm.category,
         amount: Number(editForm.amount),
         notes: editForm.notes || undefined,
-        entry_date: editForm.entry_date || undefined
+        entry_date: editForm.entry_date || undefined,
+        created_by: user?.id // Ensure created_by is sent
       };
 
       await updateLedgerEntry(editingEntry.id, updateData);
