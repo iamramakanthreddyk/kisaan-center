@@ -242,6 +242,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     setEditLoading(true);
     try {
       const updateData = {
+        shop_id: user?.shop_id ? Number(user.shop_id) : 1, // Ensure shop_id is sent
         farmer_id: Number(editForm.farmer_id),
         type: editForm.type,
         category: editForm.category,

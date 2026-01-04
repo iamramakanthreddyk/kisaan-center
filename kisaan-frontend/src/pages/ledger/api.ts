@@ -56,12 +56,14 @@ export async function createLedgerEntry(data: {
 }
 
 export async function updateLedgerEntry(id: number, data: {
+  shop_id?: number;
   farmer_id?: number;
   type?: string;
   category?: string;
   amount?: number;
   notes?: string;
   entry_date?: string;
+  created_by?: number;
 }) {
   return apiClient.put(`/simple-ledger/${id}`, data);
 }
