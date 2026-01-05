@@ -56,7 +56,6 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [overallBalance, setOverallBalance] = useState<any>(summaryData?.overall || null);
-  // ...existing code...
   const [editingEntry, setEditingEntry] = useState<LedgerEntry | null>(null);
   const [editForm, setEditForm] = useState({
     farmer_id: '',
@@ -67,6 +66,124 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     entry_date: ''
   });
   const [editLoading, setEditLoading] = useState(false);
+  // Smart caching system
+  const [pageCache, setPageCache] = useState<Map<string, { entries: LedgerEntry[], total: number, timestamp: number }>>(new Map());
+  const [loadingPages, setLoadingPages] = useState<Set<number>>(new Set());
+  const [currentFilterKey, setCurrentFilterKey] = useState<string>('');
+
+  // Cache expiry time (5 minutes)
+  const CACHE_EXPIRY = 5 * 60 * 1000;
+
+  // Generate cache key for current filters
+  const getCacheKey = useCallback((pageNum: number) => {
+    return `${shopId}-${farmerId || 'all'}-${from || 'none'}-${to || 'none'}-${category || 'all'}-${pageNum}`;
+  }, [shopId, farmerId, from, to, category]);
+
+  // Generate filter key to detect filter changes
+  const getFilterKey = useCallback(() => {
+    return `${shopId}-${farmerId || 'all'}-${from || 'none'}-${to || 'none'}-${category || 'all'}`;
+  }, [shopId, farmerId, from, to, category]);
+
+  // Check if cache entry is valid
+  const isCacheValid = useCallback((cacheEntry: { timestamp: number }) => {
+    return Date.now() - cacheEntry.timestamp < CACHE_EXPIRY;
+  }, []);
+
+  // Clear cache for current filter set
+  const clearFilterCache = useCallback(() => {
+    setPageCache(prev => {
+      const newCache = new Map();
+      const currentFilterPrefix = getFilterKey();
+      for (const [key, value] of prev) {
+        if (!key.startsWith(currentFilterPrefix) && isCacheValid(value)) {
+          newCache.set(key, value);
+        }
+      }
+      return newCache;
+    });
+  }, [getFilterKey, isCacheValid]);
+
+  // Load page from cache or API
+  const loadPage = useCallback(async (pageToLoad: number, forceRefresh = false) => {
+    const cacheKey = getCacheKey(pageToLoad);
+    const cached = pageCache.get(cacheKey);
+
+    // Return cached data if valid and not forcing refresh
+    if (!forceRefresh && cached && isCacheValid(cached)) {
+      setEntries(cached.entries);
+      setTotal(cached.total);
+      setPage(pageToLoad);
+      return;
+    }
+
+    // Check if already loading this page
+    if (loadingPages.has(pageToLoad)) {
+      return;
+    }
+
+    setLoadingPages(prev => new Set(prev).add(pageToLoad));
+    setError(null);
+
+    try {
+      const payload = await fetchLedgerEntries(
+        shopId,
+        farmerId ?? undefined,
+        from ?? undefined,
+        to ?? undefined,
+        category ?? undefined,
+        pageToLoad,
+        pageSize
+      );
+
+      const newEntries = Array.isArray(payload.entries) ? payload.entries : [];
+      const newTotal = typeof payload.total === 'number' ? payload.total : 0;
+
+      // Update cache
+      setPageCache(prev => new Map(prev).set(cacheKey, {
+        entries: newEntries,
+        total: newTotal,
+        timestamp: Date.now()
+      }));
+
+      // Update state only if this is still the current page being loaded
+      if (!loadingPages.has(pageToLoad) || pageToLoad === page) {
+        setEntries(newEntries);
+        setTotal(newTotal);
+        setPage(pageToLoad);
+      }
+
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to fetch ledger entries');
+      setEntries([]);
+    } finally {
+      setLoadingPages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(pageToLoad);
+        return newSet;
+      });
+    }
+  }, [shopId, farmerId, from, to, category, pageSize, getCacheKey, pageCache, isCacheValid, loadingPages, page]);
+
+  // Prefetch adjacent pages
+  const prefetchPages = useCallback(async (currentPage: number) => {
+    const maxPage = Math.max(1, Math.ceil(total / pageSize));
+    const pagesToPrefetch = [];
+
+    // Prefetch next 2 pages
+    if (currentPage + 1 <= maxPage) pagesToPrefetch.push(currentPage + 1);
+    if (currentPage + 2 <= maxPage) pagesToPrefetch.push(currentPage + 2);
+
+    // Prefetch previous page
+    if (currentPage > 1) pagesToPrefetch.push(currentPage - 1);
+
+    for (const pageNum of pagesToPrefetch) {
+      const cacheKey = getCacheKey(pageNum);
+      if (!pageCache.has(cacheKey) || !isCacheValid(pageCache.get(cacheKey)!)) {
+        // Load in background without blocking UI
+        loadPage(pageNum, false).catch(console.error);
+      }
+    }
+  }, [total, pageSize, getCacheKey, pageCache, isCacheValid, loadPage]);
 
 
   // Update balance when summaryData changes
@@ -76,24 +193,51 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     }
   }, [summaryData]);
 
+  // Handle filter changes - clear cache and reset to page 1
   useEffect(() => {
-    const loadEntries = async (pageToLoad = page) => {
+    const newFilterKey = getFilterKey();
+    if (newFilterKey !== currentFilterKey) {
+      setCurrentFilterKey(newFilterKey);
+      clearFilterCache();
+      setPage(1);
       setLoading(true);
-      setError(null);
-      try {
-        const payload = await fetchLedgerEntries(shopId, farmerId ?? undefined, from ?? undefined, to ?? undefined, category ?? undefined, pageToLoad, pageSize);
-        setEntries(payload.entries);
-        setTotal(typeof payload.total === 'number' ? payload.total : 0);
-        setPage(typeof payload.page === 'number' ? payload.page : pageToLoad);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to fetch ledger entries');
-        setEntries([]);
-      } finally {
-        setLoading(false);
-      }
+      loadPage(1, true).finally(() => setLoading(false));
+    }
+  }, [getFilterKey, currentFilterKey, clearFilterCache, loadPage]);
+
+  // Handle refresh trigger
+  useEffect(() => {
+    if (refreshTrigger) {
+      clearFilterCache();
+      setLoading(true);
+      loadPage(page, true).finally(() => setLoading(false));
+    }
+  }, [refreshTrigger, clearFilterCache, loadPage, page]);
+
+  // Prefetch pages when current page changes
+  useEffect(() => {
+    if (total > 0 && !loading) {
+      prefetchPages(page);
+    }
+  }, [page, total, loading, prefetchPages]);
+
+  // Periodic cache cleanup
+  useEffect(() => {
+    const cleanup = () => {
+      setPageCache(prev => {
+        const newCache = new Map();
+        for (const [key, value] of prev) {
+          if (isCacheValid(value)) {
+            newCache.set(key, value);
+          }
+        }
+        return newCache;
+      });
     };
-    loadEntries(1);
-  }, [shopId, farmerId, from, to, category, refreshTrigger]);
+
+    const interval = setInterval(cleanup, CACHE_EXPIRY / 2); // Clean every 2.5 minutes
+    return () => clearInterval(interval);
+  }, [isCacheValid, CACHE_EXPIRY]);
 
   // Memoize shop users to prevent unnecessary re-renders
   const shopUsers = useMemo(() => allUsers.filter(u => Number(u.shop_id) === shopId), [allUsers, shopId]);
@@ -130,14 +274,8 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
   // Load a specific page (used by pagination handlers)
   const handleLoadPage = async (pageToLoad: number) => {
     setLoading(true);
-    setError(null);
     try {
-      const payload = await fetchLedgerEntries(shopId, farmerId ?? undefined, from ?? undefined, to ?? undefined, category ?? undefined, pageToLoad, pageSize);
-      setEntries(Array.isArray(payload.entries) ? payload.entries : []);
-      setTotal(typeof payload.total === 'number' ? payload.total : 0);
-      setPage(typeof payload.page === 'number' ? payload.page : pageToLoad);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to fetch ledger entries');
+      await loadPage(pageToLoad);
     } finally {
       setLoading(false);
     }
@@ -155,15 +293,36 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
   };
 
   const handlePrintAll = async () => {
-    // Fetch all entries with large page size and overall balance
     try {
-      const [entriesPayload, summaryData] = await Promise.all([
-        fetchLedgerEntries(shopId, farmerId ?? undefined, from ?? undefined, to ?? undefined, category ?? undefined, 1, 10000),
-        fetchLedgerSummary(shopId, undefined, farmerId ?? undefined, from ?? undefined, to ?? undefined)
-      ]);
+      // Try to get all entries from cache first
+      const filterPrefix = getFilterKey();
+      const allEntries: LedgerEntry[] = [];
+      let totalEntries = 0;
 
-      const allEntries = entriesPayload.entries || [];
-      const overall = summaryData?.overall;
+      // Collect all cached pages for current filter
+      for (const [cacheKey, cacheData] of pageCache) {
+        if (cacheKey.startsWith(filterPrefix) && isCacheValid(cacheData)) {
+          allEntries.push(...cacheData.entries);
+          totalEntries = Math.max(totalEntries, cacheData.total);
+        }
+      }
+
+      // If we don't have all entries cached, fetch them
+      let overall: any = null;
+      if (allEntries.length < totalEntries) {
+        const [entriesPayload, summaryData] = await Promise.all([
+          fetchLedgerEntries(shopId, farmerId ?? undefined, from ?? undefined, to ?? undefined, category ?? undefined, 1, 10000),
+          fetchLedgerSummary(shopId, undefined, farmerId ?? undefined, from ?? undefined, to ?? undefined)
+        ]);
+
+        allEntries.length = 0; // Clear cached entries
+        allEntries.push(...(entriesPayload.entries || []));
+        overall = summaryData?.overall;
+      } else {
+        // Use cached summary if available
+        const summaryData = await fetchLedgerSummary(shopId, undefined, farmerId ?? undefined, from ?? undefined, to ?? undefined);
+        overall = summaryData?.overall;
+      }
 
       // Extract dateRange logic to an independent statement (no ternary)
       let dateRange = 'All Dates';
@@ -536,16 +695,20 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                   <div key={entry.id} className={`rounded-xl p-4 flex flex-row items-center w-full shadow-sm border-2 transition-all duration-200 hover:shadow-md ${cardBg}`}>
                     {/* Type badge */}
                     <div className="flex-shrink-0 w-24 mr-4">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold shadow-sm ${
-                        entry.is_deleted
-                          ? 'bg-red-100 text-red-700'
-                          : isCreditType
-                            ? 'bg-white text-green-700 border border-green-200'
-                            : 'bg-white text-blue-700 border border-blue-200'
-                      }`}>
-                        {getTypeIcon(entry.type)}
-                        {entry.type === 'credit' ? '↑' : '↓'}
-                      </span>
+                      {(() => {
+                        let typeBadgeClass = 'bg-white text-blue-700 border border-blue-200';
+                        if (entry.is_deleted) {
+                          typeBadgeClass = 'bg-red-100 text-red-700';
+                        } else if (isCreditType) {
+                          typeBadgeClass = 'bg-white text-green-700 border border-green-200';
+                        }
+                        return (
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold shadow-sm ${typeBadgeClass}`}>
+                            {getTypeIcon(entry.type)}
+                            {entry.type === 'credit' ? '↑' : '↓'}
+                          </span>
+                        );
+                      })()}
                     </div>
                     
                     {/* Farmer name */}
@@ -846,6 +1009,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={editForm.amount}
                   onChange={(e) => setEditForm(prev => ({ ...prev, amount: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
