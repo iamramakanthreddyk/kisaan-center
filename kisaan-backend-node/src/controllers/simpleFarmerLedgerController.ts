@@ -1,3 +1,55 @@
+// Batch create ledger entries
+import { Transaction } from 'sequelize';
+export async function createBatchEntries(req: Request, res: Response) {
+  const entries = Array.isArray(req.body) ? req.body : [];
+  if (!entries.length) return res.status(400).json({ error: 'No entries provided' });
+  const sequelize = SimpleFarmerLedger.sequelize!;
+  let tx: Transaction | undefined;
+  try {
+    // Validate all entries first
+    for (const entry of entries) {
+      await simpleFarmerLedgerSchema.validate(entry);
+    }
+    tx = await sequelize.transaction();
+    const created = [];
+    for (const entry of entries) {
+      // Commission/net calculation logic (copy from createEntry)
+      const payload: any = { ...entry };
+      const farmerId = Number(payload.farmer_id);
+      const shopId = Number(payload.shop_id);
+      let rateUsed = 0;
+      try {
+        rateUsed = await resolveCommissionRate(farmerId, shopId);
+      } catch (e) { rateUsed = 0; }
+      const amount = Number(payload.amount || 0);
+      if (payload.type === 'credit') {
+        payload.commission_amount = +(amount * (rateUsed / 100)).toFixed(2);
+        payload.net_amount = +(amount - payload.commission_amount).toFixed(2);
+      } else {
+        payload.commission_amount = 0;
+        payload.net_amount = amount;
+      }
+      payload.type = payload.type || 'income';
+      payload.created_by = payload.created_by || 1;
+      // Handle backdating
+      if (entry.entry_date) {
+        const entryDate = new Date(entry.entry_date);
+        if (isNaN(entryDate.getTime())) throw new Error('Invalid entry date format');
+        const now = new Date();
+        if (entryDate > now) throw new Error('Entry date cannot be in the future');
+        payload.transaction_date = entryDate;
+      }
+      const createdEntry = await SimpleFarmerLedger.create(payload, { transaction: tx });
+      created.push(createdEntry);
+    }
+    await tx.commit();
+    res.status(201).json({ entries: created });
+  } catch (err) {
+    if (tx) await tx.rollback();
+    const message = err instanceof Error ? err.message : String(err);
+    res.status(400).json({ error: message });
+  }
+}
 // Get owner commission summary (owner only)
 export async function getOwnerCommissionSummary(req: Request, res: Response) {
   try {
@@ -454,6 +506,19 @@ export async function updateEntry(req: Request, res: Response) {
     if (!entry) return res.status(404).json({ error: 'Entry not found' });
     // Recalculate commission and net_amount as in createEntry
     const payload: any = { ...req.body };
+    // Map entry_date to transaction_date if present
+    if (payload.entry_date) {
+      const entryDate = new Date(payload.entry_date);
+      if (isNaN(entryDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid entry date format' });
+      }
+      const now = new Date();
+      if (entryDate > now) {
+        return res.status(400).json({ error: 'Entry date cannot be in the future' });
+      }
+      payload.transaction_date = entryDate;
+      delete payload.entry_date;
+    }
     const farmerId = Number(payload.farmer_id ?? entry.farmer_id);
     const shopId = Number(payload.shop_id ?? entry.shop_id);
     // Resolve commission rate precedence: farmer -> shop owner -> shop -> 0

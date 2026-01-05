@@ -11,15 +11,19 @@
  * For financial reporting and audit trails, use main ledger endpoints.
  */
 
+
 import { Router } from 'express';
 import * as controller from '../controllers/simpleFarmerLedgerController';
 import { authenticateToken } from '../middlewares/auth';
-import { shopAccessGuard, farmerReadOnlyGuard } from '../middleware/accessGuards';
-import { ownerOnlyGuard } from '../middleware/accessGuards';
+import { shopAccessGuard, farmerReadOnlyGuard, ownerOnlyGuard } from '../middleware/accessGuards';
+
 
 const router = Router();
 // All routes require authentication
 router.use(authenticateToken);
+
+// Batch create endpoint (moved after router declaration)
+router.post('/batch', ownerOnlyGuard, controller.createBatchEntries);
 
 // Owner commission summary: only shop owner can view
 router.get('/owner-commission', ownerOnlyGuard, controller.getOwnerCommissionSummary);

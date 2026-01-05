@@ -1,3 +1,17 @@
+
+// Batch create ledger entries
+export async function createBatchLedgerEntries(entries: Array<{
+  shop_id: number;
+  farmer_id: number;
+  type: string;
+  category: string;
+  amount: number;
+  notes?: string;
+  created_by?: number;
+  entry_date?: string;
+}>): Promise<any> {
+  return apiClient.post('/simple-ledger/batch', entries);
+}
 // API utility for simple ledger (uses centralized apiClient)
 import { apiClient } from '../../services/apiClient';
 
