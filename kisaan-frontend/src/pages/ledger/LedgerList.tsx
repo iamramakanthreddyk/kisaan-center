@@ -439,38 +439,21 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             📝 Account Entries
+            {!loading && !error && entries.length > 0 && (
+              <button
+                onClick={handlePrintAll}
+                className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200"
+                title="Print All"
+              >
+                <Printer className="h-4 w-4" />
+              </button>
+            )}
             {entries.length > 0 && (
               <span className="text-xs md:text-sm font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                 {entries.length} entries
               </span>
             )}
           </CardTitle>
-
-          {!loading && !error && entries.length > 0 && (
-            <div className="flex items-center gap-1 self-end md:self-auto print:hidden">
-              {/* Mobile: Icon only buttons in one row */}
-              <div className="flex md:hidden gap-1">
-                <button
-                  onClick={handlePrintAll}
-                  className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200"
-                  title="Print All"
-                >
-                  <Printer className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Desktop: Buttons with text */}
-              <div className="hidden md:flex gap-2">
-                <button
-                  onClick={handlePrintAll}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
-                >
-                  <Printer className="h-4 w-4" />
-                  Print All
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -576,7 +559,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                       </div>
                       <div>
                         <div className="font-semibold text-gray-600 text-[9px]">Debit</div>
-                        <div className="font-bold text-red-700">{debitAmount > 0 ? formatAmount(debitAmount) : '—'}</div>
+                        <div className="font-bold text-red-700">{debitAmount > 0 ? `${formatAmount(debitAmount)}${isCreditType && entry.category === 'sale' ? ' (Comm)' : ''}` : '—'}</div>
                       </div>
                     </div>
 
@@ -688,7 +671,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                       <div className={`font-mono font-bold text-sm ${
                         debitAmount > 0 ? 'text-red-700' : 'text-gray-400'
                       }`}>
-                        {debitAmount > 0 ? formatAmount(debitAmount) : '—'}
+                        {debitAmount > 0 ? `${formatAmount(debitAmount)}${isCreditType && entry.category === 'sale' ? ' (Comm)' : ''}` : '—'}
                       </div>
                     </div>
                     
