@@ -98,6 +98,7 @@ export const FarmerLedgerDashboard: React.FC = () => {
     printLedgerReport(
       {
         overall: periodData?.overall,
+        period: periodData?.period,
         entries: [] // No individual entries for dashboard view
       },
       {

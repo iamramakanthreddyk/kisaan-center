@@ -382,7 +382,7 @@ export async function getSummary(req: Request, res: Response) {
     const defaultPeriod = period || 'daily';
 
     // Build WHERE clause and bind params
-    let whereClause = 'shop_id = $1';
+    let whereClause = 'shop_id = $1 AND is_deleted = false';
     const bindParams: any[] = [shopIdNum];
     let paramIndex = 2;
     if (farmerIdNum) {
@@ -449,9 +449,22 @@ export async function getSummary(req: Request, res: Response) {
       }
     );
 
+    // Ensure overallTotals has valid data and type it properly
+    const overallData = overallTotals && Array.isArray(overallTotals) && overallTotals.length > 0 
+      ? (overallTotals[0] as any) 
+      : { credit: 0, debit: 0, commission: 0, balance: 0 };
+    
+    // Convert string numbers from SQL to actual numbers
+    const normalizedOverall = {
+      credit: Number(overallData.credit || 0),
+      debit: Number(overallData.debit || 0),
+      commission: Number(overallData.commission || 0),
+      balance: Number(overallData.balance || 0)
+    };
+
     res.json({
       period: periodResults,
-      overall: overallTotals[0] || { credit: 0, debit: 0, commission: 0, balance: 0 }
+      overall: normalizedOverall
     });
   } catch (err) {
     // Log the error for debugging

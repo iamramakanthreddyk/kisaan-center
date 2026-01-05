@@ -9,9 +9,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useUsers } from '../../context/useUsers';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 // ...existing code...
-import { AlertCircle, Inbox, TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronRight, Download, FileText, Printer, Edit, Trash2 } from 'lucide-react';
+import { AlertCircle, Inbox, TrendingUp, TrendingDown, Minus, ChevronLeft, ChevronRight, Printer, Edit, Trash2 } from 'lucide-react';
 import { formatAmount } from '../../utils/format';
-import { exportLedgerToCsv, exportLedgerToPdf } from '../../components/shared/ledger/ExportUtils';
 import { printLedgerReport } from '../../components/shared/ledger/PrintUtils';
 
 interface LedgerEntry {
@@ -358,27 +357,6 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     }
   };
 
-  const handleExportCSV = () => {
-    exportLedgerToCsv({
-      shopId,
-      farmerId,
-      from,
-      to,
-      category,
-      filename: `ledger-entries-${new Date().toISOString().split('T')[0]}.csv`
-    });
-  };
-
-  const handleExportPDF = () => {
-    exportLedgerToPdf({
-      shopId,
-      farmerId,
-      from,
-      to,
-      category
-    });
-  };
-
   const handleEditEntry = (entry: LedgerEntry) => {
     setEditingEntry(entry);
     setIsAdding(false);
@@ -473,20 +451,6 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
               {/* Mobile: Icon only buttons in one row */}
               <div className="flex md:hidden gap-1">
                 <button
-                  onClick={handleExportCSV}
-                  className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200"
-                  title="Export CSV"
-                >
-                  <Download className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={handleExportPDF}
-                  className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200"
-                  title="Export PDF"
-                >
-                  <FileText className="h-4 w-4" />
-                </button>
-                <button
                   onClick={handlePrintAll}
                   className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200"
                   title="Print All"
@@ -497,20 +461,6 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
 
               {/* Desktop: Buttons with text */}
               <div className="hidden md:flex gap-2">
-                <button
-                  onClick={handleExportCSV}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
-                >
-                  <Download className="h-4 w-4" />
-                  Export CSV
-                </button>
-                <button
-                  onClick={handleExportPDF}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
-                >
-                  <FileText className="h-4 w-4" />
-                  Export PDF
-                </button>
                 <button
                   onClick={handlePrintAll}
                   className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
@@ -824,11 +774,11 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                     {/* Balance Card (per-page) */}
                     <div className="rounded-lg bg-green-50 p-3 flex flex-col items-center shadow-sm border border-green-100">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-green-700 font-semibold text-sm">Balance</span>
+                        <span className="text-green-700 font-semibold text-sm">Amount Payable</span>
                         <span className="inline-block bg-green-200 text-green-900 text-[10px] px-2 py-0.5 rounded-full font-bold">Page</span>
                       </div>
                       <div className={`font-mono text-lg font-bold mb-1 ${balanceClass}`}>{formattedBalance}</div>
-                      <div className="text-[11px] text-green-900/80 text-center leading-tight">Amount available to withdraw<br/>(from entries on this page)</div>
+                      <div className="text-[11px] text-green-900/80 text-center leading-tight">Amount payable to farmers<br/>(from entries on this page)</div>
                     </div>
                     {/* Total Earning Card */}
                     <div className="rounded-lg bg-blue-50 p-3 flex flex-col items-center shadow-sm border border-blue-100">
@@ -842,11 +792,11 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                     {/* Overall Balance Card */}
                     <div className="rounded-lg bg-purple-50 p-3 flex flex-col items-center shadow-sm border border-purple-100">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-purple-700 font-semibold text-sm">Overall Balance</span>
+                        <span className="text-purple-700 font-semibold text-sm">Total Balance Payable</span>
                         <span className="inline-block bg-purple-200 text-purple-900 text-[10px] px-2 py-0.5 rounded-full font-bold">Total</span>
                       </div>
                       <div className="font-mono text-lg font-bold mb-1 text-purple-700">{formattedOverallBalance}</div>
-                      <div className="text-[11px] text-purple-900/80 text-center leading-tight">Total balance from all transactions<br/>(from API)</div>
+                      <div className="text-[11px] text-purple-900/80 text-center leading-tight">Total balance payable to farmers<br/>(from all transactions)</div>
                     </div>
                   </div>
                   {/* Desktop summary cards */}
@@ -855,11 +805,11 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                       {/* Balance Card (per-page) */}
                       <div className="rounded-lg bg-green-50 p-3 flex flex-col items-center shadow-sm border border-green-100">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-green-700 font-semibold text-sm">Balance</span>
+                          <span className="text-green-700 font-semibold text-sm">Amount Payable</span>
                           <span className="inline-block bg-green-200 text-green-900 text-[10px] px-2 py-0.5 rounded-full font-bold">Page</span>
                         </div>
                         <div className={`font-mono text-lg font-bold mb-1 ${balanceClass}`}>{formattedBalance}</div>
-                        <div className="text-[11px] text-green-900/80 text-center leading-tight">Amount available to withdraw<br/>(from entries on this page)</div>
+                        <div className="text-[11px] text-green-900/80 text-center leading-tight">Amount payable to farmers<br/>(from entries on this page)</div>
                       </div>
                       {/* Total Earning Card */}
                       <div className="rounded-lg bg-blue-50 p-3 flex flex-col items-center shadow-sm border border-blue-100">
@@ -873,11 +823,11 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
                       {/* Overall Balance Card */}
                       <div className="rounded-lg bg-purple-50 p-3 flex flex-col items-center shadow-sm border border-purple-100">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-purple-700 font-semibold text-sm">Overall Balance</span>
+                          <span className="text-purple-700 font-semibold text-sm">Total Balance Payable</span>
                           <span className="inline-block bg-purple-200 text-purple-900 text-[10px] px-2 py-0.5 rounded-full font-bold">Total</span>
                         </div>
                         <div className="font-mono text-lg font-bold mb-1 text-purple-700">{formattedOverallBalance}</div>
-                        <div className="text-[11px] text-purple-900/80 text-center leading-tight">Total balance from all transactions<br/>(from API)</div>
+                        <div className="text-[11px] text-purple-900/80 text-center leading-tight">Total balance payable to farmers<br/>(from all transactions)</div>
                       </div>
                     </div>
                   </div>

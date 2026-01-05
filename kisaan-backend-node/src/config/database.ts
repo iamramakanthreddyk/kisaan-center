@@ -86,14 +86,19 @@ if (finalDbDialect === 'sqlite') {
     logging: isProd ? false : (process.env.SEQ_LOGGING === 'true' ? console.log : false),
     pool: {
       // Conservative pool sizing to avoid exceeding managed DB connection limits
-      max: parseInt(process.env.DB_POOL_MAX || '2', 10),
+      max: parseInt(process.env.DB_POOL_MAX || '5', 10),
       min: parseInt(process.env.DB_POOL_MIN || '1', 10),
       acquire: parseInt(process.env.DB_POOL_ACQUIRE || '60000', 10),
-      idle: parseInt(process.env.DB_POOL_IDLE || '20000', 10),
+      idle: parseInt(process.env.DB_POOL_IDLE || '10000', 10),
+      evict: parseInt(process.env.DB_POOL_EVICT || '5000', 10),
     },
-    ...(sslMode === 'require'
-      ? {
-          dialectOptions: {
+    retry: {
+      max: 3,
+      match: [/Sequelize connection error/i, /ECONNREFUSED/i, /ECONNRESET/i, /ETIMEDOUT/i],
+    },
+    dialectOptions: {
+      ...(sslMode === 'require'
+        ? {
             ssl: {
               require: true,
               rejectUnauthorized: false,
@@ -101,9 +106,13 @@ if (finalDbDialect === 'sqlite') {
               key: undefined,
               cert: undefined,
             },
-          },
-        }
-      : {}),
+          }
+        : {}),
+      // Connection timeout settings for Railway
+      connectTimeout: 10000,
+      statement_timeout: 30000,
+      application_name: 'kisaan_app',
+    },
   });
 }
 
