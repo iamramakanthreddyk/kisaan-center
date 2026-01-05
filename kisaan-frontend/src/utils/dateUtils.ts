@@ -6,6 +6,7 @@ import { formatDate } from './formatDate';
 /**
  * Format a JS Date or ISO string to 'YYYY-MM-DD' (for input[type=date], API, etc.)
  */
+export { formatDate };
 
 
 /**

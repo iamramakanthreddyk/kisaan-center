@@ -2,10 +2,13 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { TrendingUp, TrendingDown, Wallet, Printer, RefreshCw, ChevronDown, ChevronUp, LogOut } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Printer, RefreshCw, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { printLedgerReport } from './shared/ledger/PrintUtils';
 import { useAuth } from '../context/AuthContext';
 import { fetchLedgerSummary } from '../pages/ledger/api';
+import { formatDate, parseDate, formatDisplayDate } from '../utils/dateUtils';
 
 // Create simpleLedgerApi object to match expected interface
 const simpleLedgerApi = {
@@ -26,7 +29,7 @@ function getShopId(user: any) {
 }
 
 export const FarmerLedgerDashboard: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const farmerId = getFarmerId(user);
   const shopId = getShopId(user);
 
@@ -51,8 +54,8 @@ export const FarmerLedgerDashboard: React.FC = () => {
 
   // Period filter state
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-  const [fromDate, setFromDate] = useState<string>('');
-  const [toDate, setToDate] = useState<string>('');
+  const [fromDate, setFromDate] = useState<Date | null>(null);
+  const [toDate, setToDate] = useState<Date | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   // Load period summary data
@@ -67,7 +70,7 @@ export const FarmerLedgerDashboard: React.FC = () => {
       // Note: API only supports 'weekly' | 'monthly', so 'daily' becomes undefined (overall)
       const apiPeriod = periodToUse === 'daily' ? undefined : periodToUse;
 
-      const data = await simpleLedgerApi.getSummary(shopId, apiPeriod, farmerId, fromDate || undefined, toDate || undefined);
+      const data = await simpleLedgerApi.getSummary(shopId, apiPeriod, farmerId, fromDate ? formatDate(fromDate) : undefined, toDate ? formatDate(toDate) : undefined);
 
       // The response is already the correct structure
       setPeriodData(data);
@@ -112,45 +115,34 @@ export const FarmerLedgerDashboard: React.FC = () => {
       {/* Header */}
       <Card className="shadow-sm">
         <CardHeader className="pb-3 sm:pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-col gap-3">
             <div className="min-w-0">
               <CardTitle className="text-lg sm:text-xl lg:text-2xl flex items-center gap-2">
                 <span>📊 Farmer Ledger Dashboard</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPeriodData(selectedPeriod)}
+                  disabled={periodLoading}
+                  className="h-8 w-8 p-0 touch-manipulation"
+                  title="Refresh"
+                >
+                  <RefreshCw className={`h-4 w-4 ${periodLoading ? 'animate-spin' : ''}`} />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrint}
+                  disabled={!periodData || periodLoading}
+                  className="h-8 w-8 p-0 touch-manipulation"
+                  title="Print"
+                >
+                  <Printer className="h-4 w-4" />
+                </Button>
               </CardTitle>
               <p className="text-muted-foreground text-xs sm:text-sm mt-1">
                 View your financial summary and period-wise breakdown
               </p>
-            </div>
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => loadPeriodData(selectedPeriod)}
-                disabled={periodLoading}
-                className="h-9 px-3 touch-manipulation"
-              >
-                <RefreshCw className={`h-4 w-4 ${periodLoading ? 'animate-spin' : ''}`} />
-                <span className="sr-only sm:not-sr-only sm:ml-2">Refresh</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                disabled={!periodData || periodLoading}
-                className="h-9 px-3 touch-manipulation"
-              >
-                <Printer className="h-4 w-4" />
-                <span className="sr-only sm:not-sr-only sm:ml-2">Print</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={logout}
-                className="h-8 w-8 touch-manipulation text-destructive hover:text-destructive hover:bg-destructive/10 md:hidden"
-                aria-label="Logout"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         </CardHeader>
@@ -191,21 +183,33 @@ export const FarmerLedgerDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700 block">From Date:</label>
-                    <input
-                      type="date"
-                      value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    <div className="relative">
+                      <DatePicker
+                        selected={fromDate}
+                        onChange={(date) => setFromDate(date)}
+                        dateFormat="dd-MM-yyyy"
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholderText="DD-MM-YYYY"
+                        isClearable
+                        showPopperArrow={false}
+                      />
+                      <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700 block">To Date:</label>
-                    <input
-                      type="date"
-                      value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    <div className="relative">
+                      <DatePicker
+                        selected={toDate}
+                        onChange={(date) => setToDate(date)}
+                        dateFormat="dd-MM-yyyy"
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholderText="DD-MM-YYYY"
+                        isClearable
+                        showPopperArrow={false}
+                      />
+                      <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -226,21 +230,33 @@ export const FarmerLedgerDashboard: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <label className="text-sm font-medium text-gray-700">From:</label>
-                  <input
-                    type="date"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  <div className="relative">
+                    <DatePicker
+                      selected={fromDate}
+                      onChange={(date) => setFromDate(date)}
+                      dateFormat="dd-MM-yyyy"
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholderText="DD-MM-YYYY"
+                      isClearable
+                      showPopperArrow={false}
+                    />
+                    <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <label className="text-sm font-medium text-gray-700">To:</label>
-                  <input
-                    type="date"
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  <div className="relative">
+                    <DatePicker
+                      selected={toDate}
+                      onChange={(date) => setToDate(date)}
+                      dateFormat="dd-MM-yyyy"
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholderText="DD-MM-YYYY"
+                      isClearable
+                      showPopperArrow={false}
+                    />
+                    <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -344,7 +360,7 @@ export const FarmerLedgerDashboard: React.FC = () => {
                     <div key={period.period} className="border border-gray-200 rounded-lg p-3 bg-white shadow-sm">
                       <div className="flex justify-between items-center mb-3">
                         <span className="text-sm font-semibold text-gray-800 truncate">
-                          {period.period}
+                          {formatDisplayDate(period.period)}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
@@ -392,7 +408,7 @@ export const FarmerLedgerDashboard: React.FC = () => {
                     {periodData.period.map((period) => (
                       <TableRow key={period.period}>
                         <TableCell className="font-medium">
-                          {period.period}
+                          {formatDisplayDate(period.period)}
                         </TableCell>
                         <TableCell className="text-right font-mono text-green-700 break-words whitespace-pre-wrap max-w-[100px]">
                           ₹{Number(period.credit).toLocaleString('en-IN')}

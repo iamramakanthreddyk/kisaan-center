@@ -113,13 +113,14 @@ const Header = () => {
                   {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                 </Button>
                 <Button
-                  variant="destructive"
-                  size="sm"
+                  variant="outline"
+                  size="icon"
                   onClick={logout}
-                  className="ml-2"
+                  className="h-8 w-8 touch-manipulation text-destructive hover:text-destructive hover:bg-destructive/10"
+                  aria-label="Logout"
                   title="Logout"
                 >
-                  Logout
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </div>
             ) : (
