@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { TrendingUp, TrendingDown, Wallet, Printer, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Printer, RefreshCw, ChevronDown, ChevronUp, LogOut } from 'lucide-react';
 import { printLedgerReport } from './shared/ledger/PrintUtils';
 import { useAuth } from '../context/AuthContext';
 import { fetchLedgerSummary } from '../pages/ledger/api';
@@ -26,7 +26,7 @@ function getShopId(user: any) {
 }
 
 export const FarmerLedgerDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const farmerId = getFarmerId(user);
   const shopId = getShopId(user);
 
@@ -141,6 +141,15 @@ export const FarmerLedgerDashboard: React.FC = () => {
               >
                 <Printer className="h-4 w-4" />
                 <span className="sr-only sm:not-sr-only sm:ml-2">Print</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={logout}
+                className="h-8 w-8 touch-manipulation text-destructive hover:text-destructive hover:bg-destructive/10 md:hidden"
+                aria-label="Logout"
+              >
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>

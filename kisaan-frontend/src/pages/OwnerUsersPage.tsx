@@ -307,6 +307,7 @@ const OwnerUsersPageInner: React.FC = () => {
                         <TableCell className="font-medium">
                           <div className="flex flex-col">
                             <span className="text-gray-900">{getUserDisplayName(user)}</span>
+                            <span className="text-xs text-gray-600">@{user.username}</span>
                             {user.contact && (
                               <span className="text-xs text-gray-500">{user.contact}</span>
                             )}
