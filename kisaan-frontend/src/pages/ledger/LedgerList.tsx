@@ -66,7 +66,8 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     entry_date: ''
   });
   const [editLoading, setEditLoading] = useState(false);
-  // Smart caching system
+  const [isAdding, setIsAdding] = useState(false);
+  // Smart caching system - only load pages on demand
   const [pageCache, setPageCache] = useState<Map<string, { entries: LedgerEntry[], total: number, timestamp: number }>>(new Map());
   const [loadingPages, setLoadingPages] = useState<Set<number>>(new Set());
   const [currentFilterKey, setCurrentFilterKey] = useState<string>('');
@@ -164,26 +165,12 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     }
   }, [shopId, farmerId, from, to, category, pageSize, getCacheKey, pageCache, isCacheValid, loadingPages, page]);
 
-  // Prefetch adjacent pages
+  // Prefetch only when user explicitly navigates (disabled for performance)
   const prefetchPages = useCallback(async (currentPage: number) => {
-    const maxPage = Math.max(1, Math.ceil(total / pageSize));
-    const pagesToPrefetch = [];
-
-    // Prefetch next 2 pages
-    if (currentPage + 1 <= maxPage) pagesToPrefetch.push(currentPage + 1);
-    if (currentPage + 2 <= maxPage) pagesToPrefetch.push(currentPage + 2);
-
-    // Prefetch previous page
-    if (currentPage > 1) pagesToPrefetch.push(currentPage - 1);
-
-    for (const pageNum of pagesToPrefetch) {
-      const cacheKey = getCacheKey(pageNum);
-      if (!pageCache.has(cacheKey) || !isCacheValid(pageCache.get(cacheKey)!)) {
-        // Load in background without blocking UI
-        loadPage(pageNum, false).catch(console.error);
-      }
-    }
-  }, [total, pageSize, getCacheKey, pageCache, isCacheValid, loadPage]);
+    // Disabled prefetching to prevent automatic loading of multiple pages
+    // Only load pages when user explicitly requests them
+    return;
+  }, []);
 
 
   // Update balance when summaryData changes
@@ -214,12 +201,12 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     }
   }, [refreshTrigger, clearFilterCache, loadPage, page]);
 
-  // Prefetch pages when current page changes
-  useEffect(() => {
-    if (total > 0 && !loading) {
-      prefetchPages(page);
-    }
-  }, [page, total, loading, prefetchPages]);
+  // Prefetch pages when current page changes (disabled for performance)
+  // useEffect(() => {
+  //   if (total > 0 && !loading && page > 1) {
+  //     prefetchPages(page);
+  //   }
+  // }, [page, total, loading, prefetchPages]);
 
   // Periodic cache cleanup
   useEffect(() => {
@@ -238,6 +225,20 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     const interval = setInterval(cleanup, CACHE_EXPIRY / 2); // Clean every 2.5 minutes
     return () => clearInterval(interval);
   }, [isCacheValid, CACHE_EXPIRY]);
+
+  // Set form for adding new entry
+  useEffect(() => {
+    if (isAdding && !editingEntry) {
+      setEditForm({
+        farmer_id: farmerId ? String(farmerId) : '',
+        type: 'credit',
+        category: 'sale',
+        amount: '0',
+        notes: '',
+        entry_date: new Date().toISOString().split('T')[0]
+      });
+    }
+  }, [isAdding, editingEntry, farmerId]);
 
   // Memoize shop users to prevent unnecessary re-renders
   const shopUsers = useMemo(() => allUsers.filter(u => Number(u.shop_id) === shopId), [allUsers, shopId]);
@@ -380,6 +381,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
 
   const handleEditEntry = (entry: LedgerEntry) => {
     setEditingEntry(entry);
+    setIsAdding(false);
     setEditForm({
       farmer_id: String(entry.farmer_id),
       type: entry.type,
@@ -392,6 +394,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
 
   const handleCancelEdit = () => {
     setEditingEntry(null);
+    setIsAdding(false);
     setEditForm({
       farmer_id: '',
       type: '',
@@ -884,7 +887,7 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
           </>
         )}
       </CardContent>
-      {/* Pagination controls (shared mobile & desktop) */}
+      {/* Pagination controls (smart on-demand loading) */}
       <div className="px-4 py-3 flex items-center justify-between gap-4 bg-gray-50 rounded-lg border mx-4 mb-4">
         {/* Mobile: Simple page/total display */}
         <div className="md:hidden text-sm text-gray-600 font-medium">
@@ -950,20 +953,21 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
     </Card>
 
     {/* Edit Entry Modal */}
-    {editingEntry && (
+    {(editingEntry || isAdding) && (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
           <div className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Edit Ledger Entry</h3>
+            <h3 className="text-lg font-semibold mb-4">{isAdding ? 'Add Ledger Entry' : 'Edit Ledger Entry'}</h3>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               {/* Farmer Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Farmer</label>
+                <label htmlFor="farmer-select" className="block text-sm font-medium text-gray-700 mb-2">Farmer</label>
                 <select
+                  id="farmer-select"
                   value={editForm.farmer_id}
                   onChange={(e) => setEditForm(prev => ({ ...prev, farmer_id: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {shopUsers.map(user => (
                     <option key={user.id} value={user.id}>
@@ -975,11 +979,12 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
 
               {/* Type Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <label htmlFor="type-select" className="block text-sm font-medium text-gray-700 mb-2">Type</label>
                 <select
+                  id="type-select"
                   value={editForm.type}
                   onChange={(e) => setEditForm(prev => ({ ...prev, type: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="credit">Credit</option>
                   <option value="debit">Debit</option>
@@ -988,11 +993,12 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
 
               {/* Category Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <label htmlFor="category-select" className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                 <select
+                  id="category-select"
                   value={editForm.category}
                   onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="sale">Sale</option>
                   <option value="deposit">Deposit</option>
@@ -1005,36 +1011,39 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
 
               {/* Amount */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                <label htmlFor="amount-input" className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
                 <input
+                  id="amount-input"
                   type="number"
                   step="0.01"
                   min="0"
                   value={editForm.amount}
                   onChange={(e) => setEditForm(prev => ({ ...prev, amount: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"
                 />
               </div>
 
               {/* Entry Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Entry Date (Optional)</label>
+                <label htmlFor="entry-date-input" className="block text-sm font-medium text-gray-700 mb-2">Entry Date (Optional)</label>
                 <input
+                  id="entry-date-input"
                   type="date"
                   value={editForm.entry_date}
                   onChange={(e) => setEditForm(prev => ({ ...prev, entry_date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                <label htmlFor="notes-textarea" className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
                 <textarea
+                  id="notes-textarea"
                   value={editForm.notes}
                   onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={3}
                   placeholder="Add notes..."
                 />

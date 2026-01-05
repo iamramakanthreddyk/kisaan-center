@@ -98,15 +98,19 @@ export const FarmerLedgerDashboard: React.FC = () => {
     printLedgerReport(
       {
         overall: periodData?.overall,
-        period: periodData?.period
+        entries: [] // No individual entries for dashboard view
       },
       {
         title: 'Farmer Ledger Report',
-        periodType,
+        dateRange: periodType,
+        categoryInfo: 'All Categories',
+        farmerName: `Farmer #${farmerId}`,
+        showEntries: false,
         showSummary: true,
         showPeriodBreakdown: true,
-        showEntries: false
-      }
+        isOwner: user?.role === 'owner'
+      },
+      [] // Empty users array since we don't have individual entries
     );
   };
 
@@ -180,7 +184,7 @@ export const FarmerLedgerDashboard: React.FC = () => {
                     <option value="monthly">Monthly</option>
                   </select>
                 </div>
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700 block">From Date:</label>
                     <div className="relative">
@@ -192,6 +196,7 @@ export const FarmerLedgerDashboard: React.FC = () => {
                         placeholderText="DD-MM-YYYY"
                         isClearable
                         showPopperArrow={false}
+                        popperPlacement="bottom"
                       />
                       <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                     </div>
@@ -207,6 +212,7 @@ export const FarmerLedgerDashboard: React.FC = () => {
                         placeholderText="DD-MM-YYYY"
                         isClearable
                         showPopperArrow={false}
+                        popperPlacement="bottom"
                       />
                       <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                     </div>
@@ -215,45 +221,47 @@ export const FarmerLedgerDashboard: React.FC = () => {
               </div>
 
               {/* Desktop Layout */}
-              <div className="hidden sm:flex flex-wrap items-end gap-4">
-                <div className="flex items-center gap-2">
+              <div className="hidden sm:flex flex-wrap items-end gap-6">
+                <div className="flex flex-col gap-1 min-w-[120px]">
                   <label className="text-sm font-medium text-gray-700">Period:</label>
                   <select
                     value={selectedPeriod}
                     onChange={(e) => setSelectedPeriod(e.target.value as 'daily' | 'weekly' | 'monthly')}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px]"
                   >
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
                     <option value="monthly">Monthly</option>
                   </select>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-1 min-w-[140px]">
                   <label className="text-sm font-medium text-gray-700">From:</label>
                   <div className="relative">
                     <DatePicker
                       selected={fromDate}
                       onChange={(date) => setFromDate(date)}
                       dateFormat="dd-MM-yyyy"
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholderText="DD-MM-YYYY"
                       isClearable
                       showPopperArrow={false}
+                      popperPlacement="bottom-start"
                     />
                     <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-1 min-w-[140px]">
                   <label className="text-sm font-medium text-gray-700">To:</label>
                   <div className="relative">
                     <DatePicker
                       selected={toDate}
                       onChange={(date) => setToDate(date)}
                       dateFormat="dd-MM-yyyy"
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholderText="DD-MM-YYYY"
                       isClearable
                       showPopperArrow={false}
+                      popperPlacement="bottom-start"
                     />
                     <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                   </div>
@@ -366,25 +374,25 @@ export const FarmerLedgerDashboard: React.FC = () => {
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div className="flex flex-col min-w-0">
                           <span className="text-gray-600">Credit:</span>
-                          <span className="font-mono font-medium text-green-700 break-words whitespace-pre-wrap max-w-full xs:max-w-[100px]">
+                          <span className="font-mono font-medium text-green-700 break-words whitespace-pre-wrap">
                             ₹{Number(period.credit).toLocaleString('en-IN')}
                           </span>
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="text-gray-600">Debit:</span>
-                          <span className="font-mono font-medium text-red-700 break-words whitespace-pre-wrap max-w-full xs:max-w-[100px]">
+                          <span className="font-mono font-medium text-red-700 break-words whitespace-pre-wrap">
                             ₹{Number(period.debit).toLocaleString('en-IN')}
                           </span>
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="text-gray-600">Commission:</span>
-                          <span className="font-mono font-medium text-orange-700 break-words whitespace-pre-wrap max-w-full xs:max-w-[100px]">
+                          <span className="font-mono font-medium text-orange-700 break-words whitespace-pre-wrap">
                             ₹{Number(period.commission).toLocaleString('en-IN')}
                           </span>
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="text-gray-600">Net Earning:</span>
-                          <span className={`font-mono font-medium break-words whitespace-pre-wrap max-w-full xs:max-w-[100px] ${Number(period.balance) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                          <span className={`font-mono font-medium break-words whitespace-pre-wrap ${Number(period.balance) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                             ₹{Number(period.balance).toLocaleString('en-IN')}
                           </span>
                         </div>
@@ -410,16 +418,16 @@ export const FarmerLedgerDashboard: React.FC = () => {
                         <TableCell className="font-medium">
                           {formatDisplayDate(period.period)}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-green-700 break-words whitespace-pre-wrap max-w-[100px]">
+                        <TableCell className="text-right font-mono text-green-700 break-words whitespace-pre-wrap">
                           ₹{Number(period.credit).toLocaleString('en-IN')}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-red-700 break-words whitespace-pre-wrap max-w-[100px]">
+                        <TableCell className="text-right font-mono text-red-700 break-words whitespace-pre-wrap">
                           ₹{Number(period.debit).toLocaleString('en-IN')}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-orange-700 break-words whitespace-pre-wrap max-w-[100px]">
+                        <TableCell className="text-right font-mono text-orange-700 break-words whitespace-pre-wrap">
                           ₹{Number(period.commission).toLocaleString('en-IN')}
                         </TableCell>
-                        <TableCell className={`text-right font-mono break-words whitespace-pre-wrap max-w-[100px] ${Number(period.balance) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                        <TableCell className={`text-right font-mono break-words whitespace-pre-wrap ${Number(period.balance) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                           ₹{Number(period.balance).toLocaleString('en-IN')}
                         </TableCell>
                       </TableRow>
