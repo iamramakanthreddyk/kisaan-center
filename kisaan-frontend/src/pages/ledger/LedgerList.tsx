@@ -106,63 +106,71 @@ const LedgerList: React.FC<LedgerListProps> = ({ refreshTrigger = false, farmerI
   // Load page from cache or API
   const loadPage = useCallback(async (pageToLoad: number, forceRefresh = false) => {
     const cacheKey = getCacheKey(pageToLoad);
-    const cached = pageCache.get(cacheKey);
 
-    // Return cached data if valid and not forcing refresh
-    if (!forceRefresh && cached && isCacheValid(cached)) {
-      setEntries(cached.entries);
-      setTotal(cached.total);
-      setPage(pageToLoad);
-      return;
-    }
+    // Check cache in a synchronous callback to avoid circular dependencies
+    setPageCache(currentCache => {
+      const cached = currentCache.get(cacheKey);
 
-    // Check if already loading this page
-    if (loadingPages.has(pageToLoad)) {
-      return;
-    }
-
-    setLoadingPages(prev => new Set(prev).add(pageToLoad));
-    setError(null);
-
-    try {
-      const payload = await fetchLedgerEntries(
-        shopId,
-        farmerId ?? undefined,
-        from ?? undefined,
-        to ?? undefined,
-        category ?? undefined,
-        pageToLoad,
-        pageSize
-      );
-
-      const newEntries = Array.isArray(payload.entries) ? payload.entries : [];
-      const newTotal = typeof payload.total === 'number' ? payload.total : 0;
-
-      // Update cache
-      setPageCache(prev => new Map(prev).set(cacheKey, {
-        entries: newEntries,
-        total: newTotal,
-        timestamp: Date.now()
-      }));
-
-      // Update state only if this is still the current page being loaded
-      if (!loadingPages.has(pageToLoad) || pageToLoad === page) {
-        setEntries(newEntries);
-        setTotal(newTotal);
+      // Return cached data if valid and not forcing refresh
+      if (!forceRefresh && cached && isCacheValid(cached)) {
+        setEntries(cached.entries);
+        setTotal(cached.total);
         setPage(pageToLoad);
+        return currentCache;
       }
 
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to fetch ledger entries');
-      setEntries([]);
-    } finally {
-      setLoadingPages(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(pageToLoad);
-        return newSet;
-      });
-    }
-  }, [shopId, farmerId, from, to, category, pageSize, getCacheKey, pageCache, isCacheValid, loadingPages, page]);
+      // Check if already loading this page
+      if (loadingPages.has(pageToLoad)) {
+        return currentCache;
+      }
+
+      // Mark page as loading
+      const newLoadingPages = new Set(loadingPages);
+      newLoadingPages.add(pageToLoad);
+      setLoadingPages(newLoadingPages);
+      setError(null);
+
+      // Fetch the data
+      (async () => {
+        try {
+          const payload = await fetchLedgerEntries(
+            shopId,
+            farmerId ?? undefined,
+            from ?? undefined,
+            to ?? undefined,
+            category ?? undefined,
+            pageToLoad,
+            pageSize
+          );
+
+          const newEntries = Array.isArray(payload.entries) ? payload.entries : [];
+          const newTotal = typeof payload.total === 'number' ? payload.total : 0;
+
+          // Update cache and state
+          setPageCache(prevCache => new Map(prevCache).set(cacheKey, {
+            entries: newEntries,
+            total: newTotal,
+            timestamp: Date.now()
+          }));
+
+          setEntries(newEntries);
+          setTotal(newTotal);
+          setPage(pageToLoad);
+        } catch (e) {
+          setError(e instanceof Error ? e.message : 'Failed to fetch ledger entries');
+          setEntries([]);
+        } finally {
+          setLoadingPages(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(pageToLoad);
+            return newSet;
+          });
+        }
+      })();
+
+      return currentCache;
+    });
+  }, [shopId, farmerId, from, to, category, pageSize, getCacheKey, isCacheValid]);
 
   // Prefetch only when user explicitly navigates (disabled for performance)
   const prefetchPages = useCallback(async (currentPage: number) => {
