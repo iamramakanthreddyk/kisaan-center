@@ -24,6 +24,7 @@ import SuperadminProducts from './pages/SuperadminProducts';
 import PricingPage from './pages/PricingPage';
 import SuperadminReports from './pages/SuperadminReports';
 import SuperadminSettings from './pages/SuperadminSettings';
+import SuperadminFeatures from './pages/SuperadminFeatures';
 import ShopProducts from './pages/ShopProducts';
 import { AuthProvider } from './context/AuthContext';
 import { SidebarProvider } from './context/SidebarContext';
@@ -180,6 +181,11 @@ const AppRoutes = () => {
         <Route path="/superadmin/users" element={
           <ProtectedRoute allowedRoles={['superadmin']}>
             <SuperadminUsers />
+          </ProtectedRoute>
+        } />
+        <Route path="/superadmin/features" element={
+          <ProtectedRoute allowedRoles={['superadmin']}>
+            <SuperadminFeatures />
           </ProtectedRoute>
         } />
         {/* Plans moved to public pricing page at /pricing */}

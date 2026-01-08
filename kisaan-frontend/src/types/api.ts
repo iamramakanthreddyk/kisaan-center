@@ -434,3 +434,28 @@ export interface FarmerPaymentsExpenses {
   created_at: string;
   updated_at: string;
 }
+
+export interface UserActivityStats {
+  recentLogins: Array<{
+    id: number;
+    name: string;
+    email: string;
+    last_login: string;
+    login_count: number;
+    last_activity: string;
+  }>;
+  activeSessions: number;
+  usersWithMultipleSessions: Array<{
+    user_id: number;
+    session_count: number;
+    user: {
+      name: string;
+      email: string;
+      role: string;
+    };
+  }>;
+  loginActivity: Array<{
+    date: string;
+    login_count: number;
+  }>;
+}

@@ -15,6 +15,9 @@ export class UserEntity {
   cumulative_value?: number | null;
   created_by?: number | null;
   custom_commission_rate?: number | null;
+  last_login?: Date | null;
+  login_count?: number | null;
+  last_activity?: Date | null;
   created_at?: Date;
   updated_at?: Date;
 

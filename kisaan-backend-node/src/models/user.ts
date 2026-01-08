@@ -19,6 +19,9 @@ export interface UserAttributes {
   cumulative_value?: number | null;
   created_by?: number | null;
   custom_commission_rate?: number | null;
+  last_login?: Date | null;
+  login_count?: number | null;
+  last_activity?: Date | null;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -39,6 +42,9 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public cumulative_value!: number | null;
   public created_by!: number | null;
   public custom_commission_rate!: number | null;
+  public last_login!: Date | null;
+  public login_count!: number | null;
+  public last_activity!: Date | null;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
   // Add hooks for audit fields if custom logic is needed
@@ -102,6 +108,19 @@ User.init(
     },
     custom_commission_rate: {
       type: DataTypes.DECIMAL(5,2),
+      allowNull: true,
+    },
+    last_login: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    login_count: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+    },
+    last_activity: {
+      type: DataTypes.DATE,
       allowNull: true,
     },
     created_at: {

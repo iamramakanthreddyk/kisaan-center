@@ -16,11 +16,17 @@ import { Router } from 'express';
 import * as controller from '../controllers/simpleFarmerLedgerController';
 import { authenticateToken } from '../middlewares/auth';
 import { shopAccessGuard, farmerReadOnlyGuard, ownerOnlyGuard } from '../middleware/accessGuards';
+import { loadFeatures, requireFeature } from '../middlewares/features';
+import { trackUserActivity } from '../middlewares/activityTracker';
 
 
 const router = Router();
 // All routes require authentication
 router.use(authenticateToken);
+// Track user activity on all ledger operations
+router.use(trackUserActivity);
+// Load features for all routes
+router.use(loadFeatures);
 
 // Batch create endpoint (moved after router declaration)
 router.post('/batch', ownerOnlyGuard, controller.createBatchEntries);
@@ -37,7 +43,7 @@ router.delete('/:id', shopAccessGuard, controller.deleteEntry);
 router.get('/', farmerReadOnlyGuard, controller.listEntries);
 router.get('/balance', authenticateToken, controller.getFarmerBalance);
 router.get('/summary', farmerReadOnlyGuard, controller.getSummary);
-router.get('/export', farmerReadOnlyGuard, controller.exportCsv);
+router.get('/export', farmerReadOnlyGuard, requireFeature('ledger.export'), controller.exportCsv);
 // Earnings: only shop owners/employees can view earnings
 router.get('/earnings', shopAccessGuard, controller.getEarnings);
 

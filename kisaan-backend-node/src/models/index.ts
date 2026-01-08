@@ -21,6 +21,7 @@ import Expense from './expense';
 import ExpenseSettlement from './expenseSettlement';
 import LedgerEntry from './ledgerEntry';
 import UserBalance from './userBalance';
+import UserSession from './userSession';
 
 
 // Initialize all models
@@ -48,10 +49,9 @@ const models = {
   Expense,
   ExpenseSettlement,
   LedgerEntry,
-  UserBalance
+  UserBalance,
+  UserSession
 };
-
-// Set up associations
 
 // Plan associations
 Plan.hasMany(Shop, { foreignKey: 'plan_id', as: 'shops' });
@@ -114,6 +114,10 @@ Shop.hasMany(User, { foreignKey: 'shop_id', as: 'users' });
 // User self-referential creator relationship (audit trail)
 User.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
 User.hasMany(User, { foreignKey: 'created_by', as: 'createdUsers' });
+
+// UserSession associations
+User.hasMany(UserSession, { foreignKey: 'user_id', as: 'sessions' });
+UserSession.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
 // Transaction associations
 Transaction.belongsTo(Shop, { foreignKey: 'shop_id', as: 'transactionShop' });
@@ -212,7 +216,8 @@ export {
   PaymentAllocation,
   TransactionIdempotency,
   LedgerEntry,
-  UserBalance
+  UserBalance,
+  UserSession
 };
 
 export default models;

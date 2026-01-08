@@ -141,8 +141,11 @@ export const getAllUsers = async (
     result = user ? { users: [user], total: 1 } : { users: [], total: 0 };
   } else {
     // Superadmin sees all users with proper pagination and filtering
-    const filters: { role?: string; shop_id?: number; status?: string } = {};
-    if (searchParams.role) filters.role = searchParams.role;
+    const filters: { role?: string | string[]; shop_id?: number; status?: string } = {};
+    if (searchParams.role) {
+      // Handle both single role and array of roles
+      filters.role = Array.isArray(searchParams.role) ? searchParams.role : searchParams.role;
+    }
     if (searchParams.shop_id) filters.shop_id = Number(searchParams.shop_id);
     if (searchParams.status) filters.status = searchParams.status;
     

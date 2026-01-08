@@ -63,7 +63,10 @@ export const UserPasswordResetSchema = z.object({
 }));
 
 export const UserSearchSchema = z.object({
-  role: UserRoleEnum.optional(),
+  role: z.union([
+    UserRoleEnum,
+    z.string().transform((val) => val.split(',').filter(Boolean))
+  ]).optional(),
   shop_id: z.preprocess(
     (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
     z.number().int().optional()

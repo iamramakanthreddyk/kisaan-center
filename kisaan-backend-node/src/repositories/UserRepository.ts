@@ -131,13 +131,19 @@ export class UserRepository extends BaseRepository<User, UserEntity> {
   async findAllPaginated(
     page: number = 1, 
     limit: number = 20, 
-    filters?: { role?: string; shop_id?: number; status?: string }
+    filters?: { role?: string | string[]; shop_id?: number; status?: string }
   ): Promise<{ users: UserEntity[]; total: number }> {
     const offset = (page - 1) * limit;
     const where: Record<string, unknown> = {};
     
     if (filters?.role) {
-      where.role = filters.role;
+      // Handle both single role and array of roles using Op.in
+      if (Array.isArray(filters.role)) {
+        const { Op } = require('sequelize');
+        where.role = { [Op.in]: filters.role };
+      } else {
+        where.role = filters.role;
+      }
     }
     if (filters?.shop_id) {
       where.shop_id = filters.shop_id;

@@ -4,6 +4,9 @@ import jwt from 'jsonwebtoken';
 import { LoginInput } from '../schemas/auth';
 import { ValidationError, AuthorizationError, DatabaseError } from '../shared/utils/errors';
 import { StringFormatter } from '../shared/utils/formatting';
+import { SessionService } from './sessionService';
+import { User } from '../models/user';
+import crypto from 'crypto';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
@@ -83,15 +86,42 @@ export class AuthService {
         }
       }
 
-      // Generate JWT token (no expiration - only expires on logout)
+      // Update user login tracking
+      await User.update(
+        {
+          last_login: new Date(),
+          login_count: (user.login_count || 0) + 1,
+        },
+        { where: { id: user.id } }
+      );
+
+      // Generate JTI for session management
+      const jti = crypto.randomBytes(16).toString('hex');
+
+      // Generate JWT token with JTI (expires in 24 hours)
       const token = jwt.sign(
         {
           id: user.id,
           username: user.username,
           role: user.role,
-          shop_id: shopId ?? null
+          shop_id: shopId ?? null,
+          jti: jti
         },
-        JWT_SECRET
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      // Calculate token expiry
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Handle session management (invalidate old sessions if needed)
+      await SessionService.handleLoginSession(
+        user.id!,
+        jti,
+        expiresAt,
+        undefined, // deviceInfo - can be added later from request
+        undefined, // ipAddress - can be added later from request
+        undefined  // userAgent - can be added later from request
       );
 
       return {
@@ -116,19 +146,32 @@ export class AuthService {
   /**
    * Verify a JWT token and return the decoded payload
    */
-  verifyToken(token: string): unknown {
+  async verifyToken(token: string): Promise<unknown> {
     try {
       if (!token?.trim()) {
         throw new ValidationError('Token is required');
       }
 
-      return jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+
+      // Check if token has JTI (newer tokens)
+      if (decoded.jti) {
+        const isSessionValid = await SessionService.validateSession(decoded.jti);
+        if (!isSessionValid) {
+          throw new AuthorizationError('Session invalidated');
+        }
+      }
+
+      return decoded;
     } catch (error) {
       if (error instanceof jwt.JsonWebTokenError) {
         throw new AuthorizationError('Invalid token');
       }
       if (error instanceof jwt.TokenExpiredError) {
         throw new AuthorizationError('Token expired');
+      }
+      if (error instanceof AuthorizationError) {
+        throw error;
       }
       throw new ValidationError('Invalid token format');
     }

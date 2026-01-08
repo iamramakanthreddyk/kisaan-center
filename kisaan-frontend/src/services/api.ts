@@ -27,7 +27,8 @@ import type {
   ExpenseAllocationDetail,
   LedgerEntry,
   LedgerSummary,
-  FarmerPaymentsExpenses
+  FarmerPaymentsExpenses,
+  UserActivityStats
 } from '../types/api';
 
 // Commissions API
@@ -132,6 +133,8 @@ export const balanceSnapshotsApi = {
 // Superadmin Dashboard API
 export const superadminDashboardApi = {
   getDashboard: async () => apiClient.get(DASHBOARD_ENDPOINTS.SUPERADMIN.DASHBOARD),
+  getActivityStats: async () => apiClient.get<ApiResponse<UserActivityStats>>(DASHBOARD_ENDPOINTS.SUPERADMIN.ACTIVITY),
+  getUserSessions: async (userId: number) => apiClient.get(DASHBOARD_ENDPOINTS.SUPERADMIN.USER_SESSIONS(userId)),
   getRecentShops: async () => {
   const resp = await apiClient.get<ApiResponse<Shop[]>>(`${SHOP_ENDPOINTS.BASE}${buildQueryString({ limit: 5 })}`);
   return resp.data || [];

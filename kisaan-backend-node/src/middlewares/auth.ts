@@ -1,19 +1,11 @@
 // Authentication and authorization middleware
 import { Request, Response, NextFunction } from 'express';
-
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: number;
-    username: string;
-    role: import('../schemas/user').UserRole;
-    shop_id?: number | null;
-  };
-}
 import jwt from 'jsonwebtoken';
 import { User } from '../models/user';
 import { UserRole } from '../schemas/user';
 import { failureCode } from '../shared/http/respond';
 import { ErrorCodes } from '../shared/errors/errorCodes';
+import { AuthService } from '../services/authService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
@@ -44,17 +36,19 @@ export const authenticateToken = async (
       return;
     }
 
+    // Use AuthService to verify token (includes session validation)
+    const authService = new AuthService();
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET) as {
+      decoded = await authService.verifyToken(token) as {
         id: number;
         username: string;
         role: UserRole;
         shop_id?: number | null;
+        jti?: string;
       };
-    } catch (jwtError) {
-      // eslint-disable-next-line no-console
-      console.error('[AUTH ERROR] JWT verification failed:', jwtError instanceof Error ? jwtError.message : String(jwtError));
+    } catch (authError) {
+      console.error('[AUTH ERROR] Token verification failed:', authError instanceof Error ? authError.message : String(authError));
       req.user = undefined;
       failureCode(res, 403, ErrorCodes.INVALID_TOKEN, undefined, 'Invalid token');
       return;
@@ -73,6 +67,12 @@ export const authenticateToken = async (
       return;
     }
 
+    // Update last_activity for authenticated requests
+    await User.update(
+      { last_activity: new Date() },
+      { where: { id: user.id }, silent: true }
+    );
+
     console.log(`[AUTH] Token verified and user found: userId=${user.id}, username=${user.username}`);
     req.user = {
       id: user.id,
@@ -83,7 +83,6 @@ export const authenticateToken = async (
 
     next();
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('[AUTH ERROR] Unexpected error in authenticateToken:', error instanceof Error ? error.message : String(error));
     req.user = undefined;
     failureCode(res, 403, ErrorCodes.INVALID_TOKEN, undefined, 'Invalid token');

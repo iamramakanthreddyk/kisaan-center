@@ -123,6 +123,8 @@ export const EXPENSE_ENDPOINTS = {
 export const DASHBOARD_ENDPOINTS = {
   SUPERADMIN: {
     DASHBOARD: '/superadmin/dashboard',
+    ACTIVITY: '/superadmin/activity',
+    USER_SESSIONS: (userId: number) => `/superadmin/users/${userId}/sessions`,
     RECENT_SHOPS: '/shops?limit=5'
   },
   OWNER: {
