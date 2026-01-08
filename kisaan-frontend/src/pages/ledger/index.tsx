@@ -44,27 +44,26 @@ const SimpleLedger: React.FC = () => {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   
-  // Memoized fetch function - only recreated when dependencies change
-  const loadSummary = useCallback(async () => {
-    setSummaryLoading(true);
-    setSummaryError(null);
-    try {
-      // For farmers, always use their own id
-      const farmerIdParam = user?.role === 'farmer' ? Number(user.id) : selectedFarmer ?? undefined;
-      const data = await fetchLedgerSummary(shopId, 'weekly', farmerIdParam, fromDate, toDate, selectedCategory || undefined) as SummaryData;
-      setSummaryData(data);
-    } catch (e) {
-      setSummaryError(e instanceof Error ? e.message : 'Failed to fetch summary');
-      setSummaryData(null);
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [shopId, selectedFarmer, fromDate, toDate, selectedCategory, user]);
-  
   // Fetch summary only when filters change
   useEffect(() => {
+    const loadSummary = async () => {
+      setSummaryLoading(true);
+      setSummaryError(null);
+      try {
+        // For farmers, always use their own id
+        const farmerIdParam = user?.role === 'farmer' ? Number(user.id) : selectedFarmer ?? undefined;
+        const data = await fetchLedgerSummary(shopId, 'weekly', farmerIdParam, fromDate, toDate, selectedCategory || undefined) as SummaryData;
+        setSummaryData(data);
+      } catch (e) {
+        setSummaryError(e instanceof Error ? e.message : 'Failed to fetch summary');
+        setSummaryData(null);
+      } finally {
+        setSummaryLoading(false);
+      }
+    };
+
     loadSummary();
-  }, [loadSummary]);
+  }, [shopId, selectedFarmer, fromDate, toDate, selectedCategory, user?.role, user?.id]);
 
   const handleEntryAdded = () => {
     setShowForm(false);
